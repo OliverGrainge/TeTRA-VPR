@@ -4,7 +4,7 @@ Datasets:
 
 
 Dataloader:
-  batch_size: 28
+  batch_size: 100
   img_per_place: 4
   min_img_per_place: 4
   cities:
@@ -12,8 +12,8 @@ Dataloader:
     - Boston
     - Melbourne
   image_size:
-    - 320
-    - 320
+    - 224
+    - 224
   num_workers: 8
   shuffle_all: True
   random_sample_from_each_place: True
@@ -27,7 +27,7 @@ Training:
     - 0
   precision: 16
   max_epochs: 30
-  fast_dev_run: True
+  fast_dev_run: False
 
   lr: 0.0002
   optimizer: 'adam'
@@ -49,15 +49,15 @@ Training:
 
 
 Model:
-  backbone_arch: 'resnet50'
+  backbone_arch: 'resnet18'
   pretrained: True
   layers_to_freeze: 2
   layers_to_crop:
     -
   agg_arch: 'ConvAP'
   agg_config:
-    convap_in_channels: 2048
-    convap_out_channels: 1024
+    convap_in_channels: 512
+    convap_out_channels: 512
     convap_s1: 2
     convap_s2: 2
     cosplace_in_dim: 2048
