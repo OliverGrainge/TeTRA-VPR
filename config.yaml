@@ -4,7 +4,7 @@ Datasets:
 
 
 Dataloader:
-  batch_size: 4
+  batch_size: 28
   img_per_place: 4
   min_img_per_place: 4
   cities:
@@ -21,28 +21,13 @@ Dataloader:
   val_set_names:
     - pitts30k_val
 
-
-Model:
-  backbone_arch: 'resnet50'
-  pretrained: True
-  layers_to_freeze: 2
-  layers_to_crop:
-    -
-  agg_arch: 'ConvAP'
-  agg_config:
-    in_channels: 2048
-    out_channels: 1024
-    s1: 2
-    s2: 2
-
-
 Training:
   accelerator: 'gpu'
   devices:
     - 0
   precision: 16
   max_epochs: 30
-  fast_dev_run: True
+  fast_dev_run: False
 
   lr: 0.0002
   optimizer: 'adam'
@@ -61,3 +46,19 @@ Training:
   faiss_gpu: False
 
   monitor: 'pitts30k_val/R1'
+
+
+Model:
+  backbone_arch: 'resnet50'
+  pretrained: True
+  layers_to_freeze: 2
+  layers_to_crop:
+    -
+  agg_arch: 'ConvAP'
+  agg_config:
+    in_channels: 2048
+    out_channels: 1024
+    s1: 2
+    s2: 2
+
+
