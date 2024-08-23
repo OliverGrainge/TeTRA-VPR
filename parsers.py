@@ -46,6 +46,8 @@ def model_arguments(parser=None):
 
     parser.add_argument('--agg_config_p', type=int, default=config['Model']['agg_config']['gem_p'],
                         help='Stride 2 for aggregation')
+
+    parser.add_argument("--load_checkpoint", type=str, default=config["Model"]["load_checkpoint"], help="loading checkpoint file")
     return parser
 
 def training_arguments(parser=None):
@@ -122,7 +124,7 @@ def dataloader_arguments(parser=None):
     return parser
 
 
-def dataloader_arguments(parser=None):
+def quantize_arguments(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description="Quantize configuration arguments")
 

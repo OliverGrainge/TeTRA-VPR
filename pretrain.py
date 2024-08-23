@@ -206,7 +206,7 @@ class VPRModel(pl.LightningModule):
                 q_list=q_list,
                 k_values=[1, 5, 10, 15, 20, 25],
                 gt=ground_truth,
-                print_results=True,
+                print_results=False,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu
             )

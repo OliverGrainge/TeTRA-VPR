@@ -49,6 +49,7 @@ Training:
 
 
 Model:
+  load_checkpoint: ""
   backbone_arch: 'resnet18'
   pretrained: True
   layers_to_freeze: 2
@@ -65,7 +66,6 @@ Model:
     gem_p: 3
 
 
-
-Qauntize:
+Quantize:
   qlinear: LinearW8A16
   qconv: Conv2dW8A16
