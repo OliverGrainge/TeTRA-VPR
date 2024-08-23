@@ -28,16 +28,24 @@ def model_arguments(parser=None):
 
     # Nested dictionary for agg_config
     parser.add_argument('--agg_config_in_channels', type=int,
-                        default=config['Model']['agg_config']['in_channels'],
+                        default=config['Model']['agg_config']['convap_in_channels'],
                         help='Number of input channels for aggregation')
     parser.add_argument('--agg_config_out_channels', type=int,
-                        default=config['Model']['agg_config']['out_channels'],
+                        default=config['Model']['agg_config']['convap_out_channels'],
                         help='Number of output channels for aggregation')
-    parser.add_argument('--agg_config_s1', type=int, default=config['Model']['agg_config']['s1'],
+    parser.add_argument('--agg_config_s1', type=int, default=config['Model']['agg_config']['convap_s1'],
                         help='Stride 1 for aggregation')
-    parser.add_argument('--agg_config_s2', type=int, default=config['Model']['agg_config']['s2'],
+    parser.add_argument('--agg_config_s2', type=int, default=config['Model']['agg_config']['convap_s2'],
                         help='Stride 2 for aggregation')
 
+
+    parser.add_argument('--agg_config_in_dim', type=int, default=config['Model']['agg_config']['cosplace_in_dim'],
+                        help='Stride 2 for aggregation')
+    parser.add_argument('--agg_config_out_dim', type=int, default=config['Model']['agg_config']['cosplace_out_dim'],
+                        help='Stride 2 for aggregation')
+
+    parser.add_argument('--agg_config_p', type=int, default=config['Model']['agg_config']['gem_p'],
+                        help='Stride 2 for aggregation')
     return parser
 
 def training_arguments(parser=None):

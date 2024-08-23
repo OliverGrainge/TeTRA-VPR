@@ -27,7 +27,7 @@ Training:
     - 0
   precision: 16
   max_epochs: 30
-  fast_dev_run: False
+  fast_dev_run: True
 
   lr: 0.0002
   optimizer: 'adam'
@@ -56,9 +56,12 @@ Model:
     -
   agg_arch: 'ConvAP'
   agg_config:
-    in_channels: 2048
-    out_channels: 1024
-    s1: 2
-    s2: 2
+    convap_in_channels: 2048
+    convap_out_channels: 1024
+    convap_s1: 2
+    convap_s2: 2
+    cosplace_in_dim: 2048
+    cosplace_out_dim: 1024
+    gem_p: 3
 
 

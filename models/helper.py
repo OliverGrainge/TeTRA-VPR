@@ -48,20 +48,19 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
     """
     
     if 'cosplace' in agg_arch.lower():
-        assert 'in_dim' in agg_config
-        assert 'out_dim' in agg_config
-        return aggregators.CosPlace(**agg_config)
+        assert 'in_dim' in agg_config['cosplace']
+        assert 'out_dim' in agg_config['cosplace']
+        print("hello")
+        return aggregators.CosPlace(**agg_config['cosplace'])
 
     elif 'gem' in agg_arch.lower():
-        if agg_config == {}:
-            agg_config['p'] = 3
-        else:
-            assert 'p' in agg_config
-        return aggregators.GeMPool(**agg_config)
+        assert 'p' in agg_config['gem']
+        print("hi gem")
+        return aggregators.GeMPool(**agg_config['gem'])
     
     elif 'convap' in agg_arch.lower():
-        assert 'in_channels' in agg_config
-        return aggregators.ConvAP(**agg_config)
+        assert 'in_channels' in agg_config['convap']
+        return aggregators.ConvAP(**agg_config['convap'])
 
 
 

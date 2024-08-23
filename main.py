@@ -257,10 +257,19 @@ if __name__ == '__main__':
         # ---- Aggregator
         agg_arch=args.agg_arch,  # CosPlace, NetVLAD, GeM, AVG
         agg_config={
-            'in_channels': args.agg_config_in_channels,
-            'out_channels': args.agg_config_out_channels,
-            's1': args.agg_config_s1,
-            's2': args.agg_config_s2,
+            'convap': {
+                'in_channels': args.agg_config_in_channels,
+                'out_channels': args.agg_config_out_channels,
+                's1': args.agg_config_s1,
+                's2': args.agg_config_s2,
+            },
+            'gem': {
+                'p': args.agg_config_p,
+            },
+            'cosplace': {
+                'in_dim': args.agg_config_in_channels,
+                'out_dim': args.agg_config_out_dim,
+            }
         },
 
         # ---- Train hyperparameters
