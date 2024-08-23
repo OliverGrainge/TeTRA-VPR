@@ -6,14 +6,21 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as T
+import os
+import yaml
 
 default_transform = T.Compose([
     T.ToTensor(),
     T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-# NOTE: Hard coded path to dataset folder 
-BASE_PATH = '/Users/olivergrainge/Documents/github/Datasets/gsv-cities/'
+
+config_path = os.path.join(os.path.dirname(__file__), '../../config.yaml')
+# Load the YAML configuration
+with open(config_path, 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+BASE_PATH = os.path.join(config["Datasets"]["datasets_dir"],  'gsv-cities/')
 
 if not Path(BASE_PATH).exists():
     raise FileNotFoundError(

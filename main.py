@@ -8,7 +8,13 @@ import utils
 
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 from models import helper
+import os
+import yaml
 
+config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+
+with open(config_path, 'r') as config_file:
+    config = yaml.safe_load(config_file)
 
 
 class VPRModel(pl.LightningModule):
@@ -18,29 +24,29 @@ class VPRModel(pl.LightningModule):
 
     def __init__(self,
                 #---- Backbone
-                backbone_arch='resnet50',
-                pretrained=True,
-                layers_to_freeze=1,
-                layers_to_crop=[],
+                backbone_arch=config['Model']['backbone_arch'],
+                pretrained=config['Model']['pretrained'],
+                layers_to_freeze=config['Model']['layers_to_freeze'],
+                layers_to_crop=config['Model']['layers_to_crop'],
                 
                 #---- Aggregator
-                agg_arch='ConvAP', #CosPlace, NetVLAD, GeM, AVG
-                agg_config={},
+                agg_arch=config['Model']['agg_arch'], #CosPlace, NetVLAD, GeM, AVG
+                agg_config=config['Model']['agg_config'],
                 
                 #---- Train hyperparameters
-                lr=0.03, 
-                optimizer='sgd',
-                weight_decay=1e-3,
-                momentum=0.9,
-                warmpup_steps=500,
-                milestones=[5, 10, 15],
-                lr_mult=0.3,
+                lr=config['Training']['lr'],
+                optimizer=config['Training']['optimizer'],
+                weight_decay=config['Training']['weight_decay'],
+                momentum=config['Training']['momentum'],
+                warmpup_steps=config['Training']['warmup_steps'],
+                milestones=config['Training']['milestones'],
+                lr_mult=config['Training']['lr_mult'],
                 
                 #----- Loss
-                loss_name='MultiSimilarityLoss', 
-                miner_name='MultiSimilarityMiner', 
-                miner_margin=0.1,
-                faiss_gpu=False
+                loss_name=config['Training']['loss_name'],
+                miner_name=config['Training']['miner_name'],
+                miner_margin=config['Training']['miner_margin'],
+                faiss_gpu=config['Training']['faiss_gpu'],
                  ):
         super().__init__()
         self.encoder_arch = backbone_arch
@@ -154,7 +160,7 @@ class VPRModel(pl.LightningModule):
         return {'loss': loss}
     
     # This is called at the end of eatch training epoch
-    def on_train_epoch_end(self, training_step_outputs):
+    def on_train_epoch_end(self):
         # we empty the batch_acc list for next epoch
         self.batch_acc = []
 
@@ -222,72 +228,24 @@ if __name__ == '__main__':
     # cities from the list TRAIN_CITIES
     
     datamodule = GSVCitiesDataModule(
-        batch_size=4, # 100
-        img_per_place=4,
-        min_img_per_place=4,
-        cities=['London', 'Boston', 'Melbourne'], # you can sppecify cities here or in GSVCitiesDataloader.py
-        shuffle_all=False, # shuffle all images or keep shuffling in-city only
-        random_sample_from_each_place=True,
-        image_size=(320, 320),
-        num_workers=0,
-        show_data_stats=True,
-        val_set_names=['sped'], # pitts30k_val, pitts30k_test, msls_val, nordland, sped
+        batch_size=config['Dataloader']['batch_size'],
+        img_per_place=config['Dataloader']['img_per_place'],
+        min_img_per_place=config['Dataloader']['min_img_per_place'],
+        cities=config['Dataloader']['cities'],
+        shuffle_all=config['Dataloader']['shuffle_all'],
+        random_sample_from_each_place=config['Dataloader']['random_sample_from_each_place'],
+        image_size=config['Dataloader']['image_size'],
+        num_workers=config['Dataloader']['num_workers'],
+        show_data_stats=config['Dataloader']['show_data_stats'],
+        val_set_names=config['Dataloader']['val_set_names'],
     )
-    
-    # examples of backbones
-    # resnet18, resnet50, resnet101, resnet152,
-    # resnext50_32x4d, resnext50_32x4d_swsl , resnext101_32x4d_swsl, resnext101_32x8d_swsl
-    # efficientnet_b0, efficientnet_b1, efficientnet_b2
-    # swinv2_base_window12to16_192to256_22kft1k
-    model = VPRModel(
-        #-------------------------------
-        #---- Backbone architecture ----
-        backbone_arch='resnet50',
-        pretrained=True,
-        layers_to_freeze=2,
-        layers_to_crop=[], # 4 crops the last resnet layer, 3 crops the 3rd, ...etc
-        
-        #---------------------
-        #---- Aggregator -----
-        # agg_arch='CosPlace',
-        # agg_config={'in_dim': 512,
-        #             'out_dim': 512},
-        # agg_arch='GeM',
-        # agg_config={'p': 3},
-        
-        agg_arch='ConvAP',
-        agg_config={'in_channels': 2048,
-                    'out_channels': 1024,
-                    's1' : 2,
-                    's2' : 2},
 
-        #-----------------------------------
-        #---- Training hyperparameters -----
-        #
-        lr=0.0002, # 0.03 for sgd
-        optimizer='adam', # sgd, adam or adamw
-        weight_decay=0, # 0.001 for sgd or 0.0 for adam
-        momentum=0.9,
-        warmpup_steps=600,
-        milestones=[5, 10, 15, 25],
-        lr_mult=0.3,
-        
-        #---------------------------------
-        #---- Training loss function -----
-        # see utils.losses.py for more losses
-        # example: ContrastiveLoss, TripletMarginLoss, MultiSimilarityLoss,
-        # FastAPLoss, CircleLoss, SupConLoss,
-        #
-        loss_name='MultiSimilarityLoss',
-        miner_name='MultiSimilarityMiner', # example: TripletMarginMiner, MultiSimilarityMiner, PairMarginMiner
-        miner_margin=0.1,
-        faiss_gpu=False
-    )
+    model = VPRModel()
     
     # model params saving using Pytorch Lightning
     # we save the best 3 models accoring to Recall@1 on pittsburg val
     checkpoint_cb = ModelCheckpoint(
-        monitor='pitts30k_val/R1',
+        monitor=config['Training']['monitor'],
         filename=f'{model.encoder_arch}' +
         '_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]',
         auto_insert_metric_name=False,
@@ -299,9 +257,8 @@ if __name__ == '__main__':
     #------------------
     # we instanciate a trainer
     trainer = pl.Trainer(
-        accelerator='cpu', #devices=[0], #gpu 
-        default_root_dir=f'./LOGS/{model.encoder_arch}', # Tensorflow can be used to viz 
-
+        accelerator=config['Training']['accelerator'], devices=config['Training']['devices'], #gpu
+        default_root_dir=f'./LOGS/{model.encoder_arch}', # Tensorflow can be used to viz
         num_sanity_val_steps=0, # runs N validation steps before stating training
         precision=16, # we use half precision to reduce  memory usage (and 2x speed on RTX)
         max_epochs=30,
@@ -309,8 +266,7 @@ if __name__ == '__main__':
         callbacks=[checkpoint_cb],# we run the checkpointing callback (you can add more)
         reload_dataloaders_every_n_epochs=1, # we reload the dataset to shuffle the order
         log_every_n_steps=20,
-        fast_dev_run=True, # comment if you want to start training the network and saving checkpoints
-        #limit_train_batches=1,
+        fast_dev_run=config['Training']['fast_dev_run'], # comment if you want to start training the network and saving checkpoints
     )
 
     # we call the trainer, and give it the model and the datamodule

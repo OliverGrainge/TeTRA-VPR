@@ -2,6 +2,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
+import os
+import yaml
 
 # NOTE: you need to download the Nordland dataset from  https://surfdrive.surf.nl/files/index.php/s/sbZRXzYe3l0v67W
 # this link is shared and maintained by the authors of VPR_Bench: https://github.com/MubarizZaffar/VPR-Bench
@@ -9,8 +11,15 @@ from torch.utils.data import Dataset
 # I hardcoded the image names and ground truth for faster evaluation
 # performance is exactly the same as if you use VPR-Bench.
 
-DATASET_ROOT = '/Users/olivergrainge/Documents/github/Datasets/Pittsburgh-Query/' 
-GT_ROOT = '/Users/olivergrainge/Documents/github/QuantPlaceFinder/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
+
+config_path = os.path.join(os.path.dirname(__file__), '../../config.yaml')
+# Load the YAML configuration
+with open(config_path, 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"],  'Pittsburgh-Query/')
+GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), '../../datasets/')
+
 
 path_obj = Path(DATASET_ROOT)
 if not path_obj.exists():

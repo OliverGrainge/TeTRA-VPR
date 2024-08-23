@@ -1,0 +1,63 @@
+
+Datasets:
+  datasets_dir: "/home/oliver/Documents/github/Datasets"
+
+
+Dataloader:
+  batch_size: 4
+  img_per_place: 4
+  min_img_per_place: 4
+  cities:
+    - London
+    - Boston
+    - Melbourne
+  image_size:
+    - 320
+    - 320
+  num_workers: 8
+  shuffle_all: True
+  random_sample_from_each_place: True
+  show_data_stats: True
+  val_set_names:
+    - pitts30k_val
+
+
+Model:
+  backbone_arch: 'resnet50'
+  pretrained: True
+  layers_to_freeze: 2
+  layers_to_crop:
+    -
+  agg_arch: 'ConvAP'
+  agg_config:
+    in_channels: 2048
+    out_channels: 1024
+    s1: 2
+    s2: 2
+
+
+Training:
+  accelerator: 'gpu'
+  devices:
+    - 0
+  precision: 16
+  max_epochs: 30
+  fast_dev_run: True
+
+  lr: 0.0002
+  optimizer: 'adam'
+  weight_decay: 0
+  momentum: 0.9
+  warmup_steps: 600
+  milestones:
+    - 5
+    - 10
+    - 15
+    - 25
+  lr_mult: 0.3
+  loss_name: 'MultiSimilarityLoss'
+  miner_name: 'MultiSimilarityMiner'
+  miner_margin: 0.1
+  faiss_gpu: False
+
+  monitor: 'pitts30k_val/R1'

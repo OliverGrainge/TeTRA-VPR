@@ -5,9 +5,17 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 from PIL import Image
+import os
+import yaml
 
-DATASET_ROOT = '/Users/olivergrainge/Documents/github/Datasets/msls_val/'
-GT_ROOT = '/Users/olivergrainge/Documents/github/QuantPlaceFinder/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
+config_path = os.path.join(os.path.dirname(__file__), '../../config.yaml')
+# Load the YAML configuration
+with open(config_path, 'r') as config_file:
+    config = yaml.safe_load(config_file)
+
+DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"],  'msls_val/')
+GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), '../../datasets/')
+
 
 class MSLS(Dataset):
     def __init__(self, input_transform = None):
