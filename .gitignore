@@ -2,3 +2,5 @@
 *.DS_Store
 *.idea/
 *LOGS/
+lightning_logs
+data
