@@ -1,3 +1,5 @@
+
+import faiss
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -6,6 +8,7 @@ import utils
 
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 from models import helper
+
 
 
 class VPRModel(pl.LightningModule):
@@ -99,16 +102,6 @@ class VPRModel(pl.LightningModule):
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_mult)
         return [optimizer], [scheduler]
     
-    # configure the optizer step, takes into account the warmup stage
-    def optimizer_step(self,  epoch, batch_idx,
-                        optimizer, optimizer_idx, optimizer_closure,
-                        on_tpu, using_native_amp, using_lbfgs):
-        # warm up lr
-        if self.trainer.global_step < self.warmpup_steps:
-            lr_scale = min(1., float(self.trainer.global_step + 1) / self.warmpup_steps)
-            for pg in optimizer.param_groups:
-                pg['lr'] = lr_scale * self.lr
-        optimizer.step(closure=optimizer_closure)
         
     #  The loss function call (this method will be called at each training iteration)
     def loss_function(self, descriptors, labels):
@@ -161,9 +154,13 @@ class VPRModel(pl.LightningModule):
         return {'loss': loss}
     
     # This is called at the end of eatch training epoch
-    def training_epoch_end(self, training_step_outputs):
+    def on_train_epoch_end(self, training_step_outputs):
         # we empty the batch_acc list for next epoch
         self.batch_acc = []
+
+    def on_validation_epoch_start(self):
+        # Initialize or reset the list to store validation outputs
+        self.validation_outputs = []
 
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
@@ -171,71 +168,70 @@ class VPRModel(pl.LightningModule):
         places, _ = batch
         # calculate descriptors
         descriptors = self(places)
+        # store the outputs
+        self.validation_outputs.append(descriptors.detach().cpu())
         return descriptors.detach().cpu()
     
-    def validation_epoch_end(self, val_step_outputs):
-        """at the end of each validation epoch
-        descriptors are returned in their order
-        depending on how the validation dataset is implemented 
-        for this project (MSLS val, Pittburg val), it is always references then queries.
-        For example, if we have n references and m queries, we will get 
-        the descriptors for each val_dataset in a list as follows: 
-        [R1, R2, ..., Rn, Q1, Q2, ..., Qm]
-        we then split it to references=[R1, R2, ..., Rn] and queries=[Q1, Q2, ..., Qm]
-        to calculate recall@K using the ground truth provided.
-        """
+    def on_validation_epoch_end(self):
+        """Process the validation outputs stored in self.validation_outputs."""
         dm = self.trainer.datamodule
+
         # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a list (Pytorch Lightning does not do it presently)
-        if len(dm.val_datasets)==1: # we need to put the outputs in a list
-            val_step_outputs = [val_step_outputs]
-        
+        # we need to put the outputs in a list
+        if len(dm.val_datasets) == 1:
+            val_step_outputs = [self.validation_outputs]
+        else:
+            val_step_outputs = self.validation_outputs
+
         for i, (val_set_name, val_dataset) in enumerate(zip(dm.val_set_names, dm.val_datasets)):
             feats = torch.concat(val_step_outputs[i], dim=0)
-            
+
             num_references = val_dataset.num_references
             num_queries = val_dataset.num_queries
             ground_truth = val_dataset.ground_truth
-            
-            # split to ref and queries    
-            r_list = feats[ : num_references]
-            q_list = feats[num_references : ]
 
-            recalls_dict, predictions = utils.get_validation_recalls(r_list=r_list, 
-                                                q_list=q_list,
-                                                k_values=[1, 5, 10, 15, 20, 25],
-                                                gt=ground_truth,
-                                                print_results=True,
-                                                dataset_name=val_set_name,
-                                                faiss_gpu=self.faiss_gpu
-                                                )
-            del r_list, q_list, feats, num_references, ground_truth
+            # split to ref and queries    
+            r_list = feats[:num_references]
+            q_list = feats[num_references:]
+
+            recalls_dict, predictions = utils.get_validation_recalls(
+                r_list=r_list,
+                q_list=q_list,
+                k_values=[1, 5, 10, 15, 20, 25],
+                gt=ground_truth,
+                print_results=True,
+                dataset_name=val_set_name,
+                faiss_gpu=self.faiss_gpu
+            )
 
             self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
             self.log(f'{val_set_name}/R5', recalls_dict[5], prog_bar=False, logger=True)
             self.log(f'{val_set_name}/R10', recalls_dict[10], prog_bar=False, logger=True)
+
+            del r_list, q_list, feats, num_references, ground_truth
+
+        # Clear the outputs after processing
+        self.validation_outputs.clear()
         print('\n\n')
             
             
 if __name__ == '__main__':
-    
-    pl.utilities.seed.seed_everything(seed=1, workers=True)
-    
     # the datamodule contains train and validation dataloaders,
     # refer to ./dataloader/GSVCitiesDataloader.py for details
     # if you want to train on specific cities, you can comment/uncomment
     # cities from the list TRAIN_CITIES
+    
     datamodule = GSVCitiesDataModule(
-        batch_size=100,
+        batch_size=4, # 100
         img_per_place=4,
         min_img_per_place=4,
-        # cities=['London', 'Boston', 'Melbourne'], # you can sppecify cities here or in GSVCitiesDataloader.py
+        cities=['London', 'Boston', 'Melbourne'], # you can sppecify cities here or in GSVCitiesDataloader.py
         shuffle_all=False, # shuffle all images or keep shuffling in-city only
         random_sample_from_each_place=True,
         image_size=(320, 320),
-        num_workers=8,
+        num_workers=0,
         show_data_stats=True,
-        val_set_names=['pitts30k_val', 'msls_val'], # pitts30k_val, pitts30k_test, msls_val, nordland, sped
+        val_set_names=['sped'], # pitts30k_val, pitts30k_test, msls_val, nordland, sped
     )
     
     # examples of backbones
@@ -303,7 +299,7 @@ if __name__ == '__main__':
     #------------------
     # we instanciate a trainer
     trainer = pl.Trainer(
-        accelerator='gpu', devices=[0],
+        accelerator='cpu', #devices=[0], #gpu 
         default_root_dir=f'./LOGS/{model.encoder_arch}', # Tensorflow can be used to viz 
 
         num_sanity_val_steps=0, # runs N validation steps before stating training
@@ -313,7 +309,8 @@ if __name__ == '__main__':
         callbacks=[checkpoint_cb],# we run the checkpointing callback (you can add more)
         reload_dataloaders_every_n_epochs=1, # we reload the dataset to shuffle the order
         log_every_n_steps=20,
-        fast_dev_run=True # comment if you want to start training the network and saving checkpoints
+        fast_dev_run=True, # comment if you want to start training the network and saving checkpoints
+        #limit_train_batches=1,
     )
 
     # we call the trainer, and give it the model and the datamodule

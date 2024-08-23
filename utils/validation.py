@@ -1,6 +1,7 @@
 import numpy as np
 import faiss
 import faiss.contrib.torch_utils
+import torch
 from prettytable import PrettyTable
 
 
@@ -18,6 +19,8 @@ def get_validation_recalls(r_list, q_list, k_values, gt, print_results=True, fai
             faiss_index = faiss.IndexFlatL2(embed_size)
         
         # add references
+        r_list = r_list.float()
+        q_list = q_list.float()
         faiss_index.add(r_list)
 
         # search for queries in the index

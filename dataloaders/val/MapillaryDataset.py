@@ -6,8 +6,8 @@ import torch
 import numpy as np
 from PIL import Image
 
-DATASET_ROOT = '/home/USER/work/datasets/msls_val/'
-GT_ROOT = '/home/USER/work/gsv-cities/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
+DATASET_ROOT = '/Users/olivergrainge/Documents/github/Datasets/msls_val/'
+GT_ROOT = '/Users/olivergrainge/Documents/github/QuantPlaceFinder/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
 
 class MSLS(Dataset):
     def __init__(self, input_transform = None):

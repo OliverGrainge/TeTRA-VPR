@@ -9,8 +9,8 @@ from torch.utils.data import Dataset
 # I hardcoded the image names and ground truth for faster evaluation
 # performance is exactly the same as if you use VPR-Bench.
 
-DATASET_ROOT = '/home/USER/work/VPR-Bench/datasets/CrossSeason_CoHOG_Dataset/'
-GT_ROOT = '/home/USER/work/gsv-cities/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
+DATASET_ROOT = '/Users/olivergrainge/Documents/github/Datasets/CrossSeason_CoHOG_Dataset/'
+GT_ROOT = '/Users/olivergrainge/Documents/github/QuantPlaceFinder/datasets/' # BECAREFUL, this is the ground truth that comes with GSV-Cities
 
 path_obj = Path(DATASET_ROOT)
 if not path_obj.exists():
