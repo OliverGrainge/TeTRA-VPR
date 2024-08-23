@@ -67,5 +67,5 @@ Model:
 
 
 Quantize:
-  qlinear: LinearW8A16
-  qconv: Conv2dW8A16
+  qlinear: LinearW8A8
+  qconv: Conv2dW4A8

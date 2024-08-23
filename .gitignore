@@ -3,4 +3,4 @@
 *.idea/
 *LOGS/
 lightning_logs
-data
+data/

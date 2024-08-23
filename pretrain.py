@@ -206,7 +206,7 @@ class VPRModel(pl.LightningModule):
                 q_list=q_list,
                 k_values=[1, 5, 10, 15, 20, 25],
                 gt=ground_truth,
-                print_results=False,
+                print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu
             )
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     trainer = pl.Trainer(
         accelerator=args.accelerator,
         devices=args.devices,  # gpu
-        default_root_dir=f'./LOGS/{model.encoder_arch}',  # Tensorflow can be used to viz
+        default_root_dir=f'./Logs/PreTraining/{model.encoder_arch}',  # Tensorflow can be used to viz
         num_sanity_val_steps=0,  # runs N validation steps before starting training
         precision=args.precision,  # we use half precision to reduce  memory usage (and 2x speed on RTX)
         max_epochs=args.max_epochs,
