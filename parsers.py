@@ -122,6 +122,17 @@ def dataloader_arguments(parser=None):
     return parser
 
 
+def dataloader_arguments(parser=None):
+    if parser is None:
+        parser = argparse.ArgumentParser(description="Quantize configuration arguments")
+
+    parser.add_argument("--qlinear", type=str, default=config["Quantize"]["qlinear"])
+    parser.add_argument("--qconv", type=str, default=config["Quantize"]["qconv"])
+
+    return parser
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Model, Training, and Dataloader arguments")
 

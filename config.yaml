@@ -65,3 +65,7 @@ Model:
     gem_p: 3
 
 
+
+Qauntize:
+  qlinear: LinearW8A16
+  qconv: Conv2dW8A16
