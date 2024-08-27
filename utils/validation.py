@@ -51,7 +51,7 @@ def binary_search(r_list, q_list, k_values, faiss_gpu=False):
 
 def int8_search(r_list, q_list, k_values, faiss_gpu=False):
     def int8_quantize(tensor, scale=None):
-        tensor = tensor.detach().float()
+        tensor = tensor.detach().float().numpy()
         if scale is None:
             max_val = np.max(np.abs(tensor))  # Use the maximum absolute value for symmetric quantization
             scale = max_val / 127.0  # 127 is the maximum value of int8
@@ -61,18 +61,19 @@ def int8_search(r_list, q_list, k_values, faiss_gpu=False):
 
         # Clip the values to be within the int8 range [-127, 127]
         quantized_tensor = np.clip(quantized_tensor, -127, 127).astype(np.int8)
-
         return quantized_tensor, scale
+
      
     qr_list, scale = int8_quantize(r_list)
-    qq_list = int8_quantize(q_list, scale)
+    qq_list, _ = int8_quantize(q_list, scale)
     dim = qr_list.shape[1]
+
     index = Index(ndim=dim, metric='cos', dtype='i8')
 
     for i, embedding in enumerate(qr_list):
         index.add(i, embedding)
 
-    matches = index.search(qr_list, max(k_values))
+    matches = index.search(qq_list, max(k_values))
 
     arr = []
     for match in matches: 
@@ -90,7 +91,6 @@ def get_validation_recalls(r_list, q_list, k_values, gt, print_results=True, fai
              predictions = binary_search(r_list, q_list, k_values, faiss_gpu=faiss_gpu)
         elif precision == "int8":
              predictions = int8_search(r_list, q_list, k_values, faiss_gpu=faiss_gpu)
-             print(predictions)
         else: 
              raise Exception(f"type {precision} is not supported")
         
