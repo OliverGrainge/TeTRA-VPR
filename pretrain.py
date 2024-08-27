@@ -48,6 +48,8 @@ class VPRModel(pl.LightningModule):
                 miner_name=config['Training']['miner_name'],
                 miner_margin=config['Training']['miner_margin'],
                 faiss_gpu=config['Training']['faiss_gpu'],
+                search_precision=config['Training']['search_precision']
+                
                  ):
         super().__init__()
         self.encoder_arch = backbone_arch
@@ -77,6 +79,7 @@ class VPRModel(pl.LightningModule):
         self.batch_acc = [] # we will keep track of the % of trivial pairs/triplets at the loss level 
 
         self.faiss_gpu = faiss_gpu
+        self.search_precision = search_precision
         
         # ----------------------------------
         # get the backbone and the aggregator
@@ -208,7 +211,8 @@ class VPRModel(pl.LightningModule):
                 gt=ground_truth,
                 print_results=True,
                 dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu
+                faiss_gpu=self.faiss_gpu,
+                precision=self.search_precision
             )
 
             self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
@@ -286,6 +290,7 @@ if __name__ == '__main__':
         miner_name=args.miner_name,
         miner_margin=args.miner_margin,
         faiss_gpu=args.faiss_gpu,
+        search_precision=args.search_precision
     )
 
     # model params saving using Pytorch Lightning

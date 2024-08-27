@@ -1,5 +1,5 @@
 from NeuroCompress.examples.mnist_conv import qlinear
-from parsers import model_arguments, quantize_arguments, dataloader_arguments
+from parsers import model_arguments, quantize_arguments, dataloader_arguments, training_arguments
 from pretrain import VPRModel
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 import argparse
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser = model_arguments(parser)
     parser = quantize_arguments(parser)
     parser = dataloader_arguments(parser)
+    parser = training_arguments(parser)
     args = parser.parse_args()
     args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/LOGS/resnet18/lightning_logs/version_2/checkpoints/resnet18_epoch(24)_step(2925)_R1[0.8741]_R5[0.9590].ckpt"
 
@@ -55,15 +56,30 @@ if __name__ == '__main__':
 
     assert os.path.exists(args.load_checkpoint)
     model = VPRModel.load_from_checkpoint(args.load_checkpoint)
+    model.search_precision = args.search_precision
+    print(args.search_precision)
+    print(" ")
+    print(" ")
+    print(" ")
+    print(" ")
+    print(" ")
+    print("===================================================================================")
     print("================================== Full Precision ======================================")
+    print("===================================================================================")
     trainer = pl.Trainer()
-    metrics = trainer.validate(model=model, datamodule=datamodule, verbose=False)
+    metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
 
-
+    print(" ")
+    print(" ")
+    print(" ")
+    print(" ")
+    print(" ")
+    print("===================================================================================")
     print("================================== Quantized ======================================")
+    print("===================================================================================")
     postquantize(model.backbone, qlinear=Q.LinearW8A8, qconv=Q.Conv2dW8A8)
     trainer = pl.Trainer()
-    qmetrics = trainer.validate(model=model, datamodule=datamodule)
+    qmetrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
 
 
 

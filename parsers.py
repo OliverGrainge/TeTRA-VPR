@@ -88,7 +88,8 @@ def training_arguments(parser=None):
                         help='Margin for miner function')
     parser.add_argument('--faiss_gpu', type=bool, default=config['Training']['faiss_gpu'],
                         help='Use GPU for FAISS operations')
-
+    parser.add_argument('--search_precision', type=str, default=config['Training']['search_precision'],
+                        help='precision for vector search')
     parser.add_argument('--monitor', type=str, default=config['Training']['monitor'],
                         help='Metric to monitor during training')
 

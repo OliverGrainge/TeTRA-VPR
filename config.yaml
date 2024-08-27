@@ -44,6 +44,7 @@ Training:
   miner_name: 'MultiSimilarityMiner'
   miner_margin: 0.1
   faiss_gpu: False
+  search_precision: 'float32'
 
   monitor: 'pitts30k_val/R1'
 
