@@ -36,6 +36,7 @@ def binary_search(r_list, q_list, k_values, faiss_gpu=False):
         qtensor = torch.zeros_like(tensor, dtype=torch.uint8)
         pos_mask = tensor >= 0
         qtensor[pos_mask] = 1
+        print(qtensor)
         return np.packbits(qtensor.detach().numpy(), axis=1)
     
 
