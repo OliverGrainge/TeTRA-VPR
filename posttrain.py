@@ -16,6 +16,7 @@ from pretrain import VPRModel
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'NeuroCompress')))
 from NeuroPress import QLayers as Q
 from NeuroPress import postquantize
+torch.set_float32_matmul_precision('medium')
 
 
 def get_qlayers(args):
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     parser = quantize_arguments(parser)
     args = parser.parse_args()
 
-    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/LOGS/resnet18/lightning_logs/version_2/checkpoints/resnet18_epoch(24)_step(2925)_R1[0.8741]_R5[0.9590].ckpt"
+    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/resnet18/lightning_logs/version_3/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(15)_step(1872)_R1[0.8436]_R5[0.9447].ckpt"
 
     # Instantiate the datamodule with parsed arguments
     datamodule = GSVCitiesDataModule(
@@ -73,6 +74,11 @@ if __name__ == '__main__':
             'cosplace': {
                 'in_dim': args.agg_config_in_channels,
                 'out_dim': args.agg_config_out_dim,
+            },
+                        'fully_connected': {
+                'in_channels': args.agg_config_in_channels,
+                'spatial_dims': (7, 7),
+                'out_dim': 512,
             }
         },
 
@@ -90,15 +96,16 @@ if __name__ == '__main__':
         miner_name=args.miner_name,
         miner_margin=args.miner_margin,
         faiss_gpu=args.faiss_gpu,
+        search_precision=args.search_precision
     )
 
     state_dict = torch.load(args.load_checkpoint, map_location="cpu")
     model.load_state_dict(state_dict["state_dict"])
 
 
-    qlinear, qconv = get_qlayers(args)
-    print(f"Quantizing with {qlinear} and {qconv} weights")
-    postquantize(model.backbone, qlinear=qlinear, qconv=qconv)
+    #qlinear, qconv = get_qlayers(args)
+    #print(f"Quantizing with {qlinear} and {qconv} weights")
+    #postquantize(model.backbone, qlinear=qlinear, qconv=qconv)
 
     # model params saving using Pytorch Lightning
     # we save the best 3 models according to Recall@1 on pittsburgh val

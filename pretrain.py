@@ -4,6 +4,9 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.optim import lr_scheduler
 import utils
+import time
+torch.set_float32_matmul_precision('medium')
+
 
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 from models import helper
@@ -203,6 +206,10 @@ class VPRModel(pl.LightningModule):
             # split to ref and queries    
             r_list = feats[:num_references]
             q_list = feats[num_references:]
+            print("=========================", q_list[0].norm())
+            self.logger.experiment.add_histogram("embedding_distribution", q_list.flatten(), self.current_epoch)
+
+
 
             recalls_dict, predictions = utils.get_validation_recalls(
                 r_list=r_list,
@@ -273,6 +280,11 @@ if __name__ == '__main__':
             'cosplace': {
                 'in_dim': args.agg_config_in_channels,
                 'out_dim': args.agg_config_out_dim,
+            },
+            'fully_connected': {
+                'in_channels': args.agg_config_in_channels,
+                'spatial_dims': (7, 7),
+                'out_dim': 512,
             }
         },
 
@@ -297,7 +309,7 @@ if __name__ == '__main__':
     # we save the best 3 models according to Recall@1 on pittsburgh val
     checkpoint_cb = ModelCheckpoint(
         monitor=args.monitor,
-        filename=f'{model.encoder_arch}' +
+        filename=f'{model.encoder_arch}' + f'_{model.agg_arch}' + f'_{model.loss_name}' +
                  '_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]',
         auto_insert_metric_name=False,
         save_weights_only=True,
@@ -312,7 +324,7 @@ if __name__ == '__main__':
         num_sanity_val_steps=0,  # runs N validation steps before starting training
         precision=args.precision,  # we use half precision to reduce  memory usage (and 2x speed on RTX)
         max_epochs=args.max_epochs,
-        check_val_every_n_epoch=1,  # run validation every epoch
+        check_val_every_n_epoch=2,  # run validation every epoch
         callbacks=[checkpoint_cb],  # we run the checkpointing callback (you can add more)
         reload_dataloaders_every_n_epochs=1,  # we reload the dataset to shuffle the order
         log_every_n_steps=20,

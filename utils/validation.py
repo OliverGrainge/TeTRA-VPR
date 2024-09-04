@@ -4,6 +4,7 @@ import faiss.contrib.torch_utils
 import torch
 from prettytable import PrettyTable
 from usearch.index import Index
+from .distances import binarize_ste
 
         
 
@@ -33,9 +34,8 @@ def float32_search(r_list, q_list, k_values, faiss_gpu=False):
 
 def binary_search(r_list, q_list, k_values, faiss_gpu=False):
     def binary_quantize(tensor): 
-        qtensor = torch.zeros_like(tensor, dtype=torch.uint8)
-        pos_mask = tensor >= 0
-        qtensor[pos_mask] = 1
+        qtensor = binarize_ste(torch.tanh(tensor), symmetric=False)
+        qtensor = qtensor.type(torch.bool)
         print(qtensor)
         return np.packbits(qtensor.detach().numpy(), axis=1)
     

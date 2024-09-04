@@ -61,6 +61,9 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
     elif 'convap' in agg_arch.lower():
         assert 'in_channels' in agg_config['convap']
         return aggregators.ConvAP(**agg_config['convap'])
+    
+    elif 'connected' in agg_arch.lower(): 
+        return aggregators.FullyConnected(**agg_config['fully_connected'])
 
 
 

@@ -14,7 +14,7 @@ Dataloader:
   image_size:
     - 224
     - 224
-  num_workers: 8
+  num_workers: 16
   shuffle_all: True
   random_sample_from_each_place: True
   show_data_stats: True
@@ -26,14 +26,14 @@ Training:
   devices:
     - 0
   precision: 16
-  max_epochs: 30
+  max_epochs: 8 # 30 for pretraining
   fast_dev_run: False
 
-  lr: 0.0002
-  optimizer: 'adam'
+  lr: 0.0002 # 0.0002 for pre-training
+  optimizer: 'adam' #adam
   weight_decay: 0
   momentum: 0.9
-  warmup_steps: 600
+  warmup_steps: 50 # 600
   milestones:
     - 5
     - 10

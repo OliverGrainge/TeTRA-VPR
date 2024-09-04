@@ -86,19 +86,19 @@ class GSVCitiesDataModule(pl.LightningDataModule):
             T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
             T.ToTensor(),
             T.Normalize(mean=self.mean_dataset, std=self.std_dataset)])
-
+        
         self.train_loader_config = {
             'batch_size': self.batch_size,
             'num_workers': self.num_workers,
             'drop_last': False,
-            'pin_memory': True,
+            'pin_memory': False,
             'shuffle': self.shuffle_all}
 
         self.valid_loader_config = {
             'batch_size': self.batch_size,
             'num_workers': self.num_workers//2,
             'drop_last': False,
-            'pin_memory': True,
+            'pin_memory': False,
             'shuffle': False}
 
     def setup(self, stage):

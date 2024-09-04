@@ -20,7 +20,8 @@ class ConvAP(nn.Module):
     def forward(self, x):
         x = self.channel_pool(x)
         x = self.AAP(x)
-        x = F.normalize(x.flatten(1), p=2, dim=1)
+        #x = F.normalize(x.flatten(1), p=2, dim=1)
+        x = x.flatten(1)
         return x
     
 
