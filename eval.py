@@ -39,7 +39,7 @@ if __name__ == '__main__':
     parser = dataloader_arguments(parser)
     parser = training_arguments(parser)
     args = parser.parse_args()
-    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/LOGS/resnet18/lightning_logs/version_2/checkpoints/resnet18_epoch(24)_step(2925)_R1[0.8741]_R5[0.9590].ckpt"
+    args.load_checkpoint = "Logs/PreTraining/resnet18/lightning_logs/version_0/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(17)_step(2106)_R1[0.8525]_R5[0.9491].ckpt"
 
     datamodule = GSVCitiesDataModule(
         batch_size=args.batch_size,
@@ -80,6 +80,7 @@ if __name__ == '__main__':
     postquantize(model.backbone, qlinear=Q.LinearW8A8, qconv=Q.Conv2dW8A8)
     trainer = pl.Trainer()
     qmetrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
+    print(model)
 
 
 

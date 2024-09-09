@@ -291,6 +291,7 @@ if __name__ == '__main__':
         mode='max',)
 
     # Instantiate a trainer with parsed arguments
+    print(model)
     trainer = pl.Trainer(
         accelerator=args.accelerator,
         devices=args.devices,  # gpu

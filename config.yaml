@@ -46,7 +46,7 @@ Training:
   devices:
     - 0
   precision: 16
-  max_epochs: 80 # 30 for pretraining
+  max_epochs: 30 # 30 for pretraining
   fast_dev_run: False
 
   lr: 0.0002 # 0.0002 for pre-training
@@ -55,10 +55,10 @@ Training:
   momentum: 0.9
   warmup_steps: 100 # 600
   milestones:
+    - 5
     - 10
-    - 30
-    - 50
-    - 70
+    - 15
+    - 25
   lr_mult: 0.3
   loss_name: 'MultiSimilarityLoss'
   miner_name: 'MultiSimilarityMiner'
@@ -105,6 +105,12 @@ Model:
       model_name: 'swinv2_base_window12to16_192to256_22kft1k'
       pretrained: True 
       layers_to_freeze: 2
+
+    vit: 
+      model_name: 'vit224'
+      pretrained: True 
+      layers_to_freeze: 4
+      layers_to_truncate: 10
     
 
 
@@ -136,6 +142,8 @@ Model:
         - 7
         - 7 
       out_dim: 512
+    cls: 
+
 
 
 

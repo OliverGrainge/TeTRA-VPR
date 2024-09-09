@@ -31,6 +31,9 @@ def get_backbone(backbone_arch='resnet50',
     elif 'dinov2' in backbone_arch.lower():
         return backbones.DINOv2(**backbone_config['dinov2'])
     
+    elif 'vit' in backbone_arch.lower(): 
+        return backbones.ViT(**backbone_config['vit'])
+    
 
 
 def get_aggregator(agg_arch='ConvAP', agg_config={}):
@@ -73,6 +76,9 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
         assert 'cluster_dim' in agg_config['salad']
         assert 'token_dim' in agg_config['salad']
         return aggregators.SALAD(**agg_config['salad'])
+    
+    elif 'cls' in agg_arch.lower():
+        return aggregators.CLS()
     
 
 
