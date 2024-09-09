@@ -14,40 +14,22 @@ def model_arguments(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description="Model configuration arguments")
 
-    # Adding arguments for the model configuration
+    # Model options with config as default
+    parser.add_argument('--load_checkpoint', type=str, default=config['Model']['load_checkpoint'],
+                        help='Path to model checkpoint')
     parser.add_argument('--backbone_arch', type=str, default=config['Model']['backbone_arch'],
                         help='Backbone architecture for the model')
     parser.add_argument('--pretrained', type=bool, default=config['Model']['pretrained'],
                         help='Use pretrained weights')
     parser.add_argument('--layers_to_freeze', type=int, default=config['Model']['layers_to_freeze'],
-                        help='Number of layers to freeze')
-    parser.add_argument('--layers_to_crop', type=list, default=config['Model']['layers_to_crop'],
-                        help='Layers to crop')
+                        help='Number of backbone layers to freeze')
+    parser.add_argument('--layers_to_crop', nargs='*', default=config['Model']['layers_to_crop'],
+                        help='Layers to crop (list)')
+
+    # Aggregation architecture
     parser.add_argument('--agg_arch', type=str, default=config['Model']['agg_arch'],
                         help='Aggregation architecture')
-
-    # Nested dictionary for agg_config
-    parser.add_argument('--agg_config_in_channels', type=int,
-                        default=config['Model']['agg_config']['convap_in_channels'],
-                        help='Number of input channels for aggregation')
-    parser.add_argument('--agg_config_out_channels', type=int,
-                        default=config['Model']['agg_config']['convap_out_channels'],
-                        help='Number of output channels for aggregation')
-    parser.add_argument('--agg_config_s1', type=int, default=config['Model']['agg_config']['convap_s1'],
-                        help='Stride 1 for aggregation')
-    parser.add_argument('--agg_config_s2', type=int, default=config['Model']['agg_config']['convap_s2'],
-                        help='Stride 2 for aggregation')
-
-
-    parser.add_argument('--agg_config_in_dim', type=int, default=config['Model']['agg_config']['cosplace_in_dim'],
-                        help='Stride 2 for aggregation')
-    parser.add_argument('--agg_config_out_dim', type=int, default=config['Model']['agg_config']['cosplace_out_dim'],
-                        help='Stride 2 for aggregation')
-
-    parser.add_argument('--agg_config_p', type=int, default=config['Model']['agg_config']['gem_p'],
-                        help='Stride 2 for aggregation')
-
-    parser.add_argument("--load_checkpoint", type=str, default=config["Model"]["load_checkpoint"], help="loading checkpoint file")
+    
     return parser
 
 def training_arguments(parser=None):

@@ -29,9 +29,7 @@ class VPRModel(pl.LightningModule):
     def __init__(self,
                 #---- Backbone
                 backbone_arch=config['Model']['backbone_arch'],
-                pretrained=config['Model']['pretrained'],
-                layers_to_freeze=config['Model']['layers_to_freeze'],
-                layers_to_crop=config['Model']['layers_to_crop'],
+                backbone_config=config['Model']['backbone_config'],
                 
                 #---- Aggregator
                 agg_arch=config['Model']['agg_arch'], #CosPlace, NetVLAD, GeM, AVG
@@ -55,10 +53,8 @@ class VPRModel(pl.LightningModule):
                 
                  ):
         super().__init__()
-        self.encoder_arch = backbone_arch
-        self.pretrained = pretrained
-        self.layers_to_freeze = layers_to_freeze
-        self.layers_to_crop = layers_to_crop
+        self.backbone_arch = backbone_arch
+        self.backbone_config = backbone_config
 
         self.agg_arch = agg_arch
         self.agg_config = agg_config
@@ -86,7 +82,7 @@ class VPRModel(pl.LightningModule):
         
         # ----------------------------------
         # get the backbone and the aggregator
-        self.backbone = helper.get_backbone(backbone_arch, pretrained, layers_to_freeze, layers_to_crop)
+        self.backbone = helper.get_backbone(backbone_arch, backbone_config)
         self.aggregator = helper.get_aggregator(agg_arch, agg_config)
         
     # the forward pass of the lightning model
@@ -206,8 +202,7 @@ class VPRModel(pl.LightningModule):
             # split to ref and queries    
             r_list = feats[:num_references]
             q_list = feats[num_references:]
-            print("=========================", q_list[0].norm())
-            self.logger.experiment.add_histogram("embedding_distribution", q_list.flatten(), self.current_epoch)
+        
 
 
 
@@ -261,32 +256,11 @@ if __name__ == '__main__':
     model = VPRModel(
         # ---- Backbone
         backbone_arch=args.backbone_arch,
-        pretrained=args.pretrained,
-        layers_to_freeze=args.layers_to_freeze,
-        layers_to_crop=args.layers_to_crop,
+        backbone_config=config["Model"]["backbone_config"],
 
         # ---- Aggregator
         agg_arch=args.agg_arch,  # CosPlace, NetVLAD, GeM, AVG
-        agg_config={
-            'convap': {
-                'in_channels': args.agg_config_in_channels,
-                'out_channels': args.agg_config_out_channels,
-                's1': args.agg_config_s1,
-                's2': args.agg_config_s2,
-            },
-            'gem': {
-                'p': args.agg_config_p,
-            },
-            'cosplace': {
-                'in_dim': args.agg_config_in_channels,
-                'out_dim': args.agg_config_out_dim,
-            },
-            'fully_connected': {
-                'in_channels': args.agg_config_in_channels,
-                'spatial_dims': (7, 7),
-                'out_dim': 512,
-            }
-        },
+        agg_config=config["Model"]["agg_config"],
 
         # ---- Train hyperparameters
         lr=args.lr,
@@ -309,18 +283,18 @@ if __name__ == '__main__':
     # we save the best 3 models according to Recall@1 on pittsburgh val
     checkpoint_cb = ModelCheckpoint(
         monitor=args.monitor,
-        filename=f'{model.encoder_arch}' + f'_{model.agg_arch}' + f'_{model.loss_name}' +
+        filename=f'{model.backbone_arch}' + f'_{model.agg_arch}' + f'_{model.loss_name}' +
                  '_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]',
         auto_insert_metric_name=False,
         save_weights_only=True,
-        save_top_k=3,
+        save_top_k=1,
         mode='max',)
 
     # Instantiate a trainer with parsed arguments
     trainer = pl.Trainer(
         accelerator=args.accelerator,
         devices=args.devices,  # gpu
-        default_root_dir=f'./Logs/PreTraining/{model.encoder_arch}',  # Tensorflow can be used to viz
+        default_root_dir=f'./Logs/PreTraining/{model.backbone_arch}',  # Tensorflow can be used to viz
         num_sanity_val_steps=0,  # runs N validation steps before starting training
         precision=args.precision,  # we use half precision to reduce  memory usage (and 2x speed on RTX)
         max_epochs=args.max_epochs,

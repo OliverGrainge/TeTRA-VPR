@@ -32,7 +32,10 @@ class Combined(nn.Module):
         self.loss2 = loss2
 
     def forward(self, descriptors, labels, miner_outputs):
-        return (self.loss1(descriptors, labels, miner_outputs) + self.beta * self.loss2(descriptors, labels, miner_outputs))/(1 + self.beta)
+        l1 = self.loss1(descriptors, labels, miner_outputs)
+        l2 = self.loss2(descriptors, labels, miner_outputs)
+        #print("L1: ", l1.item(), "L2: ", l2.item())
+        return l1 + self.beta * l2
 
 class GreedyHashLoss_Soft(nn.Module): 
     def __init__(self, alpha=1.0, beta=50, base=0.0, reg=1.0): 
@@ -64,6 +67,24 @@ class GreedyHashLoss(nn.Module):
         l1 = self.loss_fn(descriptors, labels, miner_outputs)
         reg_loss = greedy_hash_reg(descriptors, alpha=self.reg)
         return l1 + reg_loss
+    
+
+class RegMSE(nn.Module): 
+    def forward(self, descriptors, labels, miner_outputs):
+        descriptors_squared = descriptors ** 2
+        residual = descriptors_squared - 1
+        return (residual ** 2).mean()
+
+
+class RegSTE(nn.Module): 
+    def forward(self, descriptors, labels, miner_outputs):
+        res = torch.abs(descriptors - torch.sign(descriptors))
+        return torch.mean(res)
+        
+
+
+
+
 
 
 
@@ -71,6 +92,8 @@ def get_loss(loss_name):
     if loss_name == 'SupConLoss': return losses.SupConLoss(temperature=0.07)
     if loss_name == 'CircleLoss': return losses.CircleLoss(m=0.4, gamma=80) #these are params for image retrieval
     if loss_name == 'MultiSimilarityLoss': return losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity())
+    if loss_name == "MultiSimilarityLossRegMSE": return Combined(losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()), RegMSE(), 0.25)
+    if loss_name == "MultiSimilarityLossRegSTE": return Combined(losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()), RegSTE(), 0.25)
     if loss_name == "HammingSTEMultiSimilarityLoss": return losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=HammingDistanceSTE())
     if loss_name == "HammingSoftMultiSimilarityLoss": return losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=HammingDistanceSoft())
     if loss_name == "CombinedHammingSTEMultiSimilarityLoss": return Combined(losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()),losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=HammingDistanceSTE()), 1.0)

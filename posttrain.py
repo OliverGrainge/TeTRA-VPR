@@ -16,7 +16,13 @@ from pretrain import VPRModel
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'NeuroCompress')))
 from NeuroPress import QLayers as Q
 from NeuroPress import postquantize
+import yaml
 torch.set_float32_matmul_precision('medium')
+
+config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+
+with open(config_path, 'r') as config_file:
+    config = yaml.safe_load(config_file)
 
 
 def get_qlayers(args):
@@ -36,7 +42,6 @@ if __name__ == '__main__':
     parser = quantize_arguments(parser)
     args = parser.parse_args()
 
-    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/resnet18/lightning_logs/version_3/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(15)_step(1872)_R1[0.8436]_R5[0.9447].ckpt"
 
     # Instantiate the datamodule with parsed arguments
     datamodule = GSVCitiesDataModule(
@@ -55,32 +60,11 @@ if __name__ == '__main__':
     model = VPRModel(
         # ---- Backbone
         backbone_arch=args.backbone_arch,
-        pretrained=args.pretrained,
-        layers_to_freeze=args.layers_to_freeze,
-        layers_to_crop=args.layers_to_crop,
+        backbone_config=config["Model"]["backbone_config"],
 
         # ---- Aggregator
         agg_arch=args.agg_arch,  # CosPlace, NetVLAD, GeM, AVG
-        agg_config={
-            'convap': {
-                'in_channels': args.agg_config_in_channels,
-                'out_channels': args.agg_config_out_channels,
-                's1': args.agg_config_s1,
-                's2': args.agg_config_s2,
-            },
-            'gem': {
-                'p': args.agg_config_p,
-            },
-            'cosplace': {
-                'in_dim': args.agg_config_in_channels,
-                'out_dim': args.agg_config_out_dim,
-            },
-                        'fully_connected': {
-                'in_channels': args.agg_config_in_channels,
-                'spatial_dims': (7, 7),
-                'out_dim': 512,
-            }
-        },
+        agg_config=config["Model"]["agg_config"],
 
         # ---- Train hyperparameters
         lr=args.lr,
@@ -99,19 +83,17 @@ if __name__ == '__main__':
         search_precision=args.search_precision
     )
 
+
     state_dict = torch.load(args.load_checkpoint, map_location="cpu")
+    #state_dict = torch.load("/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/resnet18/lightning_logs/version_0/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(17)_step(2106)_R1[0.8525]_R5[0.9491].ckpt", map_location="cpu")
     model.load_state_dict(state_dict["state_dict"])
 
-
-    #qlinear, qconv = get_qlayers(args)
-    #print(f"Quantizing with {qlinear} and {qconv} weights")
-    #postquantize(model.backbone, qlinear=qlinear, qconv=qconv)
 
     # model params saving using Pytorch Lightning
     # we save the best 3 models according to Recall@1 on pittsburgh val
     checkpoint_cb = ModelCheckpoint(
         monitor=args.monitor,
-        filename=f'{model.encoder_arch}' +
+        filename=f'{model.backbone_arch}' +
                  '_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]',
         auto_insert_metric_name=False,
         save_weights_only=True,
@@ -122,7 +104,7 @@ if __name__ == '__main__':
     trainer = pl.Trainer(
         accelerator=args.accelerator,
         devices=args.devices,  # gpu
-        default_root_dir=f'./Logs/PostTraining/{model.encoder_arch}',  # Tensorflow can be used to viz
+        default_root_dir=f'./Logs/PostTraining/{model.backbone_arch}',  # Tensorflow can be used to viz
         num_sanity_val_steps=0,  # runs N validation steps before starting training
         precision=args.precision,  # we use half precision to reduce  memory usage (and 2x speed on RTX)
         max_epochs=args.max_epochs,
@@ -134,4 +116,42 @@ if __name__ == '__main__':
     )
     trainer.validate(model=model, datamodule=datamodule)
     # Run the trainer with the model and datamodule
+
+    qlinear, qconv = get_qlayers(args)
+    print(f"Quantizing with {qlinear} and {qconv} weights")
+
+
+    qlayer_map = {}
+    for name, layer in model.named_modules():
+        #print(name)
+        if "fc1" in name: 
+            if "11" in name or "10" in name or "9" in name or "8" in name:
+                qlayer_map[layer] = qlinear
+            #print("================================================================================= Quantizing")
+        if "fc2" in name: 
+            if "11" in name or "10" in name or "9" in name or "8" in name:
+                qlayer_map[layer] = qlinear
+            #old_weights = layer.weight.data.detach().cpu().numpy().flatten()
+            #print("================================================================================= Quantizing")
+
+
+    #postquantize(model, layer_map=qlayer_map)
+    #from optimum.quanto import quantize, qint8
+    #quantize(model, weights=qint8, activations=qint8)
+
+    #for name, layer in model.named_modules():
+    #    print(name, layer)
+    #for name, layer in model.named_modules():
+        #if "backbone.model.blocks.1.mlp.fc1" in name: 
+            #new_weights = layer.quantize().detach().cpu().numpy().flatten()
+
+    
+    #import matplotlib.pyplot as plt 
+    #plt.hist(new_weights, bins=254, label="Quantized", alpha=0.7, density=True)
+    #plt.hist(old_weights, bins=254, label="old weights", alpha=0.7, density=True)
+    #import numpy as np
+    #print(len(np.unique(new_weights)), "MAX", np.abs(new_weights).max())
+    #plt.legend()
+    #plt.show()
+    trainer.validate(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)

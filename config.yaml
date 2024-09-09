@@ -4,13 +4,33 @@ Datasets:
 
 
 Dataloader:
-  batch_size: 100
+  batch_size: 40 #100 if possible
   img_per_place: 4
   min_img_per_place: 4
   cities:
-    - London
+   # - Bangkok
+   # - BuenosAires
+   # - LosAngeles
+   # - MexicoCity
+   # - OSL # refers to Oslo
+   # - Rome
+   # - Barcelona
+   # - Chicago
+   # - Madrid
+   # - Miami
+   # - Phoenix
+   # - TRT # refers to Toronto
     - Boston
+   # - Lisbon
+   # - Medellin
+   # - Minneapolis
+   # - PRG # refers to Prague
+   # - WashingtonDC
+   # - Brussels
+    - London
     - Melbourne
+   # - Osaka
+   # - PRS # refers t
   image_size:
     - 224
     - 224
@@ -26,25 +46,25 @@ Training:
   devices:
     - 0
   precision: 16
-  max_epochs: 8 # 30 for pretraining
+  max_epochs: 80 # 30 for pretraining
   fast_dev_run: False
 
   lr: 0.0002 # 0.0002 for pre-training
   optimizer: 'adam' #adam
   weight_decay: 0
   momentum: 0.9
-  warmup_steps: 50 # 600
+  warmup_steps: 100 # 600
   milestones:
-    - 5
     - 10
-    - 15
-    - 25
+    - 30
+    - 50
+    - 70
   lr_mult: 0.3
   loss_name: 'MultiSimilarityLoss'
   miner_name: 'MultiSimilarityMiner'
   miner_margin: 0.1
   faiss_gpu: False
-  search_precision: 'float32'
+  search_precision: 'binary'
 
   monitor: 'pitts30k_val/R1'
 
@@ -57,7 +77,69 @@ Model:
   layers_to_crop:
     -
   agg_arch: 'ConvAP'
+  backbone_config: 
+    resnet18: 
+      model_name: 'resnet18'
+      pretrained: True
+      layers_to_freeze: 2
+      layers_to_crop: 
+        -
+    resnet50: 
+      model_name: 'resnet50'
+      pretrained: True
+      layers_to_freeze: 2
+      layers_to_crop: 
+        -
+    efficientnet: 
+      model_name: 'efficientnet_b0'
+      pretrained: True
+      layers_to_freeze: 4
+
+    dinov2: 
+      model_name: 'dinov2_vits14'
+      num_trainable_blocks: 4
+      norm_layer: True
+      return_token: True
+
+    swin: 
+      model_name: 'swinv2_base_window12to16_192to256_22kft1k'
+      pretrained: True 
+      layers_to_freeze: 2
+    
+
+
   agg_config:
+    convap: 
+      in_channels: 512
+      out_channels: 512
+      s1: 2
+      s2: 2
+    gem: 
+      p: 3
+    cosplace: 
+      in_dim: 1024
+      out_dim: 1024
+    mixvpr: 
+      in_channels: 512 
+      out_channels: 4 
+      in_h: 10
+      in_w: 4
+      mix_depth: 4
+    salad: 
+      num_channels: 384
+      num_clusters: 64
+      cluster_dim: 128
+      token_dim: 256
+    fully_connected: 
+      in_channels: 512
+      spatial_dims: 
+        - 7
+        - 7 
+      out_dim: 512
+
+
+
+
     convap_in_channels: 512
     convap_out_channels: 512
     convap_s1: 2
@@ -68,5 +150,5 @@ Model:
 
 
 Quantize:
-  qlinear: LinearW8A8
+  qlinear: LinearW8A16
   qconv: Conv2dW4A8

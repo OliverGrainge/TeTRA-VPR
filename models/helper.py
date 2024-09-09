@@ -4,9 +4,7 @@ from . import backbones
 
 
 def get_backbone(backbone_arch='resnet50',
-                 pretrained=True,
-                 layers_to_freeze=2,
-                 layers_to_crop=[],):
+                 backbone_config={}):
     """Helper function that returns the backbone given its name
 
     Args:
@@ -19,20 +17,21 @@ def get_backbone(backbone_arch='resnet50',
         model: the backbone as a nn.Model object
     """
     if 'resnet' in backbone_arch.lower():
-        return backbones.ResNet(backbone_arch, pretrained, layers_to_freeze, layers_to_crop)
+        if '18' in backbone_arch.lower():
+            return backbones.ResNet(**backbone_config['resnet18'])
+        elif '50' in backbone_arch.lower():
+            return backbones.ResNet(**backbone_config['resnet50'])
 
     elif 'efficient' in backbone_arch.lower():
-        if '_b' in backbone_arch.lower():
-            return backbones.EfficientNet(backbone_arch, pretrained, layers_to_freeze+2)
-        else:
-            return backbones.EfficientNet(model_name='efficientnet_b0',
-                                          pretrained=pretrained, 
-                                          layers_to_freeze=layers_to_freeze)
-            
+        return backbones.EfficientNet(**backbone_config['efficientnet'])
+
     elif 'swin' in backbone_arch.lower():
-        return backbones.Swin(model_name='swinv2_base_window12to16_192to256_22kft1k', 
-                              pretrained=pretrained, 
-                              layers_to_freeze=layers_to_freeze)
+        return backbones.Swin(**backbone_config['swin'])
+    
+    elif 'dinov2' in backbone_arch.lower():
+        return backbones.DINOv2(**backbone_config['dinov2'])
+    
+
 
 def get_aggregator(agg_arch='ConvAP', agg_config={}):
     """Helper function that returns the aggregation layer given its name.
@@ -48,22 +47,34 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
     """
     
     if 'cosplace' in agg_arch.lower():
-        assert 'in_dim' in agg_config['cosplace']
-        assert 'out_dim' in agg_config['cosplace']
-        print("hello")
         return aggregators.CosPlace(**agg_config['cosplace'])
 
     elif 'gem' in agg_arch.lower():
-        assert 'p' in agg_config['gem']
-        print("hi gem")
         return aggregators.GeMPool(**agg_config['gem'])
     
     elif 'convap' in agg_arch.lower():
-        assert 'in_channels' in agg_config['convap']
         return aggregators.ConvAP(**agg_config['convap'])
     
     elif 'connected' in agg_arch.lower(): 
         return aggregators.FullyConnected(**agg_config['fully_connected'])
+    
+
+    elif 'mixvpr' in agg_arch.lower():
+        assert 'in_channels' in agg_config['mixvpr']
+        assert 'out_channels' in agg_config['mixvpr']
+        assert 'in_h' in agg_config['mixvpr']
+        assert 'in_w' in agg_config['mixvpr']
+        assert 'mix_depth' in agg_config['mixvpr']
+        return aggregators.MixVPR(**agg_config['mixvpr'])
+
+    elif 'salad' in agg_arch.lower():
+        assert 'num_channels' in agg_config['salad']
+        assert 'num_clusters' in agg_config['salad']
+        assert 'cluster_dim' in agg_config['salad']
+        assert 'token_dim' in agg_config['salad']
+        return aggregators.SALAD(**agg_config['salad'])
+    
+
 
 
 

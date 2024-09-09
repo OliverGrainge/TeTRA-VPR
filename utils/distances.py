@@ -35,7 +35,7 @@ class HammingDistanceSoft(BaseDistance):
         super().__init__(normalize_embeddings=False, is_inverted=True, **kwargs)
         assert self.is_inverted
         #assert self.normalize_embeddings
-        self.temperature = 0.05
+        self.temperature = 1.0
     
     def compute_mat(self, query_emb, ref_emb):
         query_emb, ref_emb = torch.tanh(query_emb/self.temperature), torch.tanh(ref_emb/self.temperature)

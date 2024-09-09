@@ -74,7 +74,3 @@ class DINOv2(nn.Module):
         if self.return_token:
             return f, t
         return f
-    
-
-model = DINOv2().cpu()
-print(model)
