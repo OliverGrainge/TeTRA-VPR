@@ -1,6 +1,6 @@
 
 Datasets:
-  datasets_dir: "/home/oliver/Documents/github/Datasets"
+  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
 
 
 Dataloader:
@@ -65,6 +65,11 @@ Training:
   miner_margin: 0.1
   faiss_gpu: False
   search_precision: 'binary'
+
+
+  lambda_lat: 1.
+  lambda_front: 1.
+  iterations_per_epoch: 5000
 
   monitor: 'pitts30k_val/R1'
 
@@ -158,5 +163,5 @@ Model:
 
 
 Quantize:
-  qlinear: LinearW8A16
+  qlinear: LinearW4A16
   qconv: Conv2dW4A8

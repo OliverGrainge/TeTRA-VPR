@@ -15,7 +15,7 @@ import sys
 from pretrain import VPRModel
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'NeuroCompress')))
 from NeuroPress import QLayers as Q
-from NeuroPress import postquantize
+from NeuroPress import postquantize, freeze
 import yaml
 torch.set_float32_matmul_precision('medium')
 
@@ -27,8 +27,7 @@ with open(config_path, 'r') as config_file:
 
 def get_qlayers(args):
     qlinear = getattr(Q, args.qlinear) if args.qlinear else None
-    qconv = getattr(Q, args.qconv) if args.qconv else None
-    return qlinear, qconv
+    return qlinear
 
 if __name__ == '__main__':
     # the datamodule contains train and validation dataloaders,
@@ -57,37 +56,7 @@ if __name__ == '__main__':
         val_set_names=args.val_set_names,
     )
 
-    model = VPRModel(
-        # ---- Backbone
-        backbone_arch=args.backbone_arch,
-        backbone_config=config["Model"]["backbone_config"],
-
-        # ---- Aggregator
-        agg_arch=args.agg_arch,  # CosPlace, NetVLAD, GeM, AVG
-        agg_config=config["Model"]["agg_config"],
-
-        # ---- Train hyperparameters
-        lr=args.lr,
-        optimizer=args.optimizer,
-        weight_decay=args.weight_decay,
-        momentum=args.momentum,
-        warmpup_steps=args.warmup_steps,
-        milestones=args.milestones,
-        lr_mult=args.lr_mult,
-
-        # ----- Loss
-        loss_name=args.loss_name,
-        miner_name=args.miner_name,
-        miner_margin=args.miner_margin,
-        faiss_gpu=args.faiss_gpu,
-        search_precision=args.search_precision
-    )
-
-
-    state_dict = torch.load(args.load_checkpoint, map_location="cpu")
-    #state_dict = torch.load("/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/resnet18/lightning_logs/version_0/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(17)_step(2106)_R1[0.8525]_R5[0.9491].ckpt", map_location="cpu")
-    model.load_state_dict(state_dict["state_dict"])
-
+    model = VPRModel.load_from_checkpoint(args.load_checkpoint)
 
     # model params saving using Pytorch Lightning
     # we save the best 3 models according to Recall@1 on pittsburgh val
@@ -114,44 +83,29 @@ if __name__ == '__main__':
         log_every_n_steps=20,
         fast_dev_run=args.fast_dev_run,  # comment if you want to start training the network and saving checkpoints
     )
-    trainer.validate(model=model, datamodule=datamodule)
+    #trainer.validate(model=model, datamodule=datamodule)
     # Run the trainer with the model and datamodule
 
-    qlinear, qconv = get_qlayers(args)
-    print(f"Quantizing with {qlinear} and {qconv} weights")
+    qlinear = get_qlayers(args)
+    print(f"Quantizing with {qlinear} weights")
 
 
-    qlayer_map = {}
-    for name, layer in model.named_modules():
+    #qlayer_map = {}
+    #for name, layer in model.named_modules():
         #print(name)
-        if "fc1" in name: 
-            if "11" in name or "10" in name or "9" in name or "8" in name:
-                qlayer_map[layer] = qlinear
+        #if "fc1" in name: 
+            #if "11" in name or "10" in name or "9" in name or "8" in name:
+            #qlayer_map[layer] = qlinear
             #print("================================================================================= Quantizing")
-        if "fc2" in name: 
-            if "11" in name or "10" in name or "9" in name or "8" in name:
-                qlayer_map[layer] = qlinear
+        #if "fc2" in name: 
+            #if "11" in name or "10" in name or "9" in name or "8" in name:
+            #qlayer_map[layer] = qlinear
             #old_weights = layer.weight.data.detach().cpu().numpy().flatten()
             #print("================================================================================= Quantizing")
 
 
-    #postquantize(model, layer_map=qlayer_map)
-    #from optimum.quanto import quantize, qint8
-    #quantize(model, weights=qint8, activations=qint8)
+    postquantize(model.backbone, qlinear=qlinear)
+    freeze(model.backbone)
 
-    #for name, layer in model.named_modules():
-    #    print(name, layer)
-    #for name, layer in model.named_modules():
-        #if "backbone.model.blocks.1.mlp.fc1" in name: 
-            #new_weights = layer.quantize().detach().cpu().numpy().flatten()
-
-    
-    #import matplotlib.pyplot as plt 
-    #plt.hist(new_weights, bins=254, label="Quantized", alpha=0.7, density=True)
-    #plt.hist(old_weights, bins=254, label="old weights", alpha=0.7, density=True)
-    #import numpy as np
-    #print(len(np.unique(new_weights)), "MAX", np.abs(new_weights).max())
-    #plt.legend()
-    #plt.show()
     trainer.validate(model=model, datamodule=datamodule)
     trainer.fit(model=model, datamodule=datamodule)

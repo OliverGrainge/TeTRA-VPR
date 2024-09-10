@@ -1,4 +1,3 @@
-from NeuroCompress.examples.mnist_conv import qlinear
 from parsers import model_arguments, quantize_arguments, dataloader_arguments, training_arguments
 from pretrain import VPRModel
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
@@ -19,7 +18,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'NeuroCo
 
 
 from NeuroPress import QLayers as Q
-from NeuroPress import postquantize
+from NeuroPress import postquantize, freeze
 
 
 
@@ -39,7 +38,7 @@ if __name__ == '__main__':
     parser = dataloader_arguments(parser)
     parser = training_arguments(parser)
     args = parser.parse_args()
-    args.load_checkpoint = "Logs/PreTraining/resnet18/lightning_logs/version_0/checkpoints/resnet18_convap_MultiSimilarityLoss_epoch(17)_step(2106)_R1[0.8525]_R5[0.9491].ckpt"
+    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/vit/lightning_logs/version_0/checkpoints/vit_cls_MultiSimilarityLoss_epoch(15)_step(4688)_R1[0.8061]_R5[0.9435].ckpt"
 
     datamodule = GSVCitiesDataModule(
         batch_size=args.batch_size,
@@ -67,7 +66,7 @@ if __name__ == '__main__':
     print("================================== Full Precision ======================================")
     print("===================================================================================")
     trainer = pl.Trainer()
-    metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
+    #metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
 
     print(" ")
     print(" ")
@@ -77,10 +76,11 @@ if __name__ == '__main__':
     print("===================================================================================")
     print("================================== Quantized ======================================")
     print("===================================================================================")
-    postquantize(model.backbone, qlinear=Q.LinearW8A8, qconv=Q.Conv2dW8A8)
+    postquantize(model.backbone, qlinear=Q.LinearWTA16)
+    freeze(model.backbone)
     trainer = pl.Trainer()
     qmetrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
-    print(model)
+    #print(model)
 
 
 
