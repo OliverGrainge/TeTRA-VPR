@@ -1,0 +1,199 @@
+import pytorch_lightning as pl
+import torch
+from torch.utils.data.dataloader import DataLoader
+from torch.optim import lr_scheduler
+from torchvision import transforms as T
+from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
+from dataloaders.val.PittsburghDataset import PittsburghDataset
+from dataloaders.val.MapillaryDataset import MSLS
+from dataloaders.val.NordlandDataset import NordlandDataset
+from dataloaders.val.SPEDDataset import SPEDDataset
+from prettytable import PrettyTable
+import utils
+import helper
+
+IMAGENET_MEAN_STD = {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
+VIT_MEAN_STD = {'mean': [0.5, 0.5, 0.5], 'std': [0.5, 0.5, 0.5]}
+
+TRAIN_CITIES = [
+    'Bangkok', 'BuenosAires', 'LosAngeles', 'MexicoCity', 'OSL', 
+    'Rome', 'Barcelona', 'Chicago', 'Madrid', 'Miami', 'Phoenix', 
+    'TRT', 'Boston', 'Lisbon', 'Medellin', 'Minneapolis', 'PRG', 
+    'WashingtonDC', 'Brussels', 'London', 'Melbourne', 'Osaka', 'PRS'
+]
+
+class GSVCities(pl.LightningModule):
+    def __init__(self, config, model, batch_size=32, img_per_place=4, min_img_per_place=4,
+                 shuffle_all=False, image_size=(480, 640), num_workers=4, show_data_stats=True,
+                 cities=TRAIN_CITIES, mean_std=IMAGENET_MEAN_STD, val_set_names=['pitts30k_val', 'msls_val']):
+        super().__init__()
+        # Model parameters
+        self.backbone_arch = config['Model']['backbone_arch']
+        self.backbone_config = config['Model']['backbone_config']
+        self.agg_arch = config['Model']['agg_arch']
+        self.agg_config = config['Model']['agg_config']
+        self.lr = config['Training']['lr']
+        self.optimizer_type = config['Training']['optimizer']
+        self.weight_decay = config['Training']['weight_decay']
+        self.momentum = config['Training']['momentum']
+        self.warmup_steps = config['Training']['warmup_steps']
+        self.milestones = config['Training']['milestones']
+        self.lr_mult = config['Training']['lr_mult']
+        self.loss_name = config['Training']['loss_name']
+        self.miner_name = config['Training']['miner_name']
+        self.miner_margin = config['Training']['miner_margin']
+        self.faiss_gpu = config['Training']['faiss_gpu']
+        self.search_precision = config['Training']['search_precision']
+        
+        self.batch_acc = []
+        self.loss_fn = utils.get_loss(self.loss_name)
+        self.miner = utils.get_miner(self.miner_name, self.miner_margin)
+
+        self.model = model
+
+        # Data parameters
+        self.batch_size = batch_size
+        self.img_per_place = img_per_place
+        self.min_img_per_place = min_img_per_place
+        self.shuffle_all = shuffle_all
+        self.image_size = image_size
+        self.num_workers = num_workers
+        self.cities = cities
+        self.mean_dataset = mean_std['mean']
+        self.std_dataset = mean_std['std']
+        self.val_set_names = val_set_names
+        self.random_sample_from_each_place = True
+        self.train_dataset = None
+        self.val_datasets = []
+        self.show_data_stats = show_data_stats
+
+        # Train and valid transforms
+        self.train_transform = T.Compose([
+            T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
+            T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
+            T.ToTensor(),
+            T.Normalize(mean=self.mean_dataset, std=self.std_dataset)
+        ])
+
+        self.valid_transform = T.Compose([
+            T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
+            T.ToTensor(),
+            T.Normalize(mean=self.mean_dataset, std=self.std_dataset)
+        ])
+
+        # Dataloader configs
+        self.train_loader_config = {
+            'batch_size': self.batch_size,
+            'num_workers': self.num_workers,
+            'drop_last': False,
+            'pin_memory': False,
+            'shuffle': self.shuffle_all
+        }
+
+        self.valid_loader_config = {
+            'batch_size': self.batch_size,
+            'num_workers': self.num_workers // 2,
+            'drop_last': False,
+            'pin_memory': False,
+            'shuffle': False
+        }
+
+    def setup(self, stage=None):
+        # Setup for 'fit' or 'validate'
+        if stage == 'fit' or stage == 'validate':
+            self.reload()
+            self.val_datasets = []
+            for val_set_name in self.val_set_names:
+                if 'pitts30k' in val_set_name.lower():
+                    self.val_datasets.append(PittsburghDataset(which_ds=val_set_name, input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'msls_val':
+                    self.val_datasets.append(MSLS(input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'nordland':
+                    self.val_datasets.append(NordlandDataset(input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'sped':
+                    self.val_datasets.append(SPEDDataset(input_transform=self.valid_transform))
+                else:
+                    raise NotImplementedError(f'Validation set {val_set_name} not implemented')
+
+            if self.show_data_stats:
+                self.print_stats()
+
+    def reload(self):
+        self.train_dataset = GSVCitiesDataset(
+            cities=self.cities,
+            img_per_place=self.img_per_place,
+            min_img_per_place=self.min_img_per_place,
+            random_sample_from_each_place=self.random_sample_from_each_place,
+            transform=self.train_transform
+        )
+
+    def train_dataloader(self):
+        self.reload()
+        return DataLoader(dataset=self.train_dataset, **self.train_loader_config)
+
+    def val_dataloader(self):
+        val_dataloaders = []
+        for val_dataset in self.val_datasets:
+            val_dataloaders.append(DataLoader(dataset=val_dataset, **self.valid_loader_config))
+        return val_dataloaders
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+    def configure_optimizers(self):
+        if self.optimizer_type.lower() == 'sgd':
+            optimizer = torch.optim.SGD(self.parameters(), lr=self.lr, weight_decay=self.weight_decay, momentum=self.momentum)
+        elif self.optimizer_type.lower() == 'adamw':
+            optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        elif self.optimizer_type.lower() == 'adam':
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        else:
+            raise ValueError(f'Optimizer {self.optimizer_type} not recognized.')
+        scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_mult)
+        return [optimizer], [scheduler]
+
+    def loss_function(self, descriptors, labels):
+        if self.miner is not None:
+            miner_outputs = self.miner(descriptors, labels)
+            loss = self.loss_fn(descriptors, labels, miner_outputs)
+            nb_samples = descriptors.shape[0]
+            nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
+            batch_acc = 1.0 - (nb_mined / nb_samples)
+        else:
+            loss = self.loss_fn(descriptors, labels)
+            batch_acc = 0.0
+            if isinstance(loss, tuple):
+                loss, batch_acc = loss
+        self.batch_acc.append(batch_acc)
+        self.log('b_acc', sum(self.batch_acc) / len(self.batch_acc), prog_bar=True, logger=True)
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        places, labels = batch
+        BS, N, ch, h, w = places.shape
+        images = places.view(BS * N, ch, h, w)
+        labels = labels.view(-1)
+        descriptors = self(images)
+        loss = self.loss_function(descriptors, labels)
+        self.log('loss', loss)
+        return {'loss': loss}
+
+    def print_stats(self):
+        table = PrettyTable()
+        table.field_names = ['Data', 'Value']
+        table.add_row(["# of cities", f"{len(TRAIN_CITIES)}"])
+        table.add_row(["# of places", f'{self.train_dataset.__len__()}'])
+        table.add_row(["# of images", f'{self.train_dataset.total_nb_images}'])
+        print(table.get_string(title="Training Dataset"))
+
+        table = PrettyTable()
+        for i, val_set_name in enumerate(self.val_set_names):
+            table.add_row([f"Validation set {i+1}", f"{val_set_name}"])
+        print(table.get_string(title="Validation Datasets"))
+
+        table = PrettyTable()
+        table.add_row(["Batch size (PxK)", f"{self.batch_size}x{self.img_per_place}"])
+        table.add_row(["# of iterations", f"{self.train_dataset.__len__() // self.batch_size}"])
+        table.add_row(["Image size", f"{self.image_size}"])
+        print(table.get_string(title="Training config"))

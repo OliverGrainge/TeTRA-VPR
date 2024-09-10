@@ -16,29 +16,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.trainer.supporters import CombinedLoader
 
 
-class InfiniteDataLoader(torch.utils.data.DataLoader):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.dataset_iterator = super().__iter__()
-    
-    def __iter__(self):
-        return self
-    
-    def __next__(self):
-        try:
-            batch = next(self.dataset_iterator)
-        except StopIteration:
-            self.dataset_iterator = super().__iter__()
-            batch = next(self.dataset_iterator)
-        return batch
-    
-
-
-
-
-
-
-    
 
 def move_to_device(optimizer: Type[torch.optim.Optimizer], device: str):
     for state in optimizer.state.values():
@@ -152,8 +129,6 @@ class EigenPlacesDataModule(pl.LightningDataModule):
                         f'Validation set {valid_set_name} does not exist or has not been implemented yet')
                     raise NotImplementedError
                 
-    def group_lengths(self):
-        return [len(group) for group in self.groups]
     
     def train_dataloader(self):
         current_dataset_num = (self.epoch % self.groups_num) * 2

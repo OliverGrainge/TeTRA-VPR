@@ -70,6 +70,14 @@ Training:
   lambda_lat: 1.
   lambda_front: 1.
   iterations_per_epoch: 5000
+  M: 15 
+  N: 3
+  s: 300
+  m: 0.4
+  n: 2
+  focal_dist: 25
+  min_images_per_class: 5
+  visualize_calsses: 0
 
   monitor: 'pitts30k_val/R1'
 
