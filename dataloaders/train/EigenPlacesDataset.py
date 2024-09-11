@@ -12,10 +12,11 @@ import torchvision.transforms as tfm
 import yaml
 from collections import defaultdict
 from pathlib import Path
+import os 
 
+from dataloaders.train.Utils.map_utils import create_map
+import dataloaders.train.Utils.dataset_utils as dataset_utils
 
-from train.Utils.map_utils import create_map
-import train.Utils.dataset_utils as dataset_utils
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -64,7 +65,7 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
     def __init__(self,
                  dataset_size="small",
                  M=20, N=5, focal_dist=10, current_group=0, 
-                 min_images_per_class=10, angle=0, visualize_classes=0):
+                 min_images_per_class=10, angle=0, visualize_classes=0, transform=None):
         """
         Parameters (please check our paper for a clearer explanation of the parameters).
         ----------
@@ -83,11 +84,13 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
             visualizations. Visualizations of a class consists in its map and
             the images belonging to it.
         """
+        print(M, N, focal_dist, current_group, min_images_per_class, angle, visualize_classes)
         super().__init__()
         self.M = M
         self.N = N
         self.focal_dist = focal_dist
         self.current_group = current_group
+        self.transform = transform
 
         config_path = os.path.join(os.path.dirname(__file__), '../../config.yaml')
         # Load the YAML configuration
@@ -102,12 +105,12 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
                 'BASE_PATH is hardcoded, please adjust to point to gsv_cities')
 
 
-        #if dataset_size == "small":
-        #    BASE_PATH = os.path.join(BASE_PATH, 'small/')
-        #elif dataset_size == "large":
-        #    BASE_PATH = os.path.join(BASE_PATH, "processed/")
-        #else: 
-        #    raise Exception(f"BASE_PATH {BASE_PATH} is not available")
+        if dataset_size == "small":
+            BASE_PATH = os.path.join(BASE_PATH, 'small/train/')
+        elif dataset_size == "large":
+            BASE_PATH = os.path.join(BASE_PATH, "processed/train/")
+        else: 
+            raise Exception(f"BASE_PATH {BASE_PATH} is not available")
         
 
         self.dataset_folder = BASE_PATH
@@ -203,6 +206,8 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
         focal_point = self.focal_point_per_class[class_id]
         pano_path = self.dataset_folder + random.choice(self.images_per_class[class_id])
         crop = self.get_crop(pano_path, focal_point)
+        if self.transform is not None: 
+            crop = self.transform(crop)
         return crop, class_num, pano_path
     
     def get_images_num(self):
@@ -270,3 +275,13 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
         group_id = (rounded_utm_east % (M * N) // M,
                     rounded_utm_north % (M * N) // M)
         return class_id, group_id
+    
+
+if __name__ == "__main__":
+    ds = EigenPlacesDataset
+    for i in range(10):
+        crop, c, pano_path = ds.__getitem__(i)
+        import matplotlib.pyplot as plt 
+        image = crop.permute(1, 2, 0).detach().cpu().numpy()
+        plt.imshow(image)
+        plt.show()

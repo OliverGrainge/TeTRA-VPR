@@ -4,7 +4,7 @@ Datasets:
 
 
 Dataloader:
-  batch_size: 40 #100 if possible
+  batch_size: 64 #100 if possible
   img_per_place: 4
   min_img_per_place: 4
   cities:
@@ -49,7 +49,7 @@ Training:
   max_epochs: 30 # 30 for pretraining
   fast_dev_run: False
 
-  lr: 0.0002 # 0.0002 for pre-training
+  lr: 0.00001 # 0.0002 for pre-training gsv 0.00001 for pretrianing eig
   optimizer: 'adam' #adam
   weight_decay: 0
   momentum: 0.9
@@ -64,7 +64,7 @@ Training:
   miner_name: 'MultiSimilarityMiner'
   miner_margin: 0.1
   faiss_gpu: False
-  search_precision: 'binary'
+  search_precision: 'float32'
 
 
   lambda_lat: 1.
@@ -72,12 +72,17 @@ Training:
   iterations_per_epoch: 5000
   M: 15 
   N: 3
-  s: 300
+  s: 100
   m: 0.4
-  n: 2
-  focal_dist: 25
+  focal_dist: 10
   min_images_per_class: 5
-  visualize_calsses: 0
+  visualize_classes: 0
+
+  brightness: 0.7
+  contrast: 0.7
+  saturation: 0.7 
+  hue: 0.5
+  random_resized_crop: 0.5
 
   monitor: 'pitts30k_val/R1'
 
@@ -89,7 +94,7 @@ Model:
   layers_to_freeze: 2
   layers_to_crop:
     -
-  agg_arch: 'ConvAP'
+  agg_arch: 'GeM'
   backbone_config: 
     resnet18: 
       model_name: 'resnet18'
@@ -130,7 +135,7 @@ Model:
   agg_config:
     convap: 
       in_channels: 512
-      out_channels: 512
+      out_channels: 128
       s1: 2
       s2: 2
     gem: 

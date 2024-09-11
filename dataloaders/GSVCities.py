@@ -10,7 +10,6 @@ from dataloaders.val.NordlandDataset import NordlandDataset
 from dataloaders.val.SPEDDataset import SPEDDataset
 from prettytable import PrettyTable
 import utils
-import helper
 
 IMAGENET_MEAN_STD = {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {'mean': [0.5, 0.5, 0.5], 'std': [0.5, 0.5, 0.5]}
@@ -99,11 +98,12 @@ class GSVCities(pl.LightningModule):
         }
 
     def setup(self, stage=None):
-        # Setup for 'fit' or 'validate'
+        # Setup for 'fit' or 'validate'self
         if stage == 'fit' or stage == 'validate':
             self.reload()
             self.val_datasets = []
             for val_set_name in self.val_set_names:
+                print(val_set_name)
                 if 'pitts30k' in val_set_name.lower():
                     self.val_datasets.append(PittsburghDataset(which_ds=val_set_name, input_transform=self.valid_transform))
                 elif val_set_name.lower() == 'msls_val':
@@ -114,7 +114,6 @@ class GSVCities(pl.LightningModule):
                     self.val_datasets.append(SPEDDataset(input_transform=self.valid_transform))
                 else:
                     raise NotImplementedError(f'Validation set {val_set_name} not implemented')
-
             if self.show_data_stats:
                 self.print_stats()
 
@@ -178,6 +177,66 @@ class GSVCities(pl.LightningModule):
         loss = self.loss_function(descriptors, labels)
         self.log('loss', loss)
         return {'loss': loss}
+    
+
+    def on_validation_epoch_start(self):
+        # Initialize or reset the list to store validation outputs
+        self.validation_outputs = []
+
+    # For validation, we will also iterate step by step over the validation set
+    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    def validation_step(self, batch, batch_idx, dataloader_idx=None):
+        places, _ = batch
+        # calculate descriptors
+        descriptors = self(places)
+        # store the outputs
+        self.validation_outputs.append(descriptors.detach().cpu())
+        return descriptors.detach().cpu()
+    
+    def on_validation_epoch_end(self):
+        """Process the validation outputs stored in self.validation_outputs."""
+
+        # The following line is a hack: if we have only one validation set, then
+        # we need to put the outputs in a list
+        if len(self.val_datasets) == 1:
+            val_step_outputs = [self.validation_outputs]
+        else:
+            val_step_outputs = self.validation_outputs
+
+        for i, (val_set_name, val_dataset) in enumerate(zip(self.val_set_names, self.val_datasets)):
+            feats = torch.concat(val_step_outputs[i], dim=0)
+
+            num_references = val_dataset.num_references
+            num_queries = val_dataset.num_queries
+            ground_truth = val_dataset.ground_truth
+
+            # split to ref and queries    
+            r_list = feats[:num_references]
+            q_list = feats[num_references:]
+        
+
+
+
+            recalls_dict, predictions = utils.get_validation_recalls(
+                r_list=r_list,
+                q_list=q_list,
+                k_values=[1, 5, 10, 15, 20, 25],
+                gt=ground_truth,
+                print_results=True,
+                dataset_name=val_set_name,
+                faiss_gpu=self.faiss_gpu,
+                precision=self.search_precision
+            )
+
+            self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R5', recalls_dict[5], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R10', recalls_dict[10], prog_bar=False, logger=True)
+
+            del r_list, q_list, feats, num_references, ground_truth
+
+        # Clear the outputs after processing
+        self.validation_outputs.clear()
+        print('\n\n')
 
     def print_stats(self):
         table = PrettyTable()

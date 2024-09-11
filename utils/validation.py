@@ -9,6 +9,8 @@ from .distances import binarize_ste
         
 
 def float32_search(r_list, q_list, k_values, faiss_gpu=False):
+    r_list = r_list / torch.norm(r_list, p=2, dim=1, keepdim=True)
+    q_list = q_list / torch.norm(q_list, p=2, dim=1, keepdim=True)
     embed_size = r_list.shape[1]
     if faiss_gpu:
         res = faiss.StandardGpuResources()

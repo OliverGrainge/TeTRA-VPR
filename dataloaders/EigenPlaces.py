@@ -6,24 +6,40 @@ from torch.utils.data import DataLoader
 from torchvision import transforms as T
 import os
 import yaml
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from prettytable import PrettyTable
-from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from dataloaders.train.EigenPlacesDataset import EigenPlacesDataset
-from val.PittsburghDataset import PittsburghDataset
-from val.MapillaryDataset import MSLS
-from val.NordlandDataset import NordlandDataset
-from val.SPEDDataset import SPEDDataset
+from dataloaders.val.PittsburghDataset import PittsburghDataset
+from dataloaders.val.MapillaryDataset import MSLS
+from dataloaders.val.NordlandDataset import NordlandDataset
+from dataloaders.val.SPEDDataset import SPEDDataset
+from dataloaders.train.Utils import augmentations
 import utils
-import helper
+import sys
 
 IMAGENET_MEAN_STD = {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {'mean': [0.5, 0.5, 0.5], 'std': [0.5, 0.5, 0.5]}
 
+
 # Load config
-config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
-with open(config_path, 'r') as config_file:
+with open('config.yaml', 'r') as config_file:
     config = yaml.safe_load(config_file)
+
+
+
+class InfiniteDataLoader(torch.utils.data.DataLoader):
+    def __init__(self, dataset, loop_count=1000, *args, **kwargs):
+        super().__init__(dataset, *args, **kwargs)
+        self.loop_count = loop_count
+
+    def __len__(self):
+        return len(self.dataset) * self.loop_count
+    
+    def __iter__(self):
+        while True:
+            for _ in range(self.loop_count):
+                for batch in super().__iter__():
+                    yield batch
+                    
 
 def cosine_sim(x1: torch.Tensor, x2: torch.Tensor, dim: int = 1, eps: float = 1e-8) -> torch.Tensor:
     ip = torch.mm(x1, x2.t())
@@ -96,15 +112,6 @@ class EigenPlaces(pl.LightningModule):
         # Get backbone and aggregator
         self.model = model
 
-        self.groups = [EigenPlacesDataset(
-                M=self.M, N=self.N, focal_dist=self.focal_dist, current_group=n//2,
-                min_images_per_class=self.min_images_per_class, angle=[0, 90][n % 2],
-                visualize_classes=self.visualize_classes) for n in range(self.groups_num * 2)
-            ]
-
-        # Group-specific classifiers
-        self.classifiers = [MarginCosineProduct(output_dim, len(group), s=s, m=m) for group in self.groups]
-
         # Data configuration
         self.image_size = image_size
         self.batch_size = batch_size
@@ -114,23 +121,48 @@ class EigenPlaces(pl.LightningModule):
         self.N = config["Training"]["N"]
         self.s = config["Training"]["s"]
         self.m = config["Training"]["m"]
-        self.n = config["Training"]["n"]
         self.focal_dist = config["Training"]["focal_dist"]
-        self.min_images_per_class = config["Training"]["M"]["min_images_per_class"]
-        self.visualize_classes = config["Training"]["M"]["visualize_classes"]
+        self.min_images_per_class = config["Training"]["min_images_per_class"]
+        self.visualize_classes = config["Training"]["visualize_classes"]
         self.groups_num = self.N * self.N
         self.mean_dataset = mean_std["mean"]
         self.std_dataset = mean_std["std"]
         self.num_workers = num_workers
         self.shuffle_all = shuffle_all
+        self.brightness = config["Training"]["brightness"]
+        self.contrast = config["Training"]["contrast"]
+        self.hue = config["Training"]["hue"]
+        self.saturation = config["Training"]["saturation"]
+        self.random_resized_crop = config["Training"]["random_resized_crop"]
 
-        # Train and valid transforms
+                # Train and valid transforms
         self.train_transform = T.Compose([
-            T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-            T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
-            T.ToTensor(),
-            T.Normalize(mean=self.mean_dataset, std=self.std_dataset)
+            augmentations.DeviceAgnosticColorJitter(brightness=self.brightness,
+                                                    contrast=self.contrast,
+                                                    saturation=self.saturation,
+                                                    hue=self.hue),
+            augmentations.DeviceAgnosticRandomResizedCrop([512, 512],
+                                                        scale=[1-self.random_resized_crop, 1]),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
+
+
+        self.groups = [EigenPlacesDataset(
+                M=self.M, N=self.N, focal_dist=self.focal_dist, current_group=n//2,
+                min_images_per_class=self.min_images_per_class, angle=[0, 90][n % 2],
+                visualize_classes=self.visualize_classes) for n in range(self.groups_num * 2)
+            ]
+        
+
+        # Group-specific classifiers
+        self.classifiers = [MarginCosineProduct(output_dim, len(group), s=self.s, m=self.m) for group in self.groups]
+        for cls in self.classifiers: 
+            cls = cls.to("cuda")
+        print(f"number of classes {[len(g) for g in self.groups]}")
+        print(f"The {len(self.groups)} groups have respectively the following "
+             f"number of images {[g.get_images_num() for g in self.groups]}")
+        self.criterion = torch.nn.CrossEntropyLoss()
+
 
         self.valid_transform = T.Compose([
             T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
@@ -142,9 +174,11 @@ class EigenPlaces(pl.LightningModule):
         self.train_loader_config = {
             'batch_size': self.batch_size,
             'num_workers': self.num_workers,
-            'drop_last': False,
-            'pin_memory': False,
-            'shuffle': self.shuffle_all
+            'drop_last': True,
+            'pin_memory': True,
+            'shuffle': self.shuffle_all,
+            'prefetch_factor': 3,
+            'persistent_workers': True
         }
 
         self.valid_loader_config = {
@@ -154,42 +188,87 @@ class EigenPlaces(pl.LightningModule):
             'pin_memory': False,
             'shuffle': False
         }
-        
+
+        self.automatic_optimization = False
+    
+    def setup(self, stage=None):
+        # Setup for 'fit' or 'validate'self
+        if stage == 'fit' or stage == 'validate':
+            self.val_datasets = []
+            for val_set_name in self.val_set_names:
+
+                if 'pitts30k' in val_set_name.lower():
+                    self.val_datasets.append(PittsburghDataset(which_ds=val_set_name, input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'msls_val':
+                    self.val_datasets.append(MSLS(input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'nordland':
+                    self.val_datasets.append(NordlandDataset(input_transform=self.valid_transform))
+                elif val_set_name.lower() == 'sped':
+                    self.val_datasets.append(SPEDDataset(input_transform=self.valid_transform))
+                else:
+                    raise NotImplementedError(f'Validation set {val_set_name} not implemented')
 
     def forward(self, x):
         x = self.model(x)
         return x
 
     def configure_optimizers(self):
-        model_opt = torch.optim.Adam([self.backbone.parameters()] + [self.aggregator.parameters()], lr=self.lr)
+        model_opt = [torch.optim.Adam(self.model.parameters(), lr=0.00001)]
         classifiers_optimizers = [torch.optim.Adam(classifier.parameters(), lr=self.classifiers_lr) for classifier in self.classifiers]
-        opt = [model_opt] + classifiers_optimizers
+        opt = model_opt + classifiers_optimizers
         return opt
     
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        for dataset_num, b in batch.items():
+        model_opt = opt[0]
+        classifier_opts = opt[1:]
+
+        model_opt.zero_grad()
+
+        for dataset_key, b in batch.items():
+            current_dataset_num, i = dataset_key
+            #assert len(self.groups) == len(self.classifiers) == len(classifier_opts)
             images, targets, _ = b
+            images = self.train_transform(images)
+            #for p in range(images.shape[0]):
+            #    if targets[p] == 12: 
+            #        image = images[p].permute(1, 2, 0).detach().cpu().numpy()
+            #        import matplotlib.pyplot as plt 
+            #        plt.imshow(image)
+            #        plt.show()
+
             descriptors = self(images)
-            output = self.classifiers[dataset_num](descriptors, targets)
+            descriptors = descriptors / torch.norm(descriptors, p=2, dim=1, keepdim=True)
+            #classifier = self.classifiers[current_dataset_num + i].to(descriptors.device)
+            classifier_opts[current_dataset_num + i].zero_grad()
+            output = self.classifiers[current_dataset_num + i](descriptors, targets)
             loss = self.criterion(output, targets)
-            if dataset_num % 2 == 0:
+            if i == 0:
                 loss *= self.lambda_lat 
                 self.log("lateral loss", loss)
             else: 
                 loss *= self.lambda_front 
                 self.log("frontal loss", loss)
+            #del images, output
             self.manual_backward(loss)
-            opt[0].step()
-            opt[dataset_num + 1].step()
-            opt[0].zero_grad()
-            opt[dataset_num + 1].zero_grad()
+            classifier_opts[current_dataset_num + i].step()
+
+        model_opt.step()
 
     def train_dataloader(self):
+        
         # Dataloaders for different datasets in different groups
+        """
         loaders = {}
         for group_num in range(self.groups_num):
-            loaders[group_num] = DataLoader(self.groups[group_num], **self.train_loader_config)
+            loaders[group_num] = infinite_dataloader(DataLoader(self.groups[group_num], **self.train_loader_config))
+        """
+        
+        current_dataset_num = (self.current_epoch % self.groups_num) * 2
+        loaders = {}
+        for i in range(2):
+            loaders[(current_dataset_num, i)] = InfiniteDataLoader(self.groups[current_dataset_num + i], **self.train_loader_config)
+
         return loaders
 
     def val_dataloader(self):
@@ -197,5 +276,66 @@ class EigenPlaces(pl.LightningModule):
         for val_dataset in self.val_datasets:
             val_dataloaders.append(DataLoader(dataset=val_dataset, **self.valid_loader_config))
         return val_dataloaders
+
+
+    def on_validation_epoch_start(self):
+        # Initialize or reset the list to store validation outputs
+        self.validation_outputs = []
+
+    # For validation, we will also iterate step by step over the validation set
+    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    def validation_step(self, batch, batch_idx, dataloader_idx=None):
+        places, _ = batch
+        # calculate descriptors
+        descriptors = self(places)
+        # store the outputs
+        self.validation_outputs.append(descriptors.detach().cpu())
+        return None 
+    
+    def on_validation_epoch_end(self):
+        """Process the validation outputs stored in self.validation_outputs."""
+
+        # The following line is a hack: if we have only one validation set, then
+        # we need to put the outputs in a list
+        if len(self.val_datasets) == 1:
+            val_step_outputs = [self.validation_outputs]
+        else:
+            val_step_outputs = self.validation_outputs
+
+        for i, (val_set_name, val_dataset) in enumerate(zip(self.val_set_names, self.val_datasets)):
+            feats = torch.concat(val_step_outputs[i], dim=0)
+
+            num_references = val_dataset.num_references
+            num_queries = val_dataset.num_queries
+            ground_truth = val_dataset.ground_truth
+
+            # split to ref and queries    
+            r_list = feats[:num_references]
+            q_list = feats[num_references:]
+        
+
+
+
+            recalls_dict, predictions = utils.get_validation_recalls(
+                r_list=r_list,
+                q_list=q_list,
+                k_values=[1, 5, 10, 15, 20, 25],
+                gt=ground_truth,
+                print_results=True,
+                dataset_name=val_set_name,
+                faiss_gpu=self.faiss_gpu,
+                precision=self.search_precision
+            )
+
+            self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R5', recalls_dict[5], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R10', recalls_dict[10], prog_bar=False, logger=True)
+
+            del r_list, q_list, feats, num_references, ground_truth
+
+        # Clear the outputs after processing
+        self.validation_outputs.clear()
+        print('\n\n')
+
 
 
