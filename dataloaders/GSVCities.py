@@ -28,7 +28,7 @@ class GSVCities(pl.LightningModule):
         show_data_stats=True,
         mean_std=IMAGENET_MEAN_STD,
         val_set_names=["pitts30k_val", "msls_val"],
-        search_precision='float32',
+        search_precision="float32",
     ):
         super().__init__()
         # Model parameters

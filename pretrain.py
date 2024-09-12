@@ -34,8 +34,14 @@ if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
 
-    model = get_model(args.image_size, args.backbone_arch, args.agg_arch, config["Model"], normalize_output=True)
-    
+    model = get_model(
+        args.image_size,
+        args.backbone_arch,
+        args.agg_arch,
+        config["Model"],
+        normalize_output=True,
+    )
+
     if "gsvcities" == args.training_method.lower():
         model_module = GSVCities(
             config["Training"]["GSVCities"],
@@ -45,7 +51,7 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
             mean_std=IMAGENET_MEAN_STD,
             val_set_names=args.val_set_names,
-            search_precision=args.search_precision
+            search_precision=args.search_precision,
         )
 
     elif "eigenplaces" == args.training_method.lower():
@@ -57,7 +63,7 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
             mean_std=IMAGENET_MEAN_STD,
             val_set_names=args.val_set_names,
-            search_precision=args.search_precision
+            search_precision=args.search_precision,
         )
 
     checkpoint_cb = ModelCheckpoint(

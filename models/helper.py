@@ -1,7 +1,7 @@
 import numpy as np
-import torch 
-import torch.nn.functional as F 
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from . import aggregators, backbones
 
@@ -50,27 +50,25 @@ def get_aggregator(agg_arch, agg_config, features_dim):
         nn.Module: the aggregation layer
     """
 
-
     if "gem" in agg_arch.lower():
-        agg_config['gem']['in_dim'] = features_dim[0]
+        agg_config["gem"]["in_dim"] = features_dim[0]
         return aggregators.GeM(**agg_config["gem"])
 
     elif "convap" in agg_arch.lower():
-        agg_config['convap']['in_channels'] = features_dim[0]
+        agg_config["convap"]["in_channels"] = features_dim[0]
         return aggregators.ConvAP(**agg_config["convap"])
 
-
     elif "mixvpr" in agg_arch.lower():
-        agg_config['mixvpr']['in_channels'] = features_dim[0]
-        agg_config['mixvpr']['in_h'] = features_dim[1]
-        agg_config['mixvpr']['in_w'] = features_dim[2]
+        agg_config["mixvpr"]["in_channels"] = features_dim[0]
+        agg_config["mixvpr"]["in_h"] = features_dim[1]
+        agg_config["mixvpr"]["in_w"] = features_dim[2]
         assert "out_channels" in agg_config["mixvpr"]
         assert "mix_depth" in agg_config["mixvpr"]
         return aggregators.MixVPR(**agg_config["mixvpr"])
 
     elif "salad" in agg_arch.lower():
-        agg_config['salad']['num_channels'] = features_dim[0]
-        agg_config['salad']['token_dim'] = features_dim[1]
+        agg_config["salad"]["num_channels"] = features_dim[0]
+        agg_config["salad"]["token_dim"] = features_dim[1]
         assert "num_clusters" in agg_config["salad"]
         assert "cluster_dim" in agg_config["salad"]
         return aggregators.SALAD(**agg_config["salad"])
@@ -79,32 +77,27 @@ def get_aggregator(agg_arch, agg_config, features_dim):
         return aggregators.CLS()
 
 
-
-
 class VPRModel(nn.Module):
     def __init__(self, backbone, aggregation, normalize=True):
         super().__init__()
-        self.backbone = backbone 
-        self.aggreagtion = aggregation 
-        self.normalize = normalize 
+        self.backbone = backbone
+        self.aggreagtion = aggregation
+        self.normalize = normalize
 
     def forward(self, x):
         x = self.backbone(x)
         x = self.aggreagtion(x)
-        if self.normalize == True: 
+        if self.normalize == True:
             x = F.normalize(x, p=2, dim=-1)
         return x
 
-def get_model(image_size, backbone_arch, agg_arch, model_config,normalize_output=True):
 
-    backbone = get_backbone(backbone_arch, model_config["backbone_config"]) 
+def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_output=True):
+
+    backbone = get_backbone(backbone_arch, model_config["backbone_config"])
     image = torch.randn(3, *(image_size)).to(next(backbone.parameters()).device)
     features = backbone(image[None, :])[0]
     features_dim = tuple(features.shape)
     aggregation = get_aggregator(agg_arch, model_config["agg_config"], features_dim)
 
     return VPRModel(backbone, aggregation, normalize=normalize_output)
-
-
-
-    

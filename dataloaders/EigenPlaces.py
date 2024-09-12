@@ -70,10 +70,12 @@ class MarginCosineProduct(nn.Module):
         output = self.s * (cosine - one_hot * self.m)
         return output
 
+
 def get_output_dim(image_size, model):
     image = torch.randn(3, *image_size).to(next(model.parameters()).device)
     out = model(image[None, :])
     return out.shape[1]
+
 
 class EigenPlaces(pl.LightningModule):
     def __init__(
@@ -103,8 +105,6 @@ class EigenPlaces(pl.LightningModule):
         # Lateral and Frontal Loss Scaling
         self.lambda_lat = config["lambda_lat"]
         self.lambda_front = config["lambda_front"]
-
-
 
         # Data configuration
         self.image_size = image_size
@@ -161,7 +161,9 @@ class EigenPlaces(pl.LightningModule):
 
         # Group-specific classifiers
         self.classifiers = [
-            MarginCosineProduct(self.output_dim, group.num_classes(), s=self.s, m=self.m)
+            MarginCosineProduct(
+                self.output_dim, group.num_classes(), s=self.s, m=self.m
+            )
             for group in self.groups
         ]
         for cls in self.classifiers:

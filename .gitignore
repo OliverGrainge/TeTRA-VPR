@@ -4,3 +4,5 @@
 *LOGS/
 lightning_logs
 data/
+cache/
+*experiments.sh
