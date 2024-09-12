@@ -138,4 +138,4 @@ class SALAD(nn.Module):
             dim=-1,
         )
 
-        return nn.functional.normalize(f, p=2, dim=-1)
+        return f

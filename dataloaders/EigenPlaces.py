@@ -70,28 +70,27 @@ class MarginCosineProduct(nn.Module):
         output = self.s * (cosine - one_hot * self.m)
         return output
 
+def get_output_dim(image_size, model):
+    image = torch.randn(3, *image_size).to(next(model.parameters()).device)
+    out = model(image[None, :])
+    return out.shape[1]
 
 class EigenPlaces(pl.LightningModule):
     def __init__(
         self,
         config,
         model,
-        dataset_size="large",
-        image_size=224,
+        image_size=(512, 512),
         batch_size=32,
         val_set_names=["pitts30k_val"],
-        output_dim=2048,
         mean_std=IMAGENET_MEAN_STD,
         num_workers=8,
         search_precision="float32",
     ):
         super().__init__()
 
-        # Backbone and Aggregator from config
-        self.backbone_arch = config["Model"]["backbone_arch"]
-        self.backbone_config = config["Model"]["backbone_config"]
-        self.agg_arch = config["Model"]["agg_arch"]
-        self.agg_config = config["Model"]["agg_config"]
+        # Get backbone and aggregator
+        self.model = model
 
         # Training hyperparameters
         self.lr = config["lr"]
@@ -105,14 +104,13 @@ class EigenPlaces(pl.LightningModule):
         self.lambda_lat = config["lambda_lat"]
         self.lambda_front = config["lambda_front"]
 
-        # Get backbone and aggregator
-        self.model = model
+
 
         # Data configuration
         self.image_size = image_size
         self.batch_size = batch_size
         self.val_set_names = val_set_names
-        self.output_dim = output_dim
+        self.output_dim = get_output_dim(self.image_size, model)
         self.M = config["M"]
         self.N = config["N"]
         self.s = config["s"]
@@ -163,7 +161,7 @@ class EigenPlaces(pl.LightningModule):
 
         # Group-specific classifiers
         self.classifiers = [
-            MarginCosineProduct(output_dim, group.num_classes(), s=self.s, m=self.m)
+            MarginCosineProduct(self.output_dim, group.num_classes(), s=self.s, m=self.m)
             for group in self.groups
         ]
         for cls in self.classifiers:
@@ -255,9 +253,6 @@ class EigenPlaces(pl.LightningModule):
             images = self.train_transform(images)
 
             descriptors = self(images)
-            descriptors = descriptors / torch.norm(
-                descriptors, p=2, dim=1, keepdim=True
-            )
             classifier_opts[current_dataset_num + i].zero_grad()
             output = self.classifiers[current_dataset_num + i](descriptors, targets)
             loss = self.criterion(output, targets)
@@ -299,24 +294,16 @@ class EigenPlaces(pl.LightningModule):
         return val_dataloaders
 
     def on_validation_epoch_start(self):
-        # Initialize or reset the list to store validation outputs
         self.validation_outputs = []
 
-    # For validation, we will also iterate step by step over the validation set
-    # this is the way Pytorch Lghtning is made. All about modularity, folks.
     def validation_step(self, batch, batch_idx, dataloader_idx=None):
         places, _ = batch
-        # calculate descriptors
         descriptors = self(places)
-        # store the outputs
         self.validation_outputs.append(descriptors.detach().cpu())
         return None
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs."""
-
-        # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a list
         if len(self.val_datasets) == 1:
             val_step_outputs = [self.validation_outputs]
         else:

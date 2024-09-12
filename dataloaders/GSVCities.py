@@ -47,6 +47,7 @@ class GSVCities(pl.LightningModule):
         self.img_per_place = config["img_per_place"]
         self.min_img_per_place = config["min_img_per_place"]
         self.cities = config["cities"]
+        self.shuffle_all = config["shuffle_all"]
 
         self.batch_acc = []
         self.loss_fn = utils.get_loss(self.loss_name)
@@ -56,8 +57,6 @@ class GSVCities(pl.LightningModule):
 
         # Data parameters
         self.batch_size = batch_size
-
-        self.shuffle_all = shuffle_all
         self.image_size = image_size
         self.num_workers = num_workers
         self.mean_dataset = mean_std["mean"]
@@ -275,7 +274,7 @@ class GSVCities(pl.LightningModule):
     def print_stats(self):
         table = PrettyTable()
         table.field_names = ["Data", "Value"]
-        table.add_row(["# of cities", f"{len(TRAIN_CITIES)}"])
+        table.add_row(["# of cities", f"{len(self.cities)}"])
         table.add_row(["# of places", f"{self.train_dataset.__len__()}"])
         table.add_row(["# of images", f"{self.train_dataset.total_nb_images}"])
         print(table.get_string(title="Training Dataset"))

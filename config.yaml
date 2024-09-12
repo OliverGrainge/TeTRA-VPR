@@ -11,7 +11,7 @@ Training:
   training_method: gsvcities
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
-  precision: 16
+  precision: bf16
   batch_size: 64
   max_epochs: 30 # 30 for pretraining
   search_precision: 'float32'
@@ -22,10 +22,12 @@ Training:
   image_size:
     - 224
     - 224
-  shuffle_all: True
+
 
   GSVCities: 
+    shuffle_all: True
     optimizer: 'adam' #adam
+    lr: 0.0002
     weight_decay: 0
     momentum: 0.9
     warmup_steps: 100 # 600
@@ -71,11 +73,11 @@ Training:
 
   EigenPlaces: 
     dataset_size: small
-    lr: 0.00001
-    classifier_lr: 0.01
+    lr: 0.00001 # 0.00001 for large dataset
+    classifiers_lr: 0.01
     lambda_lat: 1.
     lambda_front: 1.
-    iterations_per_epoch: 500
+    iterations_per_epoch: 200
     M: 15 
     N: 3
     s: 100
@@ -134,32 +136,19 @@ Model:
 
   agg_config:
     convap: 
-      in_channels: 512
       out_channels: 128
       s1: 2
       s2: 2
     gem: 
-      p: 3
-    cosplace: 
-      in_dim: 1024
       out_dim: 1024
     mixvpr: 
-      in_channels: 512 
-      out_channels: 4 
-      in_h: 10
-      in_w: 4
+      out_channels: 1024 
       mix_depth: 4
+      mlp_ratio: 1
+      out_rows: 4
     salad: 
-      num_channels: 384
       num_clusters: 64
       cluster_dim: 128
-      token_dim: 256
-    fully_connected: 
-      in_channels: 512
-      spatial_dims: 
-        - 7
-        - 7 
-      out_dim: 512
     cls: 
 
 

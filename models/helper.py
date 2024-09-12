@@ -1,4 +1,7 @@
 import numpy as np
+import torch 
+import torch.nn.functional as F 
+import torch.nn as nn
 
 from . import aggregators, backbones
 
@@ -34,7 +37,7 @@ def get_backbone(backbone_arch="resnet50", backbone_config={}):
         return backbones.ViT(**backbone_config["vit"])
 
 
-def get_aggregator(agg_arch="ConvAP", agg_config={}):
+def get_aggregator(agg_arch, agg_config, features_dim):
     """Helper function that returns the aggregation layer given its name.
     If you happen to make your own aggregator, you might need to add a call
     to this helper function.
@@ -47,64 +50,61 @@ def get_aggregator(agg_arch="ConvAP", agg_config={}):
         nn.Module: the aggregation layer
     """
 
-    if "cosplace" in agg_arch.lower():
-        return aggregators.CosPlace(**agg_config["cosplace"])
 
-    elif "gem" in agg_arch.lower():
-        return aggregators.GeMPool(**agg_config["gem"])
+    if "gem" in agg_arch.lower():
+        agg_config['gem']['in_dim'] = features_dim[0]
+        return aggregators.GeM(**agg_config["gem"])
 
     elif "convap" in agg_arch.lower():
+        agg_config['convap']['in_channels'] = features_dim[0]
         return aggregators.ConvAP(**agg_config["convap"])
 
-    elif "connected" in agg_arch.lower():
-        return aggregators.FullyConnected(**agg_config["fully_connected"])
 
     elif "mixvpr" in agg_arch.lower():
-        assert "in_channels" in agg_config["mixvpr"]
+        agg_config['mixvpr']['in_channels'] = features_dim[0]
+        agg_config['mixvpr']['in_h'] = features_dim[1]
+        agg_config['mixvpr']['in_w'] = features_dim[2]
         assert "out_channels" in agg_config["mixvpr"]
-        assert "in_h" in agg_config["mixvpr"]
-        assert "in_w" in agg_config["mixvpr"]
         assert "mix_depth" in agg_config["mixvpr"]
         return aggregators.MixVPR(**agg_config["mixvpr"])
 
     elif "salad" in agg_arch.lower():
-        assert "num_channels" in agg_config["salad"]
+        agg_config['salad']['num_channels'] = features_dim[0]
+        agg_config['salad']['token_dim'] = features_dim[1]
         assert "num_clusters" in agg_config["salad"]
         assert "cluster_dim" in agg_config["salad"]
-        assert "token_dim" in agg_config["salad"]
         return aggregators.SALAD(**agg_config["salad"])
 
     elif "cls" in agg_arch.lower():
         return aggregators.CLS()
 
 
-# -------------------------------------
-def print_nb_params(m):
-    """Prints the numbe of trainable parameters in the model
-
-    Args:
-        m (nn.Module): PyTorch model
-    """
-    model_parameters = filter(lambda p: p.requires_grad, m.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    print(f"Trainable parameters: {params/1e6:.3}M")
 
 
-def main():
-    import torch
+class VPRModel(nn.Module):
+    def __init__(self, backbone, aggregation, normalize=True):
+        super().__init__()
+        self.backbone = backbone 
+        self.aggreagtion = aggregation 
+        self.normalize = normalize 
 
-    x = torch.randn(1, 3, 224, 224)  # random image
-    # backbone = get_backbone(backbone_arch='resnet50')
-    backbone = get_backbone(backbone_arch="resnet50")
-    agg = get_aggregator("cosplace", {"in_dim": backbone.out_channels, "out_dim": 512})
-    # agg = get_aggregator('GeM')
-    print_nb_params(backbone)
-    print_nb_params(agg)
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.aggreagtion(x)
+        if self.normalize == True: 
+            x = F.normalize(x, p=2, dim=-1)
+        return x
 
-    backbone_output = backbone(x)
-    agg_output = agg(backbone_output)
-    print(f"output shape: {agg_output.shape}")
+def get_model(image_size, backbone_arch, agg_arch, model_config,normalize_output=True):
+
+    backbone = get_backbone(backbone_arch, model_config["backbone_config"]) 
+    image = torch.randn(3, *(image_size)).to(next(backbone.parameters()).device)
+    features = backbone(image[None, :])[0]
+    features_dim = tuple(features.shape)
+    aggregation = get_aggregator(agg_arch, model_config["agg_config"], features_dim)
+
+    return VPRModel(backbone, aggregation, normalize=normalize_output)
 
 
-if __name__ == "__main__":
-    main()
+
+    

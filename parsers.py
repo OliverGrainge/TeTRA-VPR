@@ -66,7 +66,7 @@ def training_arguments(parser=None):
     )
     parser.add_argument(
         "--precision",
-        type=int,
+        type=str,
         default=config["Training"]["precision"],
         help="Precision for training (e.g., 16 for mixed precision)",
     )

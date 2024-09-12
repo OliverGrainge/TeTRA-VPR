@@ -17,7 +17,7 @@ import yaml
 
 from dataloaders.EigenPlaces import EigenPlaces
 from dataloaders.GSVCities import GSVCities
-from models import helper
+from models.helper import get_model
 from parsers import get_args_parser
 
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
@@ -34,17 +34,13 @@ if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
 
-    model = torch.nn.Sequential(
-        helper.get_backbone(args.backbone_arch, config["Model"]["backbone_config"]),
-        helper.get_aggregator(args.agg_arch, config["Model"]["agg_config"]),
-    )
-
+    model = get_model(args.image_size, args.backbone_arch, args.agg_arch, config["Model"], normalize_output=True)
+    
     if "gsvcities" == args.training_method.lower():
         model_module = GSVCities(
             config["Training"]["GSVCities"],
             model,
             batch_size=args.batch_size,
-            shuffle_all=args.shuffle_all,
             image_size=args.image_size,
             num_workers=args.num_workers,
             mean_std=IMAGENET_MEAN_STD,
@@ -57,7 +53,6 @@ if __name__ == "__main__":
             config["Training"]["EigenPlaces"],
             model,
             batch_size=args.batch_size,
-            shuffle_all=args.shuffle_all,
             image_size=args.image_size,
             num_workers=args.num_workers,
             mean_std=IMAGENET_MEAN_STD,
@@ -67,9 +62,9 @@ if __name__ == "__main__":
 
     checkpoint_cb = ModelCheckpoint(
         monitor=args.monitor,
-        filename=f"{args.backbone_arch}"
-        + f"_{args.agg_arch}"
-        + f"_{args.loss_name}"
+        filename=f"{args.training_method.lower()}/"
+        + f"{args.backbone_arch.lower()}"
+        + f"_{args.agg_arch.lower()}"
         + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
         auto_insert_metric_name=False,
         save_weights_only=True,
@@ -77,7 +72,6 @@ if __name__ == "__main__":
         mode="max",
     )
 
-    # Instantiate a trainer with parsed arguments
     trainer = pl.Trainer(
         accelerator=args.accelerator,
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
@@ -93,5 +87,4 @@ if __name__ == "__main__":
         ),
     )
 
-    # Run the trainer with the model and datamodule
-    trainer.fit(model)
+    trainer.fit(model_module)
