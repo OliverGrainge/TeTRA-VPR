@@ -1,6 +1,6 @@
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class ConvAP(nn.Module):
@@ -12,20 +12,23 @@ class ConvAP(nn.Module):
         s1 (int, optional): spatial height of the adaptive average pooling. Defaults to 2.
         s2 (int, optional): spatial width of the adaptive average pooling. Defaults to 2.
     """
+
     def __init__(self, in_channels, out_channels=512, s1=2, s2=2):
         super(ConvAP, self).__init__()
-        self.channel_pool = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, bias=True)
+        self.channel_pool = nn.Conv2d(
+            in_channels=in_channels, out_channels=out_channels, kernel_size=1, bias=True
+        )
         self.AAP = nn.AdaptiveAvgPool2d((s1, s2))
 
     def forward(self, x):
         x = self.channel_pool(x)
         x = self.AAP(x)
-        #x = F.normalize(x.flatten(1), p=2, dim=1)
+        # x = F.normalize(x.flatten(1), p=2, dim=1)
         x = x.flatten(1)
         return x
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     x = torch.randn(4, 2048, 10, 10)
     m = ConvAP(2048, 512)
     r = m(x)

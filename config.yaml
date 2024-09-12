@@ -2,99 +2,99 @@
 Datasets:
   datasets_dir: "/mnt/datasets_drive/vpr_datasets"
 
+  
+  
+  
 
-Dataloader:
-  batch_size: 64 #100 if possible
-  img_per_place: 4
-  min_img_per_place: 4
-  cities:
-   # - Bangkok
-   # - BuenosAires
-   # - LosAngeles
-   # - MexicoCity
-   # - OSL # refers to Oslo
-   # - Rome
-   # - Barcelona
-   # - Chicago
-   # - Madrid
-   # - Miami
-   # - Phoenix
-   # - TRT # refers to Toronto
-    - Boston
-   # - Lisbon
-   # - Medellin
-   # - Minneapolis
-   # - PRG # refers to Prague
-   # - WashingtonDC
-   # - Brussels
-    - London
-    - Melbourne
-   # - Osaka
-   # - PRS # refers t
+
+Training:
+  training_method: gsvcities
+  monitor: 'pitts30k_val/R1'
+  accelerator: 'gpu'
+  precision: 16
+  batch_size: 64
+  max_epochs: 30 # 30 for pretraining
+  search_precision: 'float32'
+  fast_dev_run: False
+  val_set_names:
+    - pitts30k_val
+  num_workers: 16
   image_size:
     - 224
     - 224
-  num_workers: 16
   shuffle_all: True
-  random_sample_from_each_place: True
-  show_data_stats: True
-  val_set_names:
-    - pitts30k_val
 
-Training:
-  accelerator: 'gpu'
-  devices:
-    - 0
-  precision: 16
-  max_epochs: 30 # 30 for pretraining
-  fast_dev_run: False
+  GSVCities: 
+    optimizer: 'adam' #adam
+    weight_decay: 0
+    momentum: 0.9
+    warmup_steps: 100 # 600
+    milestones:
+      - 5
+      - 10
+      - 15
+      - 25
+    lr_mult: 0.3
+    loss_name: 'MultiSimilarityLoss'
+    miner_name: 'MultiSimilarityMiner'
+    miner_margin: 0.1
+    faiss_gpu: False
+    random_sample_from_each_place: True
+    show_data_stats: True
+    img_per_place: 4
+    min_img_per_place: 4
+    cities:
+    # - Bangkok
+    # - BuenosAires
+    # - LosAngeles
+    # - MexicoCity
+    # - OSL # refers to Oslo
+    # - Rome
+    # - Barcelona
+    # - Chicago
+    # - Madrid
+    # - Miami
+    # - Phoenix
+    # - TRT # refers to Toronto
+      - Boston
+    # - Lisbon
+    # - Medellin
+    # - Minneapolis
+    # - PRG # refers to Prague
+    # - WashingtonDC
+    # - Brussels
+      - London
+      - Melbourne
+    # - Osaka
+    # - PRS # refers t
+    
 
-  lr: 0.00001 # 0.0002 for pre-training gsv 0.00001 for pretrianing eig
-  optimizer: 'adam' #adam
-  weight_decay: 0
-  momentum: 0.9
-  warmup_steps: 100 # 600
-  milestones:
-    - 5
-    - 10
-    - 15
-    - 25
-  lr_mult: 0.3
-  loss_name: 'MultiSimilarityLoss'
-  miner_name: 'MultiSimilarityMiner'
-  miner_margin: 0.1
-  faiss_gpu: False
-  search_precision: 'float32'
-
-
-  lambda_lat: 1.
-  lambda_front: 1.
-  iterations_per_epoch: 5000
-  M: 15 
-  N: 3
-  s: 100
-  m: 0.4
-  focal_dist: 10
-  min_images_per_class: 5
-  visualize_classes: 0
-
-  brightness: 0.7
-  contrast: 0.7
-  saturation: 0.7 
-  hue: 0.5
-  random_resized_crop: 0.5
-
-  monitor: 'pitts30k_val/R1'
+  EigenPlaces: 
+    dataset_size: small
+    lr: 0.00001
+    classifier_lr: 0.01
+    lambda_lat: 1.
+    lambda_front: 1.
+    iterations_per_epoch: 500
+    M: 15 
+    N: 3
+    s: 100
+    m: 0.4
+    focal_dist: 10
+    min_images_per_class: 5
+    visualize_classes: 0
+    brightness: 0.7
+    contrast: 0.7
+    saturation: 0.7 
+    hue: 0.5
+    random_resized_crop: 0.5
 
 
 Model:
   load_checkpoint: ""
   backbone_arch: 'resnet18'
-  pretrained: True
-  layers_to_freeze: 2
-  layers_to_crop:
-    -
   agg_arch: 'GeM'
+
   backbone_config: 
     resnet18: 
       model_name: 'resnet18'
@@ -162,17 +162,6 @@ Model:
       out_dim: 512
     cls: 
 
-
-
-
-
-    convap_in_channels: 512
-    convap_out_channels: 512
-    convap_s1: 2
-    convap_s2: 2
-    cosplace_in_dim: 2048
-    cosplace_out_dim: 1024
-    gem_p: 3
 
 
 Quantize:

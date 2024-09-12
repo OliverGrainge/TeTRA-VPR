@@ -1,2 +1,2 @@
-from .losses import get_miner, get_loss
+from .losses import get_loss, get_miner
 from .validation import get_validation_recalls

@@ -1,25 +1,33 @@
-from parsers import model_arguments, quantize_arguments, dataloader_arguments, training_arguments
-from pretrain import VPRModel
-from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 import argparse
-import torch
-import sys
 import os
-import yaml
+import sys
+
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
+import yaml
 
-config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+from dataloaders.GSVCities import GSVCitiesDataModule
+from parsers import (
+    dataloader_arguments,
+    model_arguments,
+    quantize_arguments,
+    training_arguments,
+)
+from pretrain_gsv import VPRModel
 
-with open(config_path, 'r') as config_file:
+config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+
+with open(config_path, "r") as config_file:
     config = yaml.safe_load(config_file)
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'NeuroCompress')))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "NeuroCompress"))
+)
 
 
 from NeuroPress import QLayers as Q
-from NeuroPress import postquantize, freeze
-
+from NeuroPress import freeze, postquantize
 
 
 def get_qlayers(args):
@@ -28,9 +36,8 @@ def get_qlayers(args):
     return qlinear, qconv
 
 
-
-if __name__ == '__main__':
-    torch.set_float32_matmul_precision('high')
+if __name__ == "__main__":
+    torch.set_float32_matmul_precision("high")
 
     parser = argparse.ArgumentParser(description="Model, Quantize arguments")
     parser = model_arguments(parser)
@@ -62,29 +69,34 @@ if __name__ == '__main__':
     print(" ")
     print(" ")
     print(" ")
-    print("===================================================================================")
-    print("================================== Full Precision ======================================")
-    print("===================================================================================")
+    print(
+        "==================================================================================="
+    )
+    print(
+        "================================== Full Precision ======================================"
+    )
+    print(
+        "==================================================================================="
+    )
     trainer = pl.Trainer()
-    #metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
+    # metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
 
     print(" ")
     print(" ")
     print(" ")
     print(" ")
     print(" ")
-    print("===================================================================================")
-    print("================================== Quantized ======================================")
-    print("===================================================================================")
+    print(
+        "==================================================================================="
+    )
+    print(
+        "================================== Quantized ======================================"
+    )
+    print(
+        "==================================================================================="
+    )
     postquantize(model.backbone, qlinear=Q.LinearWTA16)
     freeze(model.backbone)
     trainer = pl.Trainer()
     qmetrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
-    #print(model)
-
-
-
-
-
-
-
+    # print(model)

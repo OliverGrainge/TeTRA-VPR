@@ -1,15 +1,16 @@
+import numpy as np
+import timm
 import torch
 import torch.nn as nn
-import timm
-import numpy as np
 
 
 class Swin(nn.Module):
-    def __init__(self,
-                 model_name='swinv2_base_window12to16_192to256_22kft1k',
-                 pretrained=True,
-                 layers_to_freeze=2
-                 ):
+    def __init__(
+        self,
+        model_name="swinv2_base_window12to16_192to256_22kft1k",
+        pretrained=True,
+        layers_to_freeze=2,
+    ):
         """Class representing the Swin (V1 and V2) backbone used in the pipeline
         Swin contains 4 layers (0 to 3), where layer 2 is the heaviest in terms of # params
 
@@ -29,18 +30,20 @@ class Swin(nn.Module):
             self.model.layers[0].requires_grad_(False)
             self.model.layers[1].requires_grad_(False)
             # layers[2] contains most of the blocks, better freeze some of them
-            for i in range(layers_to_freeze * 5):  # we make 5 steps (swin contains lots of layers)
+            for i in range(
+                layers_to_freeze * 5
+            ):  # we make 5 steps (swin contains lots of layers)
                 self.model.layers[2].blocks[i].requires_grad_(False)
 
-        if 'base' in model_name:
+        if "base" in model_name:
             out_channels = 1024
-        elif 'large' in model_name:
+        elif "large" in model_name:
             out_channels = 1536
         else:
             out_channels = 768
         self.out_channels = out_channels
 
-        if '384' in model_name:
+        if "384" in model_name:
             self.depth = 144
         else:
             self.depth = 49
@@ -57,15 +60,17 @@ class Swin(nn.Module):
 def print_nb_params(m):
     model_parameters = filter(lambda p: p.requires_grad, m.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
-    print(f'Trainable parameters: {params / 1e6:.3}M')
+    print(f"Trainable parameters: {params / 1e6:.3}M")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     x = torch.randn(4, 3, 256, 256)
-    m = Swin(model_name='swinv2_base_window12to16_192to256_22kft1k',
-             pretrained=True,
-             layers_to_freeze=2, )
+    m = Swin(
+        model_name="swinv2_base_window12to16_192to256_22kft1k",
+        pretrained=True,
+        layers_to_freeze=2,
+    )
     r = m(x)
     print_nb_params(m)
-    print(f'Input shape is {x.shape}')
-    print(f'Output shape is {r.shape}')
+    print(f"Input shape is {x.shape}")
+    print(f"Output shape is {r.shape}")
