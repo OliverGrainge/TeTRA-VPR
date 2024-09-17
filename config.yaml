@@ -12,8 +12,8 @@ Training:
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 256
-  max_epochs: 90 # 30 for pretraining
+  batch_size: 128
+  max_epochs: 150 # 30 for pretraining
   search_precision: 'float32'
   fast_dev_run: False
   val_set_names:
@@ -130,7 +130,7 @@ Model:
     vit: 
       pretrained: False
       layers_to_freeze: 0
-      layers_to_truncate: 8
+      layers_to_truncate: 12
 
     mobilevit: 
         num_classes: 1024

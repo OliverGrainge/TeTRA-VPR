@@ -26,17 +26,16 @@ def conv_nxn_bn(inp, oup, kernel_size=3, stride=1):
         nn.SiLU()
     )
 
-# classes
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
             nn.LayerNorm(dim),
-            LinearW2A8(dim, hidden_dim),
+            LinearWTA8(dim, hidden_dim),
             nn.SiLU(),
             nn.Dropout(dropout),
-            LinearW2A8(hidden_dim, dim),
+            LinearWTA8(hidden_dim, dim),
             nn.Dropout(dropout)
         )
 
@@ -54,10 +53,10 @@ class Attention(nn.Module):
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
 
-        self.to_qkv = LinearW2A8(dim, inner_dim * 3, bias=False)
+        self.to_qkv = LinearWTA8(dim, inner_dim * 3, bias=False)
 
         self.to_out = nn.Sequential(
-            LinearW2A8(inner_dim, dim),
+            LinearWTA8(inner_dim, dim),
             nn.Dropout(dropout)
         )
 
@@ -233,7 +232,7 @@ class Ternary_MobileViT(nn.Module):
         self.to_logits = nn.Sequential(
             conv_1x1_bn(channels[-2], last_dim),
             Reduce('b c h w -> b c', 'mean'),
-            LinearW2A8(channels[-1], num_classes, bias=False)
+            LinearWTA8(channels[-1], num_classes, bias=False)
         )
 
     def forward(self, x):

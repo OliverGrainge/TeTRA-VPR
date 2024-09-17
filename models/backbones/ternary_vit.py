@@ -97,16 +97,16 @@ class Transformer(nn.Module):
 class Ternary_ViT(nn.Module):
     def __init__(
         self,
-        image_size=256,
-        patch_size=32,
-        dim=768,
-        depth=12,
-        heads=12,
-        mlp_dim=3072,
-        dropout=0.1,
-        emb_dropout=0.1,
-        channels=3,
-        dim_head=64,
+        image_size=224,        # Smaller image size for reduced complexity
+        patch_size=16,         # More patches for better granularity
+        dim=384,               # Reduced embedding dimension
+        depth=12,               # Fewer transformer layers
+        heads=6,               # Fewer attention heads
+        mlp_dim=1536,          # MLP layer dimension (4x dim)
+        dropout=0.1,           # Regularization via dropout
+        emb_dropout=0.1,       # Dropout for the embedding layer
+        channels=3,            # RGB images
+        dim_head=96           # Dimension of each attention head
     ):
         super().__init__()
         image_height, image_width = image_size, image_size

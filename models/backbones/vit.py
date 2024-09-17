@@ -130,7 +130,7 @@ class ViTPretrained(nn.Module):
         image_size=[224 ,224],
         pretrained=True,
         layers_to_freeze=4,
-        layers_to_truncate=10,
+        layers_to_truncate=12,
     ):
         super().__init__()
         if image_size[0] == 224:
