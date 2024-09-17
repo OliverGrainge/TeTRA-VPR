@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
 
-from NeuroPress.QLayers import LinearW2A8
+from NeuroPress.QLayers import LinearWTA8
 
 # helpers
 
@@ -94,9 +94,9 @@ class Attention(nn.Module):
         head_dim = dim // self.heads
         self.scale = head_dim ** -0.5
 
-        self.qkv = LinearW2A8(dim, dim * 3, bias=False)
+        self.qkv = LinearWTA8(dim, dim * 3, bias=False)
         self.attn_drop = nn.Dropout(attention_dropout)
-        self.proj = LinearW2A8(dim, dim)
+        self.proj = LinearWTA8(dim, dim)
         self.proj_drop = nn.Dropout(projection_dropout)
 
     def forward(self, x):
@@ -130,10 +130,10 @@ class TransformerEncoderLayer(nn.Module):
         self.self_attn = Attention(dim=d_model, num_heads=nhead,
                                    attention_dropout=attention_dropout, projection_dropout=dropout)
 
-        self.linear1  = LinearW2A8(d_model, dim_feedforward)
+        self.linear1  = LinearWTA8(d_model, dim_feedforward)
         self.dropout1 = nn.Dropout(dropout)
         self.norm1    = nn.LayerNorm(d_model)
-        self.linear2  = LinearW2A8(dim_feedforward, d_model)
+        self.linear2  = LinearWTA8(dim_feedforward, d_model)
         self.dropout2 = nn.Dropout(dropout)
 
         self.drop_path = DropPath(drop_path_rate)
@@ -241,7 +241,7 @@ class TransformerClassifier(nn.Module):
             sequence_length += 1
             self.class_emb = nn.Parameter(torch.zeros(1, 1, self.embedding_dim), requires_grad=True)
         else:
-            self.attention_pool = LinearW2A8(self.embedding_dim, 1)
+            self.attention_pool = LinearWTA8(self.embedding_dim, 1)
 
         if positional_embedding == 'none':
             self.positional_emb = None
@@ -296,9 +296,9 @@ class TransformerClassifier(nn.Module):
 
     @staticmethod
     def init_weight(m):
-        if isinstance(m, LinearW2A8):
+        if isinstance(m, LinearWTA8):
             nn.init.trunc_normal_(m.weight, std=.02)
-            if isinstance(m, LinearW2A8) and exists(m.bias):
+            if isinstance(m, LinearWTA8) and exists(m.bias):
                 nn.init.constant_(m.bias, 0)
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
@@ -353,7 +353,7 @@ class Ternary_CCT(nn.Module):
         return self.classifier(x)
 
 if __name__ == '__main__':
-    model = CCT()
+    model = Ternary_CCT()
     img = torch.randn(1, 3, 224, 224)
     out = model(img)
     print(out.shape)

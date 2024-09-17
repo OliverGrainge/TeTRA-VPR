@@ -10,8 +10,6 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
 
 from NeuroPress.QLayers.Ternary import LinearWTA8
-from NeuroPress.Utils import RMSNorm
-
 
 
 # Model definition (same as before)

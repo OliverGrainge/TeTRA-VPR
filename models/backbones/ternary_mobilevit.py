@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
 
-from NeuroPress.QLayers import LinearW2A8
+from NeuroPress.QLayers import LinearWTA8
 
 # helpers
 
