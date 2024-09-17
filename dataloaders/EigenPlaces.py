@@ -128,6 +128,7 @@ class EigenPlaces(pl.LightningModule):
         self.saturation = config["saturation"]
         self.random_resized_crop = config["random_resized_crop"]
         self.dataset_size = config["dataset_size"]
+        self.weight_decay = config["weight_decay"]
 
         # Train and valid transforms
         self.train_transform = T.Compose(
@@ -188,7 +189,7 @@ class EigenPlaces(pl.LightningModule):
             "batch_size": self.batch_size,
             "num_workers": self.num_workers,
             "drop_last": True,
-            "pin_memory": False,
+            "pin_memory": True,
             "shuffle": False,
         }
 
@@ -234,13 +235,36 @@ class EigenPlaces(pl.LightningModule):
         return x
 
     def configure_optimizers(self):
-        model_opt = [torch.optim.Adam(self.model.parameters(), lr=self.lr)]
+        # Separate linear layer parameters (for weight decay) and others (without weight decay)
+        decay_params = []
+        no_decay_params = []
+
+        for name, param in self.model.named_parameters():
+            if isinstance(self.model.get_submodule(name.split('.')[0]), torch.nn.Linear):
+                decay_params.append(param)  # Apply weight decay to linear layers
+            else:
+                no_decay_params.append(param)  # No weight decay for other layers
+
+        # Create optimizer groups
+        param_groups = [
+            {'params': decay_params, 'weight_decay': self.weight_decay},
+            {'params': no_decay_params, 'weight_decay': 0.0}
+        ]
+
+        # Optimizer for the model with weight decay only on linear layers
+        model_opt = torch.optim.Adam(param_groups, lr=self.lr)
+
+        # Optimizers for the classifiers (without weight decay)
         classifiers_optimizers = [
             torch.optim.Adam(classifier.parameters(), lr=self.classifiers_lr)
             for classifier in self.classifiers
         ]
-        opt = model_opt + classifiers_optimizers
+
+        # Combine optimizers
+        opt = [model_opt] + classifiers_optimizers
         return opt
+        
+
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()

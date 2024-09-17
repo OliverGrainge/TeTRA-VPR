@@ -72,6 +72,8 @@ class SALAD(nn.Module):
         cluster_dim=128,
         token_dim=256,
         dropout=0.3,
+        height=224,
+        width=224
     ) -> None:
         super().__init__()
 
@@ -79,6 +81,9 @@ class SALAD(nn.Module):
         self.num_clusters = num_clusters
         self.cluster_dim = cluster_dim
         self.token_dim = token_dim
+        
+        self.height = height 
+        self.width = width
 
         if dropout > 0:
             dropout = nn.Dropout(dropout)
@@ -114,8 +119,13 @@ class SALAD(nn.Module):
 
         Returns:
             f (torch.Tensor): The global descriptor [B, m*l + g]
-        """
-        x, t = x  # Extract features and token
+        """    
+        B = x.shape[0]
+        t = x[:, 0]
+        f = x[:, 1:]
+        patch_size =int( (f.numel() / (B * self.num_channels))**0.5)
+        x = f.reshape((B, patch_size, patch_size, self.num_channels)).permute(0, 3, 1, 2)
+        
 
         f = self.cluster_features(x).flatten(2)
         p = self.score(x).flatten(2)
@@ -137,5 +147,4 @@ class SALAD(nn.Module):
             ],
             dim=-1,
         )
-
         return f

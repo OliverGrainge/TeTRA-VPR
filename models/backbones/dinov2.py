@@ -65,13 +65,5 @@ class DINOv2(nn.Module):
 
         if self.norm_layer:
             x = self.model.norm(x)
-
-        t = x[:, 0]
-        f = x[:, 1:]
-
-        # Reshape to (B, C, H, W)
-        f = f.reshape((B, H // 14, W // 14, self.num_channels)).permute(0, 3, 1, 2)
-
-        if self.return_token:
-            return f, t
-        return f
+        
+        return x

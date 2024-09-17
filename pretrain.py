@@ -17,6 +17,7 @@ import yaml
 
 from dataloaders.EigenPlaces import EigenPlaces
 from dataloaders.GSVCities import GSVCities
+from dataloaders.ImageNet import ImageNet
 from models.helper import get_model
 from parsers import get_args_parser
 
@@ -29,56 +30,109 @@ with open(config_path, "r") as config_file:
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
 
-
 if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
 
-    model = get_model(
-        args.image_size,
-        args.backbone_arch,
-        args.agg_arch,
-        config["Model"],
-        normalize_output=True,
-    )
+    if "vit" in args.backbone_arch or "cct" in args.backbone_arch or "dino" in args.backbone_arch:
+        MEAN_STD = VIT_MEAN_STD
+    else: 
+        MEAN_STD = IMAGENET_MEAN_STD
+
+   
 
     if "gsvcities" == args.training_method.lower():
+        model = get_model(
+            args.image_size,
+            args.backbone_arch,
+            args.agg_arch,
+            config["Model"],
+            normalize_output=True,
+        )
+         
         model_module = GSVCities(
             config["Training"]["GSVCities"],
             model,
             batch_size=args.batch_size,
             image_size=args.image_size,
             num_workers=args.num_workers,
-            mean_std=IMAGENET_MEAN_STD,
+            mean_std=MEAN_STD,
             val_set_names=args.val_set_names,
             search_precision=args.search_precision,
         )
 
+        checkpoint_cb = ModelCheckpoint(
+            monitor=args.monitor,
+            filename=f"{args.training_method.lower()}/"
+            + f"{args.backbone_arch.lower()}"
+            + f"_{args.agg_arch.lower()}"
+            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
+            auto_insert_metric_name=False,
+            save_weights_only=True,
+            save_top_k=1,
+            mode="max",
+        )
+
     elif "eigenplaces" == args.training_method.lower():
+        model = get_model(
+            args.image_size,
+            args.backbone_arch,
+            args.agg_arch,
+            config["Model"],
+            normalize_output=True,
+        )
+
         model_module = EigenPlaces(
             config["Training"]["EigenPlaces"],
             model,
             batch_size=args.batch_size,
             image_size=args.image_size,
             num_workers=args.num_workers,
-            mean_std=IMAGENET_MEAN_STD,
+            mean_std=MEAN_STD,
             val_set_names=args.val_set_names,
             search_precision=args.search_precision,
         )
 
-    checkpoint_cb = ModelCheckpoint(
-        monitor=args.monitor,
-        filename=f"{args.training_method.lower()}/"
-        + f"{args.backbone_arch.lower()}"
-        + f"_{args.agg_arch.lower()}"
-        + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
-        auto_insert_metric_name=False,
-        save_weights_only=True,
-        save_top_k=1,
-        mode="max",
-    )
+        checkpoint_cb = ModelCheckpoint(
+            monitor=args.monitor,
+            filename=f"{args.training_method.lower()}/"
+            + f"{args.backbone_arch.lower()}"
+            + f"_{args.agg_arch.lower()}"
+            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
+            auto_insert_metric_name=False,
+            save_weights_only=True,
+            save_top_k=1,
+            mode="max",
+        )
+    elif "imagenet" in args.training_method.lower():
+        model = get_model(
+            args.image_size,
+            args.backbone_arch,
+            args.agg_arch,
+            config["Model"],
+            normalize_output=False,
+        )
+
+        model_module = ImageNet(model=model, batch_size=args.batch_size, workers=4, lr=3e-4, max_epochs=90)
+
+        checkpoint_cb = ModelCheckpoint(
+            monitor='val_acc5',
+            filename=f"{args.training_method.lower()}/"
+            + f"{args.backbone_arch.lower()}"
+            + f"_{args.agg_arch.lower()}"
+            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
+            auto_insert_metric_name=False,
+            save_weights_only=True,
+            save_top_k=1,
+            mode="max",
+        )
+
+
+
+    
 
     trainer = pl.Trainer(
+        strategy='auto',
         accelerator=args.accelerator,
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
         num_sanity_val_steps=0,
@@ -87,7 +141,7 @@ if __name__ == "__main__":
         callbacks=[checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
         limit_train_batches=(
-            config["Training"]["EigenPlaces"]["iterations_per_epoch"]
+            int(config["Training"]["EigenPlaces"]["iterations_per_epoch"] * 32 / args.batch_size)
             if args.training_method.lower() == "eigenplaces"
             else None
         ),

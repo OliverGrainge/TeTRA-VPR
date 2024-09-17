@@ -11,14 +11,14 @@ Training:
   training_method: gsvcities
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
-  precision: bf16
-  batch_size: 64
-  max_epochs: 30 # 30 for pretraining
+  precision: bf16-mixed
+  batch_size: 256
+  max_epochs: 90 # 30 for pretraining
   search_precision: 'float32'
   fast_dev_run: False
   val_set_names:
     - pitts30k_val
-  num_workers: 16
+  num_workers: 4
   image_size:
     - 224
     - 224
@@ -26,16 +26,16 @@ Training:
 
   GSVCities: 
     shuffle_all: True
-    optimizer: 'adam' #adam
+    optimizer: 'adamw' #adam
     lr: 0.0002
-    weight_decay: 0
+    weight_decay: 0.1
     momentum: 0.9
-    warmup_steps: 100 # 600
+    warmup_steps: 1000 # 600
     milestones:
-      - 5
-      - 10
-      - 15
-      - 25
+      - 30
+      - 40
+      - 50
+      - 65
     lr_mult: 0.3
     loss_name: 'MultiSimilarityLoss'
     miner_name: 'MultiSimilarityMiner'
@@ -46,38 +46,39 @@ Training:
     img_per_place: 4
     min_img_per_place: 4
     cities:
-    # - Bangkok
-    # - BuenosAires
-    # - LosAngeles
-    # - MexicoCity
-    # - OSL # refers to Oslo
-    # - Rome
-    # - Barcelona
-    # - Chicago
-    # - Madrid
-    # - Miami
-    # - Phoenix
-    # - TRT # refers to Toronto
-      - Boston
-    # - Lisbon
-    # - Medellin
-    # - Minneapolis
-    # - PRG # refers to Prague
-    # - WashingtonDC
-    # - Brussels
-      - London
-      - Melbourne
-    # - Osaka
-    # - PRS # refers t
+     - Bangkok
+     - BuenosAires
+     - LosAngeles
+     - MexicoCity
+     - OSL # refers to Oslo
+     - Rome
+     - Barcelona
+     - Chicago
+     - Madrid
+     - Miami
+     - Phoenix
+     - TRT # refers to Toronto
+     - Boston
+     - Lisbon
+     - Medellin
+     - Minneapolis
+     - PRG # refers to Prague
+     - WashingtonDC
+     - Brussels
+     - London
+     - Melbourne
+     - Osaka
+     - PRS # refers t
     
 
   EigenPlaces: 
-    dataset_size: small
+    weight_decay: 0.01
+    dataset_size: large
     lr: 0.00001 # 0.00001 for large dataset
     classifiers_lr: 0.01
     lambda_lat: 1.
     lambda_front: 1.
-    iterations_per_epoch: 200
+    iterations_per_epoch: 5000
     M: 15 
     N: 3
     s: 100
@@ -127,12 +128,21 @@ Model:
       layers_to_freeze: 2
 
     vit: 
-      model_name: 'vit224'
-      pretrained: True 
-      layers_to_freeze: 4
-      layers_to_truncate: 10
-    
+      pretrained: False
+      layers_to_freeze: 0
+      layers_to_truncate: 8
 
+    mobilevit: 
+        num_classes: 1024
+
+    cct: 
+      embedding_dim: 768
+      num_layers: 14
+      num_heads: 12
+      mlp_ratio: 4.0
+
+    
+    
 
   agg_config:
     convap: 

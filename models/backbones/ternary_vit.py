@@ -1,7 +1,3 @@
-import torch
-import torch.nn as nn
-from transformers import ViTModel
-
 import os
 import torch
 import torch.nn as nn
@@ -11,22 +7,36 @@ from einops import rearrange
 from einops.layers.torch import Rearrange
 import sys 
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
 
+from NeuroPress.QLayers.Ternary import LinearWTA8
+from NeuroPress.Utils import RMSNorm
 
 
 
 # Model definition (same as before)
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0):
+    def __init__(self, dim, hidden_dim, dropout=0.0, quantized=True):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout),
-        )
+        if quantized:
+            self.net = nn.Sequential(
+                nn.LayerNorm(dim),
+                LinearWTA8(dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                LinearWTA8(hidden_dim, dim),
+                nn.Dropout(dropout),
+            )
+        else:
+            self.net = nn.Sequential(
+                nn.LayerNorm(dim),
+                nn.Linear(dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, dim),
+                nn.Dropout(dropout),
+            ) 
+
 
     def forward(self, x):
         return self.net(x)
@@ -41,8 +51,8 @@ class Attention(nn.Module):
         self.norm = nn.LayerNorm(dim)
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_qkv = LinearWTA8(dim, inner_dim * 3, bias=False)
+        self.to_out = nn.Sequential(LinearWTA8(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         x = self.norm(x)
@@ -61,15 +71,23 @@ class Transformer(nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth):
+        for _ in range(depth-1):
             self.layers.append(
                 nn.ModuleList(
                     [
                         Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                        FeedForward(dim, mlp_dim, dropout=dropout),
+                        FeedForward(dim, mlp_dim, dropout=dropout, quantized=True),
                     ]
                 )
             )
+        self.layers.append(
+            nn.ModuleList(
+                [
+                    Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
+                    FeedForward(dim, mlp_dim, dropout=dropout, quantized=False),
+                ]
+            )
+        )
 
     def forward(self, x):
         for attn, ff in self.layers:
@@ -78,19 +96,19 @@ class Transformer(nn.Module):
         return self.norm(x)
 
 
-class ViTUntrained(nn.Module):
+class Ternary_ViT(nn.Module):
     def __init__(
         self,
-        image_size=224,        # Smaller image size for reduced complexity
-        patch_size=16,         # More patches for better granularity
-        dim=384,               # Reduced embedding dimension
-        depth=12,               # Fewer transformer layers
-        heads=6,               # Fewer attention heads
-        mlp_dim=1536,          # MLP layer dimension (4x dim)
-        dropout=0.1,           # Regularization via dropout
-        emb_dropout=0.1,       # Dropout for the embedding layer
-        channels=3,            # RGB images
-        dim_head=96           # Dimension of each attention head
+        image_size=256,
+        patch_size=32,
+        dim=768,
+        depth=12,
+        heads=12,
+        mlp_dim=3072,
+        dropout=0.1,
+        emb_dropout=0.1,
+        channels=3,
+        dim_head=64,
     ):
         super().__init__()
         image_height, image_width = image_size, image_size
@@ -104,7 +122,7 @@ class ViTUntrained(nn.Module):
                 p2=patch_width,
             ),
             nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim),
+            LinearWTA8(patch_dim, dim),
             nn.LayerNorm(dim),
         )
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
@@ -121,47 +139,3 @@ class ViTUntrained(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-
-
-
-class ViTPretrained(nn.Module):
-    def __init__(
-        self,
-        image_size=[224 ,224],
-        pretrained=True,
-        layers_to_freeze=4,
-        layers_to_truncate=10,
-    ):
-        super().__init__()
-        if image_size[0] == 224:
-            backbone = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
-        elif image_size[1] == 384:
-            backbone = ViTModel.from_pretrained("google/vit-base-patch16-384")
-        else: 
-            raise Exception("pretrained models only available with 224 or 384 image size")
-
-        backbone.encoder.layer = backbone.encoder.layer[:layers_to_truncate]
-
-        for p in backbone.parameters():
-            p.requires_grad = False
-
-        for name, child in backbone.encoder.layer.named_children():
-            if int(name) > layers_to_freeze:
-                for params in child.parameters():
-                    params.requires_grad = True
-        self.backbone = backbone
-
-    def forward(self, x):
-        return self.backbone(x).last_hidden_state
-
-
-def ViT(image_size=[224 ,224],
-        pretrained=True,
-        layers_to_freeze=4,
-        layers_to_truncate=10):
-    
-    if pretrained: 
-        return ViTPretrained(image_size=image_size, layers_to_freeze=layers_to_freeze, layers_to_truncate=layers_to_truncate)
-    else: 
-        return ViTUntrained(image_size=image_size[0], depth=layers_to_truncate)
-
