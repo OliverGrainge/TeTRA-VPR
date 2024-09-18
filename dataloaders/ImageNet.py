@@ -1,21 +1,23 @@
 import os
+
+import numpy as np
 import torch
-from torch import optim
-from torch.optim import lr_scheduler
+import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms
-from datasets import load_dataset
 from PIL import Image
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from timm import create_model  # Using timm for Vision Transformer
-import numpy as np
-from transformers import get_cosine_schedule_with_warmup
-import torch.nn as nn
 from timm.data import create_transform
+from torch import optim
+from torch.optim import lr_scheduler
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from transformers import get_cosine_schedule_with_warmup
 
-torch.set_float32_matmul_precision('medium')
+from datasets import load_dataset
+
+torch.set_float32_matmul_precision("medium")
 
 
 class ImageNet(LightningModule):
@@ -35,7 +37,7 @@ class ImageNet(LightningModule):
         **kwargs,
     ):
         super().__init__()
-        self.save_hyperparameters(ignore='model')
+        self.save_hyperparameters(ignore="model")
         self.model = model
         self.lr = lr
         self.weight_decay = weight_decay
@@ -48,21 +50,25 @@ class ImageNet(LightningModule):
         self.train_transforms = create_transform(
             input_size=224,
             is_training=True,
-            auto_augment='rand-m9-mstd0.5-inc1',
+            auto_augment="rand-m9-mstd0.5-inc1",
             re_prob=0.25,  # Random Erasing probability
-            re_mode='pixel',
+            re_mode="pixel",
             re_count=1,
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225],
         )
 
         # For validation, you can keep your existing transforms
-        self.val_transforms = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        self.val_transforms = transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
 
         self.fc = nn.Linear(model.descriptor_dim, 1000)
 
@@ -77,7 +83,9 @@ class ImageNet(LightningModule):
         loss_train = F.cross_entropy(output, target, label_smoothing=0.1)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
-        self.log("train_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True, logger=True)
+        self.log(
+            "train_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True, logger=True
+        )
         self.log("train_acc5", acc5, on_step=True, on_epoch=True, logger=True)
         return loss_train
 
@@ -111,7 +119,9 @@ class ImageNet(LightningModule):
             return res
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = optim.AdamW(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
 
         # Compute total steps
         try:
@@ -128,30 +138,30 @@ class ImageNet(LightningModule):
             num_warmup_steps=warmup_steps,
             num_training_steps=total_steps,
         )
-        scheduler = {'scheduler': scheduler, 'interval': 'step', 'frequency': 1}
+        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         return [optimizer], [scheduler]
 
     def process_batch(self, batch, transform):
         images = []
         for b in batch:
-            img = b['image']
+            img = b["image"]
             # Convert images to RGB if they are not already in RGB mode
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
+            if img.mode != "RGB":
+                img = img.convert("RGB")
             img = transform(img)
             images.append(img)
-        labels = [b['label'] for b in batch]
+        labels = [b["label"] for b in batch]
         return torch.stack(images), torch.tensor(labels)
 
     def train_dataloader(self):
         # Load the dataset using Hugging Face's datasets library (with streaming)
-        train_dataset = load_dataset('imagenet-1k', split='train', streaming=False)
-        
+        train_dataset = load_dataset("imagenet-1k", split="train", streaming=False)
+
         # Apply transformations using a lambda function within the DataLoader
         train_loader = DataLoader(
-            train_dataset, 
-            batch_size=self.batch_size, 
-            num_workers=self.workers, 
+            train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.workers,
             shuffle=True,
             collate_fn=lambda batch: self.process_batch(batch, self.train_transforms),
             pin_memory=torch.cuda.is_available(),
@@ -161,15 +171,15 @@ class ImageNet(LightningModule):
     def val_dataloader(self):
         # Load the validation set
 
-        val_dataset = load_dataset('imagenet-1k', split='validation', streaming=False)
+        val_dataset = load_dataset("imagenet-1k", split="validation", streaming=False)
 
         # Use the validation transformations
         val_loader = DataLoader(
-            val_dataset, 
-            batch_size=self.batch_size, 
-            num_workers=self.workers, 
+            val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.workers,
             shuffle=False,
-            collate_fn=lambda batch: self.process_batch(batch, self.val_transforms)
+            collate_fn=lambda batch: self.process_batch(batch, self.val_transforms),
         )
         return val_loader
 
@@ -178,31 +188,3 @@ class ImageNet(LightningModule):
 
     def test_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "test")
-
-    
-if __name__ == '__main__':
-    # Initialize the Vision Transformer model
-    model = create_model('vit_base_patch16_224', pretrained=False)
-
-    # Create the ViTLightningModel instance
-    lit_model = ViTLightningModel(model=model, batch_size=32, workers=4, lr=3e-4, max_epochs=90)
-
-    # Define checkpoint callback
-    checkpoint_callback = ModelCheckpoint(
-        monitor="val_loss",
-        dirpath="./checkpoints",
-        filename="vit-{epoch:02d}-{val_loss:.2f}",
-        save_top_k=3,
-        mode="min",
-    )
-
-    # Create a trainer instance
-    trainer = Trainer(
-        max_epochs=90,
-        accelerator='gpu',
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
-
-    # Start training
-    trainer.fit(lit_model)

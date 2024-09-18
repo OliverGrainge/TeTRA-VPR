@@ -65,5 +65,5 @@ class DINOv2(nn.Module):
 
         if self.norm_layer:
             x = self.model.norm(x)
-        
+
         return x

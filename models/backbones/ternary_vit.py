@@ -1,13 +1,16 @@
 import os
+import sys
+
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import pytorch_lightning as pl
 from einops import rearrange
 from einops.layers.torch import Rearrange
-import sys 
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/"))
+)
 
 from NeuroPress.QLayers.Ternary import LinearWTA8
 
@@ -33,8 +36,7 @@ class FeedForward(nn.Module):
                 nn.Dropout(dropout),
                 nn.Linear(hidden_dim, dim),
                 nn.Dropout(dropout),
-            ) 
-
+            )
 
     def forward(self, x):
         return self.net(x)
@@ -69,7 +71,7 @@ class Transformer(nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth-1):
+        for _ in range(depth - 1):
             self.layers.append(
                 nn.ModuleList(
                     [
@@ -97,16 +99,16 @@ class Transformer(nn.Module):
 class Ternary_ViT(nn.Module):
     def __init__(
         self,
-        image_size=224,        # Smaller image size for reduced complexity
-        patch_size=16,         # More patches for better granularity
-        dim=384,               # Reduced embedding dimension
-        depth=12,               # Fewer transformer layers
-        heads=6,               # Fewer attention heads
-        mlp_dim=1536,          # MLP layer dimension (4x dim)
-        dropout=0.1,           # Regularization via dropout
-        emb_dropout=0.1,       # Dropout for the embedding layer
-        channels=3,            # RGB images
-        dim_head=96           # Dimension of each attention head
+        image_size=224,  # Smaller image size for reduced complexity
+        patch_size=16,  # More patches for better granularity
+        dim=384,  # Reduced embedding dimension
+        depth=12,  # Fewer transformer layers
+        heads=6,  # Fewer attention heads
+        mlp_dim=1536,  # MLP layer dimension (4x dim)
+        dropout=0.1,  # Regularization via dropout
+        emb_dropout=0.1,  # Dropout for the embedding layer
+        channels=3,  # RGB images
+        dim_head=96,  # Dimension of each attention head
     ):
         super().__init__()
         image_height, image_width = image_size, image_size
@@ -137,15 +139,12 @@ class Ternary_ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-    
-
-
 
 
 class Ternary_ViT_Base(nn.Module):
     def __init__(
         self,
-        image_size=224,        # Smaller image size for reduced complexity
+        image_size=224,  # Smaller image size for reduced complexity
         patch_size=16,
         dim=768,
         depth=12,
@@ -154,7 +153,7 @@ class Ternary_ViT_Base(nn.Module):
         dropout=0.1,
         emb_dropout=0.1,
         channels=3,
-        dim_head=64  # Usually dim_head = dim // heads
+        dim_head=64,  # Usually dim_head = dim // heads
     ):
         super().__init__()
         image_height, image_width = image_size, image_size

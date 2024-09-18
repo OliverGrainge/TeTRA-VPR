@@ -33,7 +33,7 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
     elif "dinov2" in backbone_arch.lower():
         if torch.cuda.is_available():
             return backbones.DINOv2(**backbone_config["dinov2"]).cuda()
-        else: 
+        else:
             raise Exception("Dinov2 not available without cuda")
 
     elif "vit" in backbone_arch.lower():
@@ -46,8 +46,8 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
                 config = {}
                 config["image_size"] = image_size
                 return backbones.ViT_Base(**config)
-            
-        else: 
+
+        else:
             if "ternary" in backbone_arch.lower():
                 config = {}
                 config["depth"] = backbone_config["vit"]["layers_to_truncate"]
@@ -55,21 +55,20 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
             else:
                 backbone_config["vit"]["image_size"] = image_size
                 return backbones.ViT(**backbone_config["vit"])
-    
+
     elif "mobilevit" in backbone_arch.lower():
         backbone_arch["mobilevit"]["image_size"] = image_size
         if "ternary" in backbone_arch.lower():
-            return backbones.Ternary_MobileViT(**backbone_config['mobilevit'])
+            return backbones.Ternary_MobileViT(**backbone_config["mobilevit"])
         else:
-            return backbones.MobileViT(**backbone_config['mobilevit'])
-    
+            return backbones.MobileViT(**backbone_config["mobilevit"])
+
     elif "cct" in backbone_arch.lower():
         backbone_config["cct"]["image_size"] = image_size
         if "ternary" in backbone_arch.lower():
             return backbones.Ternary_CCT(**backbone_config["cct"])
         else:
             return backbones.CCT(**backbone_config["cct"])
-
 
 
 def get_aggregator(agg_arch, agg_config, features_dim, image_size):
@@ -98,7 +97,7 @@ def get_aggregator(agg_arch, agg_config, features_dim, image_size):
             agg_config["mixvpr"]["in_channels"] = features_dim[0]
             agg_config["mixvpr"]["in_h"] = features_dim[1]
             agg_config["mixvpr"]["in_w"] = features_dim[2]
-        else: 
+        else:
             agg_config["mixvpr"]["channel_number"] = features_dim[1]
             agg_config["mixvpr"]["token_dim"] = features_dim[0]
 
@@ -140,7 +139,9 @@ def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_outpu
     image = torch.randn(3, *(image_size)).to(next(backbone.parameters()).device)
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
-    aggregation = get_aggregator(agg_arch, model_config["agg_config"], features_dim, image_size)
+    aggregation = get_aggregator(
+        agg_arch, model_config["agg_config"], features_dim, image_size
+    )
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
     model.descriptor_dim = desc.shape[1]

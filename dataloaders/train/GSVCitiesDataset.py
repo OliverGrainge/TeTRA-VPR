@@ -27,9 +27,7 @@ with open(config_path, "r") as config_file:
 BASE_PATH = os.path.join(config["Datasets"]["datasets_dir"], "gsv-cities/")
 
 if not Path(BASE_PATH).exists():
-    raise FileNotFoundError(
-        "BASE_PATH is hardcoded, please adjust to point to gsv_cities"
-    )
+    print("BASE_PATH is hardcoded, please adjust to point to gsv_cities")
 
 
 class GSVCitiesDataset(Dataset):

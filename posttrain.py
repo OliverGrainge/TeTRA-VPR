@@ -5,6 +5,7 @@ import sys
 import pytorch_lightning as pl
 import torch
 import yaml
+from pretrain_gsv import VPRModel
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torch.optim import lr_scheduler
 
@@ -17,7 +18,6 @@ from parsers import (
     quantize_arguments,
     training_arguments,
 )
-from pretrain_gsv import VPRModel
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "NeuroCompress"))

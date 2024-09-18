@@ -205,6 +205,7 @@ class EigenPlaces(pl.LightningModule):
                 print(val_set_name)
                 if "pitts30k" in val_set_name.lower():
                     from dataloaders.val.PittsburghDataset import PittsburghDataset
+
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name, input_transform=self.valid_transform
@@ -212,14 +213,17 @@ class EigenPlaces(pl.LightningModule):
                     )
                 elif val_set_name.lower() == "msls_val":
                     from dataloaders.val.MapillaryDataset import MSLS
+
                     self.val_datasets.append(MSLS(input_transform=self.valid_transform))
                 elif val_set_name.lower() == "nordland":
                     from dataloaders.val.NordlandDataset import NordlandDataset
+
                     self.val_datasets.append(
                         NordlandDataset(input_transform=self.valid_transform)
                     )
                 elif val_set_name.lower() == "sped":
                     from dataloaders.val.SPEDDataset import SPEDDataset
+
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.valid_transform)
                     )
@@ -238,15 +242,17 @@ class EigenPlaces(pl.LightningModule):
         no_decay_params = []
 
         for name, param in self.model.named_parameters():
-            if isinstance(self.model.get_submodule(name.split('.')[0]), torch.nn.Linear):
+            if isinstance(
+                self.model.get_submodule(name.split(".")[0]), torch.nn.Linear
+            ):
                 decay_params.append(param)  # Apply weight decay to linear layers
             else:
                 no_decay_params.append(param)  # No weight decay for other layers
 
         # Create optimizer groups
         param_groups = [
-            {'params': decay_params, 'weight_decay': self.weight_decay},
-            {'params': no_decay_params, 'weight_decay': 0.0}
+            {"params": decay_params, "weight_decay": self.weight_decay},
+            {"params": no_decay_params, "weight_decay": 0.0},
         ]
 
         # Optimizer for the model with weight decay only on linear layers
@@ -261,8 +267,6 @@ class EigenPlaces(pl.LightningModule):
         # Combine optimizers
         opt = [model_opt] + classifiers_optimizers
         return opt
-        
-
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()

@@ -24,12 +24,6 @@ class FeatureMixerLayer(nn.Module):
         return x + self.mix(x)
 
 
-
-    
-
-
-
-
 class MixVPR_Conv(nn.Module):
     def __init__(
         self,
@@ -76,7 +70,6 @@ class MixVPR_Conv(nn.Module):
         return x
 
 
-
 class MixVPR_Token(nn.Module):
     def __init__(
         self,
@@ -89,7 +82,7 @@ class MixVPR_Token(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.channel_number = channel_number 
+        self.channel_number = channel_number
         self.token_dim = token_dim
         self.in_channels = self.token_dim  # depth of input feature maps
 
@@ -119,14 +112,15 @@ class MixVPR_Token(nn.Module):
         x = self.row_proj(x)
         x = F.normalize(x.flatten(1), p=2, dim=-1)
         return x
-    
 
 
 def MixVPR(features_dim, config):
-    if len(features_dim) == 2: 
+    if len(features_dim) == 2:
         return MixVPR_Token(**config)
-    else: 
+    else:
         return MixVPR_Conv(**config)
+
+
 # -------------------------------------------------------------------------------
 
 

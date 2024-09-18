@@ -1,18 +1,13 @@
-import torch
-import torch.nn as nn
-from transformers import ViTModel
-
 import os
+import sys
+
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import pytorch_lightning as pl
 from einops import rearrange
 from einops.layers.torch import Rearrange
-import sys 
-
-
-
+from transformers import ViTModel
 
 
 # Model definition (same as before)
@@ -81,16 +76,16 @@ class Transformer(nn.Module):
 class ViTUntrained(nn.Module):
     def __init__(
         self,
-        image_size=224,        # Smaller image size for reduced complexity
-        patch_size=16,         # More patches for better granularity
-        dim=384,               # Reduced embedding dimension
-        depth=12,               # Fewer transformer layers
-        heads=6,               # Fewer attention heads
-        mlp_dim=1536,          # MLP layer dimension (4x dim)
-        dropout=0.1,           # Regularization via dropout
-        emb_dropout=0.1,       # Dropout for the embedding layer
-        channels=3,            # RGB images
-        dim_head=96           # Dimension of each attention head
+        image_size=224,  # Smaller image size for reduced complexity
+        patch_size=16,  # More patches for better granularity
+        dim=384,  # Reduced embedding dimension
+        depth=12,  # Fewer transformer layers
+        heads=6,  # Fewer attention heads
+        mlp_dim=1536,  # MLP layer dimension (4x dim)
+        dropout=0.1,  # Regularization via dropout
+        emb_dropout=0.1,  # Dropout for the embedding layer
+        channels=3,  # RGB images
+        dim_head=96,  # Dimension of each attention head
     ):
         super().__init__()
         image_height, image_width = image_size, image_size
@@ -123,11 +118,10 @@ class ViTUntrained(nn.Module):
         return x
 
 
-
 class ViTPretrained(nn.Module):
     def __init__(
         self,
-        image_size=[224 ,224],
+        image_size=[224, 224],
         pretrained=True,
         layers_to_freeze=4,
         layers_to_truncate=12,
@@ -137,8 +131,10 @@ class ViTPretrained(nn.Module):
             backbone = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
         elif image_size[1] == 384:
             backbone = ViTModel.from_pretrained("google/vit-base-patch16-384")
-        else: 
-            raise Exception("pretrained models only available with 224 or 384 image size")
+        else:
+            raise Exception(
+                "pretrained models only available with 224 or 384 image size"
+            )
 
         backbone.encoder.layer = backbone.encoder.layer[:layers_to_truncate]
 
@@ -155,34 +151,34 @@ class ViTPretrained(nn.Module):
         return self.backbone(x).last_hidden_state
 
 
-def ViT(image_size=[224 ,224],
-        pretrained=True,
-        layers_to_freeze=4,
-        layers_to_truncate=10):
-    
-    if pretrained: 
-        return ViTPretrained(image_size=image_size, layers_to_freeze=layers_to_freeze, layers_to_truncate=layers_to_truncate)
-    else: 
+def ViT(
+    image_size=[224, 224], pretrained=True, layers_to_freeze=4, layers_to_truncate=10
+):
+
+    if pretrained:
+        return ViTPretrained(
+            image_size=image_size,
+            layers_to_freeze=layers_to_freeze,
+            layers_to_truncate=layers_to_truncate,
+        )
+    else:
         return ViTUntrained(image_size=image_size[0], depth=layers_to_truncate)
-    
 
 
-def ViT_Base(image_size=[224 ,224],
-        pretrained=False):
-    
-    if pretrained: 
+def ViT_Base(image_size=[224, 224], pretrained=False):
+
+    if pretrained:
         raise Exception("pretrain vision transformer is not available")
-    else: 
-        return ViTUntrained(image_size=image_size[0],
-                            patch_size=16,
-                            dim=768,
-                            depth=12,
-                            heads=12,
-                            mlp_dim=3072,
-                            dropout=0.1,
-                            emb_dropout=0.1,
-                            channels=3,
-                            dim_head=64  # Usually dim_head = dim // heads
-                        )
-
-
+    else:
+        return ViTUntrained(
+            image_size=image_size[0],
+            patch_size=16,
+            dim=768,
+            depth=12,
+            heads=12,
+            mlp_dim=3072,
+            dropout=0.1,
+            emb_dropout=0.1,
+            channels=3,
+            dim_head=64,  # Usually dim_head = dim // heads
+        )

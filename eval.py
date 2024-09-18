@@ -6,6 +6,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import yaml
+from pretrain_gsv import VPRModel
 
 from dataloaders.GSVCities import GSVCitiesDataModule
 from parsers import (
@@ -14,7 +15,6 @@ from parsers import (
     quantize_arguments,
     training_arguments,
 )
-from pretrain_gsv import VPRModel
 
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
 
