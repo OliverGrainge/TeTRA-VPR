@@ -37,13 +37,24 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
             raise Exception("Dinov2 not available without cuda")
 
     elif "vit" in backbone_arch.lower():
-        if "ternary" in backbone_arch.lower():
-            config = {}
-            config["depth"] = backbone_config["vit"]["layers_to_truncate"]
-            return backbones.Ternary_ViT(**config)
-        else:
-            backbone_config["vit"]["image_size"] = image_size
-            return backbones.ViT(**backbone_config["vit"])
+        if "base" in backbone_arch.lower():
+            if "ternary" in backbone_arch.lower():
+                config = {}
+                config["image_size"] = image_size[0]
+                return backbones.Ternary_ViT_Base(**config)
+            else:
+                config = {}
+                config["image_size"] = image_size
+                return backbones.ViT_Base(**config)
+            
+        else: 
+            if "ternary" in backbone_arch.lower():
+                config = {}
+                config["depth"] = backbone_config["vit"]["layers_to_truncate"]
+                return backbones.Ternary_ViT(**config)
+            else:
+                backbone_config["vit"]["image_size"] = image_size
+                return backbones.ViT(**backbone_config["vit"])
     
     elif "mobilevit" in backbone_arch.lower():
         backbone_arch["mobilevit"]["image_size"] = image_size

@@ -49,6 +49,7 @@ if __name__ == "__main__":
             config["Model"],
             normalize_output=True,
         )
+        
          
         model_module = GSVCities(
             config["Training"]["GSVCities"],
@@ -112,15 +113,16 @@ if __name__ == "__main__":
             config["Model"],
             normalize_output=False,
         )
+        print(model)
 
-        model_module = ImageNet(model=model, batch_size=args.batch_size, workers=4, lr=3e-4, max_epochs=90)
+        model_module = ImageNet(model=model, batch_size=args.batch_size, workers=args.num_workers, lr=3e-4, max_epochs=300)
 
         checkpoint_cb = ModelCheckpoint(
             monitor='val_acc5',
             filename=f"{args.training_method.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
-            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
+            + "_epoch({epoch:02d})_step({step:04d})_A1[{val_acc1:.4f}]_A5[{val_acc5:.4f}]",
             auto_insert_metric_name=False,
             save_weights_only=True,
             save_top_k=1,
@@ -128,8 +130,6 @@ if __name__ == "__main__":
         )
 
 
-
-    
 
     trainer = pl.Trainer(
         strategy='auto',
@@ -140,11 +140,13 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        limit_train_batches=(
-            int(config["Training"]["EigenPlaces"]["iterations_per_epoch"] * 32 / args.batch_size)
-            if args.training_method.lower() == "eigenplaces"
-            else None
-        ),
+        #limit_train_batches=(
+        #    int(config["Training"]["EigenPlaces"]["iterations_per_epoch"] * 32 / args.batch_size)
+        #    if args.training_method.lower() == "eigenplaces"
+        #    else None
+        #),
+        limit_train_batches=50,
+        limit_val_batches=50,
     )
 
     trainer.fit(model_module)

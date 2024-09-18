@@ -11,9 +11,12 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from timm import create_model  # Using timm for Vision Transformer
 import numpy as np
+from transformers import get_cosine_schedule_with_warmup
 import torch.nn as nn
+from timm.data import create_transform
 
 torch.set_float32_matmul_precision('medium')
+
 
 class ImageNet(LightningModule):
     """
@@ -32,7 +35,7 @@ class ImageNet(LightningModule):
         **kwargs,
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore='model')
         self.model = model
         self.lr = lr
         self.weight_decay = weight_decay
@@ -42,29 +45,36 @@ class ImageNet(LightningModule):
         self.max_epochs = max_epochs
 
         # Define the transformations for training and validation
-        self.train_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+        self.train_transforms = create_transform(
+            input_size=224,
+            is_training=True,
+            auto_augment='rand-m9-mstd0.5-inc1',
+            re_prob=0.25,  # Random Erasing probability
+            re_mode='pixel',
+            re_count=1,
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        )
 
+        # For validation, you can keep your existing transforms
         self.val_transforms = transforms.Compose([
-            transforms.ToTensor(),
             transforms.Resize(256),
             transforms.CenterCrop(224),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
         self.fc = nn.Linear(model.descriptor_dim, 1000)
 
     def forward(self, x):
+
         return self.fc(self.model(x))
 
     def training_step(self, batch, batch_idx):
+
         images, target = batch
         output = self(images)
-        loss_train = F.cross_entropy(output, target)
+        loss_train = F.cross_entropy(output, target, label_smoothing=0.1)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
         self.log("train_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True, logger=True)
@@ -101,45 +111,56 @@ class ImageNet(LightningModule):
             return res
 
     def configure_optimizers(self):
-        # AdamW optimizer with weight decay
         optimizer = optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
-        # Cosine learning rate schedule with warmup
-        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.max_epochs - self.warmup_epochs)
-        warmup_scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: min(1.0, epoch / self.warmup_epochs))
-
-        return [optimizer], [scheduler, warmup_scheduler]
+        # Compute total steps
+        try:
+            steps_per_epoch = len(self.train_dataloader())
+        except TypeError:
+            # If len is not available, estimate steps_per_epoch
+            dataset_size = 1281167  # Number of images in ImageNet training set
+            steps_per_epoch = dataset_size // self.batch_size
+        total_steps = steps_per_epoch * self.max_epochs
+        warmup_steps = steps_per_epoch * self.warmup_epochs
+        # Scheduler
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
+        scheduler = {'scheduler': scheduler, 'interval': 'step', 'frequency': 1}
+        return [optimizer], [scheduler]
 
     def process_batch(self, batch, transform):
         images = []
         for b in batch:
-            img = np.array(b['image'])
-            if img.ndim == 2 or img.shape[2] == 1:  # Grayscale image
-                img = np.stack([img] * 3, axis=-1)  # Convert to 3-channel image
-            elif img.shape[2] > 3: 
-                img = img[:, :, :3]
-            
-            images.append(transform(img))
-
+            img = b['image']
+            # Convert images to RGB if they are not already in RGB mode
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            img = transform(img)
+            images.append(img)
         labels = [b['label'] for b in batch]
         return torch.stack(images), torch.tensor(labels)
 
     def train_dataloader(self):
         # Load the dataset using Hugging Face's datasets library (with streaming)
         train_dataset = load_dataset('imagenet-1k', split='train', streaming=False)
-
+        
         # Apply transformations using a lambda function within the DataLoader
         train_loader = DataLoader(
             train_dataset, 
             batch_size=self.batch_size, 
             num_workers=self.workers, 
-            shuffle=False,
-            collate_fn=lambda batch: self.process_batch(batch, self.train_transforms)
+            shuffle=True,
+            collate_fn=lambda batch: self.process_batch(batch, self.train_transforms),
+            pin_memory=torch.cuda.is_available(),
         )
         return train_loader
 
     def val_dataloader(self):
         # Load the validation set
+
         val_dataset = load_dataset('imagenet-1k', split='validation', streaming=False)
 
         # Use the validation transformations

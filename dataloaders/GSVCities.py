@@ -7,10 +7,10 @@ from torchvision import transforms as T
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
-from dataloaders.val.MapillaryDataset import MSLS
-from dataloaders.val.NordlandDataset import NordlandDataset
-from dataloaders.val.PittsburghDataset import PittsburghDataset
-from dataloaders.val.SPEDDataset import SPEDDataset
+
+
+
+
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
@@ -110,18 +110,22 @@ class GSVCities(pl.LightningModule):
             for val_set_name in self.val_set_names:
                 print(val_set_name)
                 if "pitts30k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name, input_transform=self.valid_transform
                         )
                     )
                 elif val_set_name.lower() == "msls_val":
+                    from dataloaders.val.MapillaryDataset import MSLS
                     self.val_datasets.append(MSLS(input_transform=self.valid_transform))
                 elif val_set_name.lower() == "nordland":
+                    from dataloaders.val.NordlandDataset import NordlandDataset
                     self.val_datasets.append(
                         NordlandDataset(input_transform=self.valid_transform)
                     )
                 elif val_set_name.lower() == "sped":
+                    from dataloaders.val.SPEDDataset import SPEDDataset
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.valid_transform)
                     )

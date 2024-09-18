@@ -5,14 +5,12 @@ Datasets:
   
   
   
-
-
 Training:
   training_method: gsvcities
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 128
+  batch_size: 10 #128 #128
   max_epochs: 150 # 30 for pretraining
   search_precision: 'float32'
   fast_dev_run: False

@@ -164,4 +164,25 @@ def ViT(image_size=[224 ,224],
         return ViTPretrained(image_size=image_size, layers_to_freeze=layers_to_freeze, layers_to_truncate=layers_to_truncate)
     else: 
         return ViTUntrained(image_size=image_size[0], depth=layers_to_truncate)
+    
+
+
+def ViT_Base(image_size=[224 ,224],
+        pretrained=False):
+    
+    if pretrained: 
+        raise Exception("pretrain vision transformer is not available")
+    else: 
+        return ViTUntrained(image_size=image_size[0],
+                            patch_size=16,
+                            dim=768,
+                            depth=12,
+                            heads=12,
+                            mlp_dim=3072,
+                            dropout=0.1,
+                            emb_dropout=0.1,
+                            channels=3,
+                            dim_head=64  # Usually dim_head = dim // heads
+                        )
+
 
