@@ -164,8 +164,8 @@ if __name__ == "__main__":
             if args.training_method.lower() == "eigenplaces"
             else None
         ),
-        limit_train_batches=50,
-        limit_val_batches=50,
+        limit_train_batches=20,
+        limit_val_batches=5,
     )
 
     trainer.fit(model_module)
