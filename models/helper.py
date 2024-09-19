@@ -135,13 +135,16 @@ class VPRModel(nn.Module):
 
 
 def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_output=True):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     backbone = get_backbone(image_size, backbone_arch, model_config["backbone_config"])
-    image = torch.randn(3, *(image_size)).to(next(backbone.parameters()).device)
+    backbone = backbone.to(device)
+    image = torch.randn(3, *(image_size)).to(device)
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
     aggregation = get_aggregator(
         agg_arch, model_config["agg_config"], features_dim, image_size
     )
+    aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
     model.descriptor_dim = desc.shape[1]
