@@ -1,6 +1,7 @@
 
 Datasets:
-  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  datasets_dir: "/scratch/oeg1n18/datasets/vpr_datasets"
 
   
   
@@ -11,7 +12,7 @@ Training:
   accelerator: 'gpu'
   precision: bf16-mixed
   batch_size: 10 #128 #128
-  max_epochs: 150 # 30 for pretraining
+  max_epochs: 100 # 30 for pretraining
   search_precision: 'float32'
   fast_dev_run: False
   val_set_names:

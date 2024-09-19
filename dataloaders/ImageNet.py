@@ -20,23 +20,10 @@ from datasets import load_dataset
 
 torch.set_float32_matmul_precision("medium")
 
-with open('../config.yaml', "r") as config_file:
+with open('config.yaml', "r") as config_file:
         config = yaml.safe_load(config_file)
 
 
-# Define the custom callback
-class WeightDecayResetCallback(Callback):
-    def __init__(self, reset_epoch: int):
-        super().__init__()
-        self.reset_epoch = reset_epoch
-
-    def on_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == self.reset_epoch:
-            for optimizer in trainer.optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group['weight_decay'] = 0.0
-            pl_module.log('weight_decay', 0.0, prog_bar=True)
-            print(f"Weight decay has been reset to 0.0 at epoch {self.reset_epoch}.")
 
 
 class ImageNet(LightningModule):
@@ -140,17 +127,24 @@ class ImageNet(LightningModule):
                 res.append(correct_k.mul_(100.0 / batch_size))
             return res
         
-    def on_epoch_start(self):
+    def on_train_epoch_start(self):
         """
-        Hook called at the start of each epoch. Reset weight_decay if the current epoch matches the reset epoch.
+        Hook called at the start of each epoch. Logs the current weight_decay and resets it if the current epoch matches the reset epoch.
         """
-        if self.current_epoch == self.weight_decay_reset_epoch and self.opt_type=='bitnet':
-            optimizer = self.optimizers()  # Get the optimizer(s)
-            for opt in optimizer:
-                for param_group in opt.param_groups:
-                    param_group['weight_decay'] = 0.0
-            self.log('weight_decay', 0.0, prog_bar=True)
-            print(f"Weight decay has been reset to 0.0 at epoch {self.weight_decay_reset_epoch}.")
+        optimizer = self.optimizers()  # Get the optimizer (not iterable)
+
+        # Iterate through parameter groups in the single optimizer
+        for param_group in optimizer.param_groups:
+            # Log the current weight decay before any modification
+            current_weight_decay = param_group.get('weight_decay', 0.0)
+            self.log('weight_decay', current_weight_decay, prog_bar=True, logger=True)
+
+            # If the current epoch matches the reset epoch and using bitnet, reset weight decay
+            if self.current_epoch == self.weight_decay_reset_epoch and self.opt_type == 'bitnet':
+                param_group['weight_decay'] = 0.0
+                self.log('weight_decay', 0.0, prog_bar=True, logger=True)
+                print(f"Weight decay has been reset to 0.0 at epoch {self.weight_decay_reset_epoch}.")
+
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(
@@ -158,15 +152,12 @@ class ImageNet(LightningModule):
         )
 
         # Compute total steps
-        try:
-            steps_per_epoch = len(self.train_dataloader())
-        except TypeError:
-            # If len is not available, estimate steps_per_epoch
-            dataset_size = 1281167  # Number of images in ImageNet training set
-            steps_per_epoch = dataset_size // self.batch_size
+        steps_per_epoch = len(self.train_dataloader())
+        steps_per_epoch = 50
         total_steps = steps_per_epoch * self.max_epochs
         warmup_steps = steps_per_epoch * self.warmup_epochs
         # Scheduler
+
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
             num_warmup_steps=warmup_steps,
@@ -204,7 +195,6 @@ class ImageNet(LightningModule):
 
     def val_dataloader(self):
         # Load the validation set
-
         val_dataset = load_dataset("imagenet-1k", split="validation", cache_dir=config["Datasets"]["datasets_dir"])
 
         # Use the validation transformations

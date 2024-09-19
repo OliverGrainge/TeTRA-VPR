@@ -128,7 +128,8 @@ if __name__ == "__main__":
             workers=args.num_workers,
             lr=lr,
             max_epochs=args.max_epochs,
-            opt_type=opt_type
+            opt_type=opt_type,
+            warmup_epochs=5
         )
 
         checkpoint_cb = ModelCheckpoint(
@@ -164,8 +165,8 @@ if __name__ == "__main__":
             if args.training_method.lower() == "eigenplaces"
             else None
         ),
-        limit_train_batches=20,
-        limit_val_batches=5,
+        #limit_train_batches=50,
+        #limit_val_batches=5,
     )
 
     trainer.fit(model_module)

@@ -151,18 +151,26 @@ class ViTPretrained(nn.Module):
         return self.backbone(x).last_hidden_state
 
 
-def ViT(
-    image_size=[224, 224], pretrained=True, layers_to_freeze=4, layers_to_truncate=10
-):
+
+
+def ViT_Small(image_size=[224, 224], pretrained=False):
 
     if pretrained:
-        return ViTPretrained(
-            image_size=image_size,
-            layers_to_freeze=layers_to_freeze,
-            layers_to_truncate=layers_to_truncate,
-        )
+        raise Exception("pretrain vision transformer is not available")
     else:
-        return ViTUntrained(image_size=image_size[0], depth=layers_to_truncate)
+        return ViTUntrained(
+            image_size=224,  # Smaller image size for reduced complexity
+            patch_size=16,  # More patches for better granularity
+            dim=384,  # Reduced embedding dimension
+            depth=12,  # Fewer transformer layers
+            heads=6,  # Fewer attention heads
+            mlp_dim=1536,  # MLP layer dimension (4x dim)
+            dropout=0.1,  # Regularization via dropout
+            emb_dropout=0.1,  # Dropout for the embedding layer
+            channels=3,  # RGB images
+            dim_head=96,  # Dimension of each attention head
+        )
+
 
 
 def ViT_Base(image_size=[224, 224], pretrained=False):
@@ -171,12 +179,31 @@ def ViT_Base(image_size=[224, 224], pretrained=False):
         raise Exception("pretrain vision transformer is not available")
     else:
         return ViTUntrained(
-            image_size=image_size[0],
+            image_size=224,  # Smaller image size for reduced complexity
             patch_size=16,
             dim=768,
             depth=12,
             heads=12,
             mlp_dim=3072,
+            dropout=0.1,
+            emb_dropout=0.1,
+            channels=3,
+            dim_head=64,  # Usually dim_head = dim // heads
+        )
+
+
+def ViT_Large(image_size=[224, 224], pretrained=False):
+
+    if pretrained:
+        raise Exception("pretrain vision transformer is not available")
+    else:
+        return ViTUntrained(
+            image_size=224,  # Smaller image size for reduced complexity
+            patch_size=16,
+            dim=1024,
+            depth=24,
+            heads=16,
+            mlp_dim=4096,
             dropout=0.1,
             emb_dropout=0.1,
             channels=3,

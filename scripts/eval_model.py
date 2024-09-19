@@ -11,7 +11,7 @@ from NeuroCompress.NeuroPress import freeze_model
 with open('../config.yaml', "r") as config_file:
     config = yaml.safe_load(config_file)
 
-backbone_arch = "ternary_vit"
+backbone_arch = "ternary_vit_base"
 agg_arch = "cls"
 
 
@@ -110,13 +110,14 @@ def measure_latency(model,
 model = get_model(image_size=[224, 224], backbone_arch = backbone_arch, agg_arch = agg_arch, model_config=config["Model"], normalize_output=True)
 img = torch.randn(1, 3, 224, 224)
 
-#easure_memory(model, verbose=True)
-#freeze_model(model)
-#measure_memory(model, verbose=True)
+measure_memory(model, verbose=True)
+freeze_model(model)
+measure_memory(model, verbose=True)
+
 
 tern_lat = []
 fp_lat = []
-x = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+x = [1, 2, 4, 8, 16, 32]
 for batch_size in x:
     img = torch.randn(batch_size, 3, 224, 224)
     model = get_model(image_size=[224, 224], backbone_arch = backbone_arch, agg_arch = agg_arch, model_config=config["Model"], normalize_output=True)
@@ -124,6 +125,7 @@ for batch_size in x:
     freeze_model(model)
     tern_lat.append(measure_latency(model, img))
     print("==")
+
 
 
 import matplotlib.pyplot as plt 
