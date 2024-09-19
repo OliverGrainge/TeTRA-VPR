@@ -1,7 +1,7 @@
 
 Datasets:
-  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  datasets_dir: "/scratch/oeg1n18/datasets/vpr_datasets"
+  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  #datasets_dir: "/scratch/oeg1n18/datasets/vpr_datasets"
 
   
   

@@ -153,7 +153,8 @@ class ImageNet(LightningModule):
 
         # Compute total steps
         steps_per_epoch = len(self.train_dataloader())
-        steps_per_epoch = 50
+        print(steps_per_epoch)
+        raise Exception
         total_steps = steps_per_epoch * self.max_epochs
         warmup_steps = steps_per_epoch * self.warmup_epochs
         # Scheduler

@@ -147,7 +147,7 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,
+        enable_progress_bar=False,
         strategy="auto",
         accelerator=args.accelerator,
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
