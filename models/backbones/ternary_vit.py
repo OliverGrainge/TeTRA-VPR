@@ -17,26 +17,16 @@ from NeuroPress.QLayers.Ternary import LinearWTA8
 
 # Model definition (same as before)
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0, quantized=True):
+    def __init__(self, dim, hidden_dim, dropout=0.0):
         super().__init__()
-        if quantized:
-            self.net = nn.Sequential(
-                nn.LayerNorm(dim),
-                LinearWTA8(dim, hidden_dim),
-                nn.GELU(),
-                nn.Dropout(dropout),
-                LinearWTA8(hidden_dim, dim),
-                nn.Dropout(dropout),
-            )
-        else:
-            self.net = nn.Sequential(
-                nn.LayerNorm(dim),
-                nn.Linear(dim, hidden_dim),
-                nn.GELU(),
-                nn.Dropout(dropout),
-                nn.Linear(hidden_dim, dim),
-                nn.Dropout(dropout),
-            )
+        self.net = nn.Sequential(
+            nn.LayerNorm(dim),
+            LinearWTA8(dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            LinearWTA8(hidden_dim, dim),
+            nn.Dropout(dropout),
+        )
 
     def forward(self, x):
         return self.net(x)
@@ -76,7 +66,7 @@ class Transformer(nn.Module):
                 nn.ModuleList(
                     [
                         Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                        FeedForward(dim, mlp_dim, dropout=dropout, quantized=True),
+                        FeedForward(dim, mlp_dim, dropout=dropout),
                     ]
                 )
             )
@@ -84,7 +74,7 @@ class Transformer(nn.Module):
             nn.ModuleList(
                 [
                     Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                    FeedForward(dim, mlp_dim, dropout=dropout, quantized=False),
+                    FeedForward(dim, mlp_dim, dropout=dropout),
                 ]
             )
         )

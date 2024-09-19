@@ -24,6 +24,21 @@ with open('../config.yaml', "r") as config_file:
         config = yaml.safe_load(config_file)
 
 
+# Define the custom callback
+class WeightDecayResetCallback(Callback):
+    def __init__(self, reset_epoch: int):
+        super().__init__()
+        self.reset_epoch = reset_epoch
+
+    def on_epoch_start(self, trainer, pl_module):
+        if trainer.current_epoch == self.reset_epoch:
+            for optimizer in trainer.optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group['weight_decay'] = 0.0
+            pl_module.log('weight_decay', 0.0, prog_bar=True)
+            print(f"Weight decay has been reset to 0.0 at epoch {self.reset_epoch}.")
+
+
 class ImageNet(LightningModule):
     """
     PyTorch Lightning Model for training a Vision Transformer on ImageNet with Hugging Face Datasets.
@@ -36,8 +51,9 @@ class ImageNet(LightningModule):
         weight_decay: float = 0.1,  # Higher weight decay for ViT
         batch_size: int = 32,
         workers: int = 4,
-        warmup_epochs: int = 5,
+        warmup_epochs: int = 3,
         max_epochs: int = 90,
+        opt_type: str = "bitnet",
         **kwargs,
     ):
         super().__init__()
@@ -49,6 +65,8 @@ class ImageNet(LightningModule):
         self.workers = workers
         self.warmup_epochs = warmup_epochs
         self.max_epochs = max_epochs
+        self.opt_type = opt_type 
+        self.weight_decay_reset_epoch = int(max_epochs * 0.6)
 
         # Define the transformations for training and validation
         self.train_transforms = create_transform(
@@ -121,6 +139,18 @@ class ImageNet(LightningModule):
                 correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
                 res.append(correct_k.mul_(100.0 / batch_size))
             return res
+        
+    def on_epoch_start(self):
+        """
+        Hook called at the start of each epoch. Reset weight_decay if the current epoch matches the reset epoch.
+        """
+        if self.current_epoch == self.weight_decay_reset_epoch and self.opt_type=='bitnet':
+            optimizer = self.optimizers()  # Get the optimizer(s)
+            for opt in optimizer:
+                for param_group in opt.param_groups:
+                    param_group['weight_decay'] = 0.0
+            self.log('weight_decay', 0.0, prog_bar=True)
+            print(f"Weight decay has been reset to 0.0 at epoch {self.weight_decay_reset_epoch}.")
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(

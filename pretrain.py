@@ -114,14 +114,21 @@ if __name__ == "__main__":
             config["Model"],
             normalize_output=False,
         )
-        print(model)
+        
+        if 'ternary' in args.backbone_arch: 
+            opt_type = 'bitnet'
+            lr=1.5e-3
+        else: 
+            opt_type = 'float'
+            lr=3e-4
 
         model_module = ImageNet(
             model=model,
             batch_size=args.batch_size,
             workers=args.num_workers,
-            lr=3e-4,
-            max_epochs=300,
+            lr=lr,
+            max_epochs=args.max_epochs,
+            opt_type=opt_type
         )
 
         checkpoint_cb = ModelCheckpoint(
@@ -139,7 +146,7 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         strategy="auto",
         accelerator=args.accelerator,
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
@@ -157,8 +164,8 @@ if __name__ == "__main__":
             if args.training_method.lower() == "eigenplaces"
             else None
         ),
-        # limit_train_batches=50,
-        # limit_val_batches=50,
+        limit_train_batches=50,
+        limit_val_batches=50,
     )
 
     trainer.fit(model_module)
