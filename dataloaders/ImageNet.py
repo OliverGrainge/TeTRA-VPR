@@ -14,10 +14,14 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from transformers import get_cosine_schedule_with_warmup
+import yaml
 
 from datasets import load_dataset
 
 torch.set_float32_matmul_precision("medium")
+
+with open('../config.yaml', "r") as config_file:
+        config = yaml.safe_load(config_file)
 
 
 class ImageNet(LightningModule):
@@ -155,7 +159,7 @@ class ImageNet(LightningModule):
 
     def train_dataloader(self):
         # Load the dataset using Hugging Face's datasets library (with streaming)
-        train_dataset = load_dataset("imagenet-1k", split="train", streaming=False)
+        train_dataset = load_dataset("imagenet-1k", split="train", cache_dir=config["Datasets"]["datasets_dir"])
 
         # Apply transformations using a lambda function within the DataLoader
         train_loader = DataLoader(
@@ -171,7 +175,7 @@ class ImageNet(LightningModule):
     def val_dataloader(self):
         # Load the validation set
 
-        val_dataset = load_dataset("imagenet-1k", split="validation", streaming=False)
+        val_dataset = load_dataset("imagenet-1k", split="validation", cache_dir=config["Datasets"]["datasets_dir"])
 
         # Use the validation transformations
         val_loader = DataLoader(
