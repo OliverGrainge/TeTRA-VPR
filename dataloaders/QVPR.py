@@ -192,11 +192,34 @@ class QVPR(pl.LightningModule):
         return [optimizer], [scheduler]
     
 
-    def update_gamma(self): 
-        step = self.trainer.global_step/self.total_steps 
-        step = step * np.pi - np.pi/2 
-        self.gamma = (math.sin(step) + 1)/2
+    def on_train_start(self):
+        # Optionally, log total_steps for verification
+        if self.trainer.is_global_zero:
+            print(f"Total steps per process: {self.total_steps}")
 
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        # Update gamma at the end of each training batch
+        self.update_gamma()
+        # Optionally, use gamma for some purpose
+        # For example, apply it to a loss component or adjust a model parameter
+        # Example:
+        # self.some_parameter = self.gamma * some_value
+
+    def update_gamma(self): 
+        # Compute the current step
+        current_step = self.trainer.global_step
+        # Ensure that total_steps is not zero to avoid division by zero
+        if self.total_steps == 0:
+            step_ratio = 0.0
+        else:
+            step_ratio = current_step / self.total_steps
+        
+        # Compute gamma based on the current step ratio
+        angle = step_ratio * math.pi - (math.pi / 2)
+        self.gamma = (math.sin(angle) + 1) / 2
+
+        # Optionally, log gamma for monitoring
+        self.log('gamma', self.gamma, prog_bar=True, logger=True)
 
     def float_loss_function(self, descriptors, labels):
         if self.float_miner is not None:
@@ -253,7 +276,6 @@ class QVPR(pl.LightningModule):
         self.log("binary_loss", binary_loss)
         self.log("loss", loss)
         self.log("gamma", self.gamma)
-        self.update_gamma()
         return {"loss": loss}
 
     def on_validation_epoch_start(self):
