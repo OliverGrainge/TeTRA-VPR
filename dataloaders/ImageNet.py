@@ -53,8 +53,8 @@ class ImageNet(LightningModule):
         self.warmup_epochs = warmup_epochs
         self.max_epochs = max_epochs
         self.opt_type = opt_type 
-        self.weight_decay_reset_epoch = int(max_epochs * 0.6)
-
+        self.weight_decay_reset_epoch = int(max_epochs * 0.5)
+        
         # Define the transformations for training and validation
         self.train_transforms = create_transform(
             input_size=224,
@@ -86,7 +86,6 @@ class ImageNet(LightningModule):
         return self.fc(self.model(x))
 
     def training_step(self, batch, batch_idx):
-
         images, target = batch
         output = self(images)
         loss_train = F.cross_entropy(output, target, label_smoothing=0.1)
@@ -133,6 +132,9 @@ class ImageNet(LightningModule):
         """
         optimizer = self.optimizers()  # Get the optimizer (not iterable)
 
+        start_descent = int(0.3 * self.max_epochs)
+        end_descent = int(0.5 * self.max_epochs) 
+        delta = 0.1 / (end_descent - start_descent)
         # Iterate through parameter groups in the single optimizer
         for param_group in optimizer.param_groups:
             # Log the current weight decay before any modification
@@ -140,10 +142,10 @@ class ImageNet(LightningModule):
             self.log('weight_decay', current_weight_decay, prog_bar=True, logger=True)
 
             # If the current epoch matches the reset epoch and using bitnet, reset weight decay
-            if self.current_epoch == self.weight_decay_reset_epoch and self.opt_type == 'bitnet':
-                param_group['weight_decay'] = 0.0
-                self.log('weight_decay', 0.0, prog_bar=True, logger=True)
-                print(f"Weight decay has been reset to 0.0 at epoch {self.weight_decay_reset_epoch}.")
+            if self.current_epoch > start_descent and self.current_epoch < end_descent and self.opt_type == 'bitnet':
+                param_group['weight_decay'] = param_group['weight_decay'] - delta 
+                param_group['weight_decay'] = max(param_group['weight_decay'], 0)
+                self.log('weight_decay', param_group['weight_decay'], prog_bar=True, logger=True, on_epoch=True, on_step=False)
 
 
     def configure_optimizers(self):
@@ -153,10 +155,10 @@ class ImageNet(LightningModule):
 
         # Compute total steps
         steps_per_epoch = len(self.train_dataloader())
-        print(steps_per_epoch)
-        raise Exception
+        steps_per_epoch /= self.trainer.world_size
         total_steps = steps_per_epoch * self.max_epochs
         warmup_steps = steps_per_epoch * self.warmup_epochs
+        #raise Exception
         # Scheduler
 
         scheduler = get_cosine_schedule_with_warmup(
@@ -181,7 +183,7 @@ class ImageNet(LightningModule):
 
     def train_dataloader(self):
         # Load the dataset using Hugging Face's datasets library (with streaming)
-        train_dataset = load_dataset("imagenet-1k", split="train", cache_dir=config["Datasets"]["datasets_dir"])
+        train_dataset = load_dataset("imagenet-1k", split=f"train", cache_dir=config["Datasets"]["datasets_dir"])
 
         # Apply transformations using a lambda function within the DataLoader
         train_loader = DataLoader(

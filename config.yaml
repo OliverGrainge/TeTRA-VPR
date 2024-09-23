@@ -1,7 +1,7 @@
 
 Datasets:
-  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  #datasets_dir: "/scratch/oeg1n18/datasets/vpr_datasets"
+  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
   
@@ -11,13 +11,13 @@ Training:
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 10 #128 #128
-  max_epochs: 100 # 30 for pretraining
+  batch_size: 416 #128 #128
+  max_epochs: 100 
   search_precision: 'float32'
   fast_dev_run: False
   val_set_names:
     - pitts30k_val
-  num_workers: 4
+  num_workers: 12
   image_size:
     - 224
     - 224

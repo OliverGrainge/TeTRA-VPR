@@ -115,9 +115,12 @@ if __name__ == "__main__":
             normalize_output=False,
         )
         
-        if 'ternary' in args.backbone_arch: 
+        if 'ternary' in args.backbone_arch.lower(): 
             opt_type = 'bitnet'
-            lr=1.5e-3
+            if "base" in args.backbone_arch.lower():
+                lr=5e-4
+            else: 
+                lr=1e-3
         else: 
             opt_type = 'float'
             lr=3e-4
@@ -144,7 +147,7 @@ if __name__ == "__main__":
             mode="max",
         )
 
-    lr_monitor = LearningRateMonitor(logging_interval="step")
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
     trainer = pl.Trainer(
         enable_progress_bar=False,
@@ -165,8 +168,6 @@ if __name__ == "__main__":
             if args.training_method.lower() == "eigenplaces"
             else None
         ),
-        #limit_train_batches=50,
-        #limit_val_batches=5,
     )
 
     trainer.fit(model_module)
