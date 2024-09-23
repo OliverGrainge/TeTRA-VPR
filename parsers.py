@@ -115,9 +115,9 @@ def training_arguments(parser=None):
     )
     parser.add_argument(
         "--freeze_n_blocks",
-        type=int, 
+        type=int,
         default=config["Training"]["freeze_n_blocks"],
-        help="number of blocks to freeze weights"
+        help="number of blocks to freeze weights",
     )
 
     return parser

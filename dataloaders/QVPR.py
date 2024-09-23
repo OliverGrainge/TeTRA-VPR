@@ -1,11 +1,12 @@
+import math
+
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
 from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-import numpy as np
-import math 
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
@@ -28,7 +29,6 @@ class QVPR(pl.LightningModule):
         mean_std=IMAGENET_MEAN_STD,
         val_set_names=["pitts30k_val", "msls_val"],
         search_precision="float32",
-        
     ):
         super().__init__()
         # Model parameters
@@ -51,7 +51,9 @@ class QVPR(pl.LightningModule):
         self.float_loss_fn = utils.get_loss("MultiSimilarityLoss")
         self.float_miner = utils.get_miner("MultiSimilarityMiner", self.miner_margin)
         self.binary_loss_fn = utils.get_loss("HammingSTEMultiSimilarityLoss")
-        self.binary_miner = utils.get_miner("HammingSTEMultiSimilarityMiner", self.miner_margin)
+        self.binary_miner = utils.get_miner(
+            "HammingSTEMultiSimilarityMiner", self.miner_margin
+        )
 
         self.model = model
 
@@ -110,7 +112,8 @@ class QVPR(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -190,7 +193,6 @@ class QVPR(pl.LightningModule):
         self.gamma = 0.0
         self.total_steps = len(self.train_dataloader()) * self.max_epochs
         return [optimizer], [scheduler]
-    
 
     def on_train_start(self):
         # Optionally, log total_steps for verification
@@ -205,7 +207,7 @@ class QVPR(pl.LightningModule):
         # Example:
         # self.some_parameter = self.gamma * some_value
 
-    def update_gamma(self): 
+    def update_gamma(self):
         # Compute the current step
         current_step = self.trainer.global_step
         # Ensure that total_steps is not zero to avoid division by zero
@@ -213,13 +215,13 @@ class QVPR(pl.LightningModule):
             step_ratio = 0.0
         else:
             step_ratio = current_step / self.total_steps
-        
+
         # Compute gamma based on the current step ratio
         angle = step_ratio * math.pi - (math.pi / 2)
         self.gamma = (math.sin(angle) + 1) / 2
 
         # Optionally, log gamma for monitoring
-        self.log('gamma', self.gamma, prog_bar=True, logger=True)
+        self.log("gamma", self.gamma, prog_bar=True, logger=True)
 
     def float_loss_function(self, descriptors, labels):
         if self.float_miner is not None:
@@ -241,7 +243,7 @@ class QVPR(pl.LightningModule):
             logger=True,
         )
         return loss
-    
+
     def binary_loss_function(self, descriptors, labels):
         if self.binary_miner is not None:
             miner_outputs = self.binary_miner(descriptors, labels)
@@ -271,7 +273,7 @@ class QVPR(pl.LightningModule):
         descriptors = self(images)
         float_loss = self.float_loss_function(descriptors, labels)
         binary_loss = self.binary_loss_function(descriptors, labels)
-        loss = (1-self.gamma) * float_loss + self.gamma * binary_loss
+        loss = (1 - self.gamma) * float_loss + self.gamma * binary_loss
         self.log("float_loss", float_loss)
         self.log("binary_loss", binary_loss)
         self.log("loss", loss)
@@ -323,7 +325,7 @@ class QVPR(pl.LightningModule):
                 print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu,
-                precision='float32',
+                precision="float32",
             )
 
             binary_recalls_dict, predictions = utils.get_validation_recalls(
@@ -334,19 +336,45 @@ class QVPR(pl.LightningModule):
                 print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu,
-                precision='binary',
+                precision="binary",
             )
 
-            self.log(f"{val_set_name}/float_R1", float_recalls_dict[1], prog_bar=False, logger=True)
-            self.log(f"{val_set_name}/float_R5", float_recalls_dict[5], prog_bar=False, logger=True)
             self.log(
-                f"{val_set_name}/float_R10", float_recalls_dict[10], prog_bar=False, logger=True
+                f"{val_set_name}/float_R1",
+                float_recalls_dict[1],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/float_R5",
+                float_recalls_dict[5],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/float_R10",
+                float_recalls_dict[10],
+                prog_bar=False,
+                logger=True,
             )
 
-            self.log(f"{val_set_name}/binary_R1", binary_recalls_dict[1], prog_bar=False, logger=True)
-            self.log(f"{val_set_name}/binary_R5", binary_recalls_dict[5], prog_bar=False, logger=True)
             self.log(
-                f"{val_set_name}/binary_R10", binary_recalls_dict[10], prog_bar=False, logger=True
+                f"{val_set_name}/binary_R1",
+                binary_recalls_dict[1],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/binary_R5",
+                binary_recalls_dict[5],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/binary_R10",
+                binary_recalls_dict[10],
+                prog_bar=False,
+                logger=True,
             )
 
             del r_list, q_list, feats, num_references, ground_truth

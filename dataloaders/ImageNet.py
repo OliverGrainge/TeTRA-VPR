@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import yaml
 from PIL import Image
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -14,16 +15,13 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from transformers import get_cosine_schedule_with_warmup
-import yaml
 
 from datasets import load_dataset
 
 torch.set_float32_matmul_precision("medium")
 
-with open('config.yaml', "r") as config_file:
-        config = yaml.safe_load(config_file)
-
-
+with open("config.yaml", "r") as config_file:
+    config = yaml.safe_load(config_file)
 
 
 class ImageNet(LightningModule):
@@ -52,9 +50,9 @@ class ImageNet(LightningModule):
         self.workers = workers
         self.warmup_epochs = warmup_epochs
         self.max_epochs = max_epochs
-        self.opt_type = opt_type 
+        self.opt_type = opt_type
         self.weight_decay_reset_epoch = int(max_epochs * 0.5)
-        
+
         # Define the transformations for training and validation
         self.train_transforms = create_transform(
             input_size=224,
@@ -106,7 +104,6 @@ class ImageNet(LightningModule):
         self.log(f"{prefix}_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True)
         self.log(f"{prefix}_acc5", acc5, on_epoch=True)
 
-
     def validation_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "val")
 
@@ -126,7 +123,7 @@ class ImageNet(LightningModule):
                 correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
                 res.append(correct_k.mul_(100.0 / batch_size))
             return res
-        
+
     def on_train_epoch_start(self):
         """
         Hook called at the start of each epoch. Logs the current weight_decay and resets it if the current epoch matches the reset epoch.
@@ -134,20 +131,30 @@ class ImageNet(LightningModule):
         optimizer = self.optimizers()  # Get the optimizer (not iterable)
 
         start_descent = int(0.3 * self.max_epochs)
-        end_descent = int(0.5 * self.max_epochs) 
+        end_descent = int(0.5 * self.max_epochs)
         delta = 0.1 / (end_descent - start_descent)
         # Iterate through parameter groups in the single optimizer
         for param_group in optimizer.param_groups:
             # Log the current weight decay before any modification
-            current_weight_decay = param_group.get('weight_decay', 0.0)
-            self.log('weight_decay', current_weight_decay, prog_bar=True, logger=True)
+            current_weight_decay = param_group.get("weight_decay", 0.0)
+            self.log("weight_decay", current_weight_decay, prog_bar=True, logger=True)
 
             # If the current epoch matches the reset epoch and using bitnet, reset weight decay
-            if self.current_epoch > start_descent and self.current_epoch < end_descent and self.opt_type == 'bitnet':
-                param_group['weight_decay'] = param_group['weight_decay'] - delta 
-                param_group['weight_decay'] = max(param_group['weight_decay'], 0)
-                self.log('weight_decay', param_group['weight_decay'], prog_bar=True, logger=True, on_epoch=True, on_step=False)
-
+            if (
+                self.current_epoch > start_descent
+                and self.current_epoch < end_descent
+                and self.opt_type == "bitnet"
+            ):
+                param_group["weight_decay"] = param_group["weight_decay"] - delta
+                param_group["weight_decay"] = max(param_group["weight_decay"], 0)
+                self.log(
+                    "weight_decay",
+                    param_group["weight_decay"],
+                    prog_bar=True,
+                    logger=True,
+                    on_epoch=True,
+                    on_step=False,
+                )
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(
@@ -158,7 +165,7 @@ class ImageNet(LightningModule):
         steps_per_epoch = len(self.train_dataloader())
         total_steps = steps_per_epoch * self.max_epochs
         warmup_steps = steps_per_epoch * self.warmup_epochs
-        #raise Exception
+        # raise Exception
         # Scheduler
 
         scheduler = get_cosine_schedule_with_warmup(
@@ -183,7 +190,9 @@ class ImageNet(LightningModule):
 
     def train_dataloader(self):
         # Load the dataset using Hugging Face's datasets library (with streaming)
-        train_dataset = load_dataset("imagenet-1k", split=f"train", cache_dir=config["Datasets"]["datasets_dir"])
+        train_dataset = load_dataset(
+            "imagenet-1k", split=f"train", cache_dir=config["Datasets"]["datasets_dir"]
+        )
 
         # Apply transformations using a lambda function within the DataLoader
         train_loader = DataLoader(
@@ -198,7 +207,11 @@ class ImageNet(LightningModule):
 
     def val_dataloader(self):
         # Load the validation set
-        val_dataset = load_dataset("imagenet-1k", split="validation", cache_dir=config["Datasets"]["datasets_dir"])
+        val_dataset = load_dataset(
+            "imagenet-1k",
+            split="validation",
+            cache_dir=config["Datasets"]["datasets_dir"],
+        )
 
         # Use the validation transformations
         val_loader = DataLoader(
@@ -209,7 +222,6 @@ class ImageNet(LightningModule):
             collate_fn=lambda batch: self.process_batch(batch, self.val_transforms),
         )
         return val_loader
-    
 
     def test_dataloader(self):
         return self.val_dataloader()

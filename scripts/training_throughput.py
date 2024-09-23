@@ -1,17 +1,18 @@
-import torch
-import sys
 import os
-import yaml
+import sys
 import time
+
+import torch
+import yaml
 
 # Adjust the Python path to include the parent directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from models.helper import get_model 
+from models.helper import get_model
 from NeuroCompress.NeuroPress import freeze_model
 
 # Load configuration from YAML file
-with open('../config.yaml', "r") as config_file:
+with open("../config.yaml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
 # Define model architecture parameters
@@ -24,7 +25,7 @@ model = get_model(
     backbone_arch=backbone_arch,
     agg_arch=agg_arch,
     model_config=config["Model"],
-    normalize_output=True
+    normalize_output=True,
 )
 
 # Create dummy input and target tensors
@@ -32,7 +33,9 @@ batch_size = 64
 img_batch = torch.randn(batch_size, 3, 224, 224)
 # Adjust the target shape according to your model's output
 # For example, if it's a classification model with 768 classes:
-target = torch.randint(0, 100, (batch_size,))  # Assuming classification with integer targets
+target = torch.randint(
+    0, 100, (batch_size,)
+)  # Assuming classification with integer targets
 
 # Set device to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

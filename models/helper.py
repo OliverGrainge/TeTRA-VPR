@@ -52,7 +52,6 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
             elif "large" in backbone_arch.lower():
                 return backbones.ViT_Large()
 
-
     elif "mobilevit" in backbone_arch.lower():
         backbone_arch["mobilevit"]["image_size"] = image_size
         if "ternary" in backbone_arch.lower():
@@ -132,7 +131,7 @@ class VPRModel(nn.Module):
 
 
 def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_output=True):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     backbone = get_backbone(image_size, backbone_arch, model_config["backbone_config"])
     backbone = backbone.to(device)
     image = torch.randn(3, *(image_size)).to(device)

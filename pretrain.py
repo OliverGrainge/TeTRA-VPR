@@ -4,9 +4,9 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.optim import lr_scheduler
-from dataloaders.QVPR import QVPR
 
 import utils
+from dataloaders.QVPR import QVPR
 
 torch.set_float32_matmul_precision("medium")
 
@@ -32,11 +32,10 @@ IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
 
 
-
 def freeze_blocks(model, blocks=None):
     """
     Freezes specific blocks of the transformer layers in the model.
-    
+
     Args:
         model: The model containing transformer blocks.
         block_indices: List of block indices to freeze. If None, freezes all blocks.
@@ -49,7 +48,6 @@ def freeze_blocks(model, blocks=None):
             print(f"Block {idx} frozen.")
         else:
             print(f"Block {idx} left unfrozen.")
-
 
 
 if __name__ == "__main__":
@@ -74,13 +72,13 @@ if __name__ == "__main__":
             normalize_output=True,
         )
 
-        if args.load_checkpoint is not None: 
+        if args.load_checkpoint is not None:
             sd = torch.load(args.load_checkpoint)
-            sd = sd['state_dict']
+            sd = sd["state_dict"]
             new_sd = {}
-            for key, value in sd.items(): 
-                if key != 'fc.weight' and key != 'fc.bias':
-                    new_sd[key.replace('model.', '')] = value 
+            for key, value in sd.items():
+                if key != "fc.weight" and key != "fc.bias":
+                    new_sd[key.replace("model.", "")] = value
             model.load_state_dict(new_sd, strict=False)
 
             freeze_blocks(model, args.freeze_n_blocks)
@@ -117,13 +115,13 @@ if __name__ == "__main__":
             normalize_output=True,
         )
 
-        if args.load_checkpoint is not None: 
+        if args.load_checkpoint is not None:
             sd = torch.load(args.load_checkpoint)
-            sd = sd['state_dict']
+            sd = sd["state_dict"]
             new_sd = {}
-            for key, value in sd.items(): 
-                if key != 'fc.weight' and key != 'fc.bias':
-                    new_sd[key.replace('model.', '')] = value 
+            for key, value in sd.items():
+                if key != "fc.weight" and key != "fc.bias":
+                    new_sd[key.replace("model.", "")] = value
             model.load_state_dict(new_sd, strict=False)
 
             freeze_blocks(model, args.freeze_n_blocks)
@@ -191,16 +189,16 @@ if __name__ == "__main__":
             config["Model"],
             normalize_output=False,
         )
-        
-        if 'ternary' in args.backbone_arch.lower(): 
-            opt_type = 'bitnet'
+
+        if "ternary" in args.backbone_arch.lower():
+            opt_type = "bitnet"
             if "base" in args.backbone_arch.lower():
-                lr=5e-4
-            else: 
-                lr=1e-3
-        else: 
-            opt_type = 'float'
-            lr=3e-4
+                lr = 5e-4
+            else:
+                lr = 1e-3
+        else:
+            opt_type = "float"
+            lr = 3e-4
 
         model_module = ImageNet(
             model=model,
@@ -209,7 +207,7 @@ if __name__ == "__main__":
             lr=lr,
             max_epochs=args.max_epochs,
             opt_type=opt_type,
-            warmup_epochs=5
+            warmup_epochs=5,
         )
 
         checkpoint_cb = ModelCheckpoint(
@@ -236,7 +234,7 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        #limit_train_batches=(
+        # limit_train_batches=(
         #    int(
         #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
         #        * 32
@@ -244,8 +242,8 @@ if __name__ == "__main__":
         #    )
         #    if args.training_method.lower() == "eigenplaces"
         #    else None
-        #),
-        #limit_train_batches=50,
+        # ),
+        # limit_train_batches=50,
     )
 
     trainer.fit(model_module)

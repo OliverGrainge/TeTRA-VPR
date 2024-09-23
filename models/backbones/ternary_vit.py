@@ -174,7 +174,6 @@ class Ternary_ViT_Base(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-    
 
 
 class Ternary_ViT_Large(nn.Module):
@@ -220,4 +219,3 @@ class Ternary_ViT_Large(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-

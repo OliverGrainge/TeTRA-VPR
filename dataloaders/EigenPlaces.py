@@ -204,7 +204,8 @@ class EigenPlaces(pl.LightningModule):
             for val_set_name in self.val_set_names:
                 print(val_set_name)
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(

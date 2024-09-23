@@ -12,12 +12,8 @@ from torch.optim import lr_scheduler
 import utils
 from dataloaders.GSVCities import GSVCitiesDataModule
 from models import helper
-from parsers import (
-    dataloader_arguments,
-    model_arguments,
-    quantize_arguments,
-    training_arguments,
-)
+from parsers import (dataloader_arguments, model_arguments, quantize_arguments,
+                     training_arguments)
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "NeuroCompress"))

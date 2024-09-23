@@ -1,13 +1,15 @@
 import copy
+
 import torch
-from torch import nn
-from pytorch_lightning import LightningModule
-import torch.optim as optim
 import torch.nn.functional as F
+import torch.optim as optim
+from pytorch_lightning import LightningModule
+from torch import nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
+
 
 # Custom Solarize Transformation (if needed)
 class RandomSolarize:
@@ -19,6 +21,7 @@ class RandomSolarize:
         if torch.rand(1).item() < self.p:
             return torch.where(img > self.threshold / 255, 1 - img, img)
         return img
+
 
 class Dino(LightningModule):
     """
@@ -95,12 +98,16 @@ class Dino(LightningModule):
         """
         Initializes the teacher model with the student model's weights.
         """
-        for param_student, param_teacher in zip(self.student.parameters(), self.teacher.parameters()):
+        for param_student, param_teacher in zip(
+            self.student.parameters(), self.teacher.parameters()
+        ):
             param_teacher.data.copy_(param_student.data)
         # If using separate projection heads, initialize teacher's projection head
         # Assuming teacher_proj is already defined
-        if hasattr(self, 'student_proj') and hasattr(self, 'teacher_proj'):
-            for param_student_proj, param_teacher_proj in zip(self.student_proj.parameters(), self.teacher_proj.parameters()):
+        if hasattr(self, "student_proj") and hasattr(self, "teacher_proj"):
+            for param_student_proj, param_teacher_proj in zip(
+                self.student_proj.parameters(), self.teacher_proj.parameters()
+            ):
                 param_teacher_proj.data.copy_(param_student_proj.data)
 
     @torch.no_grad()
@@ -108,27 +115,45 @@ class Dino(LightningModule):
         """
         Updates the teacher model parameters using an exponential moving average of the student model parameters.
         """
-        for param_student, param_teacher in zip(self.student.parameters(), self.teacher.parameters()):
-            param_teacher.data = param_teacher.data * self.momentum_teacher + param_student.data * (1.0 - self.momentum_teacher)
-        for param_student_proj, param_teacher_proj in zip(self.student_proj.parameters(), self.teacher_proj.parameters()):
-            param_teacher_proj.data = param_teacher_proj.data * self.momentum_teacher + param_student_proj.data * (1.0 - self.momentum_teacher)
+        for param_student, param_teacher in zip(
+            self.student.parameters(), self.teacher.parameters()
+        ):
+            param_teacher.data = (
+                param_teacher.data * self.momentum_teacher
+                + param_student.data * (1.0 - self.momentum_teacher)
+            )
+        for param_student_proj, param_teacher_proj in zip(
+            self.student_proj.parameters(), self.teacher_proj.parameters()
+        ):
+            param_teacher_proj.data = (
+                param_teacher_proj.data * self.momentum_teacher
+                + param_student_proj.data * (1.0 - self.momentum_teacher)
+            )
 
     def _build_transforms(self):
         """
         Builds the data augmentation pipeline for training.
         """
-        return transforms.Compose([
-            transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.5, 1.0)),
-            transforms.RandomHorizontalFlip(),
-            transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.GaussianBlur(kernel_size=23, sigma=(0.1, 2.0)),  # Added Gaussian Blur
-            RandomSolarize(threshold=128, p=0.2),  # Custom Solarize
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],  # ImageNet stats
-                                 std=[0.229, 0.224, 0.225]),
-            # transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False)  # Optional
-        ])
+        return transforms.Compose(
+            [
+                transforms.RandomResizedCrop(self.hparams.image_size, scale=(0.5, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(
+                    brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1
+                ),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.GaussianBlur(
+                    kernel_size=23, sigma=(0.1, 2.0)
+                ),  # Added Gaussian Blur
+                RandomSolarize(threshold=128, p=0.2),  # Custom Solarize
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],  # ImageNet stats
+                    std=[0.229, 0.224, 0.225],
+                ),
+                # transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False)  # Optional
+            ]
+        )
 
     def forward_student(self, x):
         """
@@ -175,7 +200,9 @@ class Dino(LightningModule):
         loss = (loss_1 + loss_2) / 2
 
         # Log loss
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        )
 
         # Update teacher
         self.update_teacher()
@@ -189,13 +216,11 @@ class Dino(LightningModule):
         optimizer = optim.AdamW(
             list(self.student.parameters()) + list(self.student_proj.parameters()),
             lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay
+            weight_decay=self.hparams.weight_decay,
         )
 
         scheduler = CosineAnnealingLR(
-            optimizer,
-            T_max=self.hparams.max_epochs,
-            eta_min=1e-6
+            optimizer, T_max=self.hparams.max_epochs, eta_min=1e-6
         )
 
         return [optimizer], [scheduler]
@@ -205,10 +230,12 @@ class Dino(LightningModule):
         Define your training dataloader here.
         Ensures that it returns two augmented views of each image.
         """
+
         class TwoCropsTransform:
             """
             Creates two augmented versions of each image.
             """
+
             def __init__(self, transform):
                 self.transform = transform
 
@@ -217,7 +244,7 @@ class Dino(LightningModule):
 
         transform = TwoCropsTransform(self.train_transform)
 
-        dataset = ImageFolder(root='path_to_imagenet/train', transform=transform)
+        dataset = ImageFolder(root="path_to_imagenet/train", transform=transform)
 
         return DataLoader(
             dataset,
@@ -225,6 +252,5 @@ class Dino(LightningModule):
             shuffle=True,
             num_workers=self.hparams.workers,
             pin_memory=True,
-            drop_last=True
+            drop_last=True,
         )
-

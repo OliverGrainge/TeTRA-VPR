@@ -151,8 +151,6 @@ class ViTPretrained(nn.Module):
         return self.backbone(x).last_hidden_state
 
 
-
-
 def ViT_Small(image_size=[224, 224], pretrained=False):
 
     if pretrained:
@@ -170,7 +168,6 @@ def ViT_Small(image_size=[224, 224], pretrained=False):
             channels=3,  # RGB images
             dim_head=96,  # Dimension of each attention head
         )
-
 
 
 def ViT_Base(image_size=[224, 224], pretrained=False):
