@@ -1,102 +1,97 @@
-import argparse
-import os
-import sys
-
-import pytorch_lightning as pl
-import torch
+from parsers import get_args_parser
+from models.helper import get_model 
+import torch 
+import yaml 
+from NeuroCompress.NeuroPress import freeze_model
+from dataloaders.ImageNet import ImageNet
+import pytorch_lightning as pl 
+import time 
 import torch.nn as nn
-import yaml
-from pretrain_gsv import VPRModel
-
-from dataloaders.GSVCities import GSVCitiesDataModule
-from parsers import (
-    dataloader_arguments,
-    model_arguments,
-    quantize_arguments,
-    training_arguments,
-)
-
-config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-
-with open(config_path, "r") as config_file:
+with open('config.yaml', "r") as config_file:
     config = yaml.safe_load(config_file)
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "NeuroCompress"))
-)
+
+def measure_latency(model, input_tensor, num_runs=100, warmup_runs=10, verbose=True):
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Please run on a CUDA-enabled device.")
+
+    device = torch.device("cuda")
+    model.to(device)
+    input_tensor = input_tensor.to(device)
+
+    model.eval()  # Set model to evaluation mode
+    with torch.no_grad():
+        # Warm-up runs
+        for _ in range(warmup_runs):
+            _ = model(input_tensor)
+            torch.cuda.synchronize()
+
+        # Timing runs
+        latencies = []
+        for _ in range(num_runs):
+            start_event = torch.cuda.Event(enable_timing=True)
+            end_event = torch.cuda.Event(enable_timing=True)
+
+            start_event.record()
+            _ = model(input_tensor)
+            end_event.record()
+
+            # Wait for the events to be recorded
+            torch.cuda.synchronize()
+
+            # Calculate elapsed time in milliseconds
+            elapsed_time = start_event.elapsed_time(end_event)
+            latencies.append(elapsed_time)
+
+    average_latency = sum(latencies) / len(latencies)
+    if verbose: 
+        print(" ")
+        print(" Average Latency: ", average_latency)
+        print(" ")
+    return average_latency
 
 
-from NeuroPress import QLayers as Q
-from NeuroPress import freeze, postquantize
+def measure_memory(model, verbose=True):
+    state_dict = model.state_dict()
+    total_bytes = 0
+
+    for key, param in state_dict.items():
+        # Ensure the parameter is a tensor
+        if isinstance(param, torch.Tensor):
+            param_size = param.numel() * param.element_size()
+            total_bytes += param_size
+        else:
+            raise TypeError(f"Expected torch.Tensor for key '{key}', but got {type(param)}")
+
+    # Convert bytes to megabytes
+    total_megabytes = total_bytes / (1024 ** 2)
+    if verbose: 
+        print(" ")
+        print(" Model Size: ", total_megabytes)
+        print(" ")
+    return total_megabytes
 
 
-def get_qlayers(args):
-    qlinear = getattr(Q, args.qlinear) if args.qlinear else None
-    qconv = getattr(Q, args.qconv) if args.qconv else None
-    return qlinear, qconv
+
+def eval_imagenet(args):
+    model = get_model(args.image_size, args.backbone_arch, args.agg_arch, config['Model'], normalize_output=False)
+    model.eval()
+    #module = ImageNet(model, batch_size=args.batch_size)
+    module = ImageNet.load_from_checkpoint(checkpoint_path=args.load_checkpoint,
+                                           model=model)
+    
+    #freeze_model(model)
+    
+    measure_latency(model, torch.randn(1, 3, 224, 224))
+    measure_memory(model)
+    trainer = pl.Trainer(limit_test_batches=20)
+    trainer.test(module)
+
 
 
 if __name__ == "__main__":
-    torch.set_float32_matmul_precision("high")
-
-    parser = argparse.ArgumentParser(description="Model, Quantize arguments")
-    parser = model_arguments(parser)
-    parser = quantize_arguments(parser)
-    parser = dataloader_arguments(parser)
-    parser = training_arguments(parser)
+    parser = get_args_parser()
     args = parser.parse_args()
-    args.load_checkpoint = "/home/oliver/Documents/github/QuantPlaceFinder/Logs/PreTraining/vit/lightning_logs/version_0/checkpoints/vit_cls_MultiSimilarityLoss_epoch(15)_step(4688)_R1[0.8061]_R5[0.9435].ckpt"
 
-    datamodule = GSVCitiesDataModule(
-        batch_size=args.batch_size,
-        img_per_place=args.img_per_place,
-        min_img_per_place=args.min_img_per_place,
-        cities=args.cities,
-        shuffle_all=args.shuffle_all,
-        random_sample_from_each_place=args.random_sample_from_each_place,
-        image_size=args.image_size,
-        num_workers=args.num_workers,
-        show_data_stats=False,
-        val_set_names=args.val_set_names,
-    )
-
-    assert os.path.exists(args.load_checkpoint)
-    model = VPRModel.load_from_checkpoint(args.load_checkpoint)
-    model.search_precision = args.search_precision
-    print(args.search_precision)
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(
-        "==================================================================================="
-    )
-    print(
-        "================================== Full Precision ======================================"
-    )
-    print(
-        "==================================================================================="
-    )
-    trainer = pl.Trainer()
-    # metrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
-
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(
-        "==================================================================================="
-    )
-    print(
-        "================================== Quantized ======================================"
-    )
-    print(
-        "==================================================================================="
-    )
-    postquantize(model.backbone, qlinear=Q.LinearWTA16)
-    freeze(model.backbone)
-    trainer = pl.Trainer()
-    qmetrics = trainer.validate(model=model, datamodule=datamodule, verbose=True)
-    # print(model)
+    eval_imagenet(args)
+    

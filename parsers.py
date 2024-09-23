@@ -3,7 +3,6 @@ import os
 
 import yaml
 
-print(os.listdir())
 with open("config.yaml", "r") as config_file:
     config = yaml.safe_load(config_file)
 

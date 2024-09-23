@@ -106,6 +106,7 @@ class ImageNet(LightningModule):
         self.log(f"{prefix}_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True)
         self.log(f"{prefix}_acc5", acc5, on_epoch=True)
 
+
     def validation_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "val")
 
@@ -205,10 +206,11 @@ class ImageNet(LightningModule):
             val_dataset,
             batch_size=self.batch_size,
             num_workers=self.workers,
-            shuffle=False,
+            shuffle=True,
             collate_fn=lambda batch: self.process_batch(batch, self.val_transforms),
         )
         return val_loader
+    
 
     def test_dataloader(self):
         return self.val_dataloader()
