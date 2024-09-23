@@ -76,11 +76,8 @@ def measure_memory(model, verbose=True):
 def eval_imagenet(args):
     model = get_model(args.image_size, args.backbone_arch, args.agg_arch, config['Model'], normalize_output=False)
     model.eval()
-    #module = ImageNet(model, batch_size=args.batch_size)
     module = ImageNet.load_from_checkpoint(checkpoint_path=args.load_checkpoint,
                                            model=model)
-    
-    #freeze_model(model)
     
     measure_latency(model, torch.randn(1, 3, 224, 224))
     measure_memory(model)

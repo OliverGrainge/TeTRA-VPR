@@ -113,6 +113,12 @@ def training_arguments(parser=None):
         default=config["Training"]["image_size"],
         help="Size of the images (width, height)",
     )
+    parser.add_argument(
+        "--freeze_n_blocks",
+        type=int, 
+        default=config["Training"]["freeze_n_blocks"],
+        help="number of blocks to freeze weights"
+    )
 
     return parser
 

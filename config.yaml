@@ -11,10 +11,11 @@ Training:
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 416 #128 #128
+  batch_size: 20 #416 for pretraining
   max_epochs: 100 
   search_precision: 'float32'
   fast_dev_run: False
+  freeze_n_blocks: 8
   val_set_names:
     - pitts30k_val
   num_workers: 12
@@ -27,9 +28,9 @@ Training:
     shuffle_all: True
     optimizer: 'adamw' #adam
     lr: 0.0002
-    weight_decay: 0.1
+    weight_decay: 0.0
     momentum: 0.9
-    warmup_steps: 1000 # 600
+    warmup_steps: 100 # 600
     milestones:
       - 30
       - 40
@@ -45,29 +46,29 @@ Training:
     img_per_place: 4
     min_img_per_place: 4
     cities:
-     - Bangkok
-     - BuenosAires
-     - LosAngeles
-     - MexicoCity
-     - OSL # refers to Oslo
-     - Rome
-     - Barcelona
-     - Chicago
-     - Madrid
-     - Miami
-     - Phoenix
-     - TRT # refers to Toronto
+     #- Bangkok
+     #- BuenosAires
+     #- LosAngeles
+     #- MexicoCity
+     #- OSL # refers to Oslo
+     #- Rome
+     #- Barcelona
+     #- Chicago
+     #- Madrid
+     #- Miami
+     #- Phoenix
+     #- TRT # refers to Toronto
      - Boston
-     - Lisbon
-     - Medellin
-     - Minneapolis
-     - PRG # refers to Prague
-     - WashingtonDC
-     - Brussels
+    # - Lisbon
+    # - Medellin
+    # - Minneapolis
+    # - PRG # refers to Prague
+    # - WashingtonDC
+    # - Brussels
      - London
      - Melbourne
-     - Osaka
-     - PRS # refers t
+   #  - Osaka
+   #  - PRS # refers t
     
 
   EigenPlaces: 
@@ -159,7 +160,6 @@ Model:
       num_clusters: 64
       cluster_dim: 128
     cls: 
-
 
 
 Quantize:
