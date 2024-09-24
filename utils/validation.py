@@ -118,3 +118,52 @@ def get_validation_recalls(
         print(table.get_string(title=f"Performance on {dataset_name} in {precision}"))
 
     return d, predictions
+
+
+
+
+
+def get_validation_recalls_two_stage(
+    r_list_float,
+    r_list_binary,
+    q_list_float,
+    q_list_binary,
+    k,
+    gt,
+    print_results=True,
+    faiss_gpu=False,
+    dataset_name="dataset without name ?",
+):  
+    predictions = binary_search(r_list_binary, q_list_binary, [k], faiss_gpu=faiss_gpu)
+    new_predictions = []
+    r_list_float = r_list_float / torch.norm(r_list_float, p=2, dim=1, keepdim=True)
+    q_list_float = q_list_float / torch.norm(q_list_float, p=2, dim=1, keepdim=True)
+
+    for i, pred in enumerate(predictions): 
+        r_desc = r_list_float[pred]
+        q_desc = q_list_float[i]
+        index = faiss.IndexFlatIP(r_desc.shape[1])
+        index.add(r_desc)
+        dist, new_preds = index.search(q_desc[None, :], 1)
+        new_predictions.append([pred[new_preds.squeeze().item()]])
+    predictions = np.array(new_predictions)
+    # start calculating recall_at_k
+    correct_at_k = np.zeros(len([1]))
+    for q_idx, pred in enumerate(predictions):
+        for i, n in enumerate([1]):
+            # if in top N then also in top NN, where NN > N
+            if np.any(np.in1d(pred[:n], gt[q_idx])):
+                correct_at_k[i:] += 1
+                break
+
+    correct_at_k = correct_at_k / len(predictions)
+    d = {k: v for (k, v) in zip([1], correct_at_k)}
+
+    if print_results:
+        print("\n")  # print a new line
+        table = PrettyTable()
+        table.field_names = ["K"] + [str(1)]
+        table.add_row(["Recall@K"] + [f"{100*v:.2f}" for v in correct_at_k])
+        print(table.get_string(title=f"Performance on {dataset_name} in two stage"))
+
+    return d, predictions

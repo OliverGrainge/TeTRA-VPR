@@ -102,13 +102,22 @@ def get_aggregator(agg_arch, agg_config, features_dim, image_size):
         return aggregators.MixVPR(features_dim, agg_config["mixvpr"])
 
     elif "salad" in agg_arch.lower():
-        agg_config["salad"]["num_channels"] = features_dim[1]
-        agg_config["salad"]["token_dim"] = features_dim[0]
-        agg_config["salad"]["height"] = int(image_size[0])
-        agg_config["salad"]["width"] = int(image_size[1])
-        assert "num_clusters" in agg_config["salad"]
-        assert "cluster_dim" in agg_config["salad"]
-        return aggregators.SALAD(**agg_config["salad"])
+        if "two_step" in agg_arch.lower():
+            agg_config["salad"]["num_channels"] = features_dim[1]
+            agg_config["salad"]["token_dim"] = features_dim[0]
+            agg_config["salad"]["height"] = int(image_size[0])
+            agg_config["salad"]["width"] = int(image_size[1])
+            assert "num_clusters" in agg_config["salad"]
+            assert "cluster_dim" in agg_config["salad"]
+            return aggregators.SALAD_TWO_STEP(**agg_config["salad"])
+        else:
+            agg_config["salad"]["num_channels"] = features_dim[1]
+            agg_config["salad"]["token_dim"] = features_dim[0]
+            agg_config["salad"]["height"] = int(image_size[0])
+            agg_config["salad"]["width"] = int(image_size[1])
+            assert "num_clusters" in agg_config["salad"]
+            assert "cluster_dim" in agg_config["salad"]
+            return aggregators.SALAD(**agg_config["salad"])
 
     elif "cls" in agg_arch.lower():
         return aggregators.CLS()
@@ -126,9 +135,14 @@ class VPRModel(nn.Module):
         x = self.backbone(x)
         x = self.aggreagtion(x)
         if self.normalize == True:
-            x = F.normalize(x, p=2, dim=-1)
+            if isinstance(x, tuple):  # Check if x is a tuple
+                x = list(x)  # Convert tuple to list to allow modification
+                x[0] = F.normalize(x[0], p=2, dim=-1)
+                x[1] = F.normalize(x[1], p=2, dim=-1)
+                x = tuple(x)  # Optionally convert back to tuple if needed
+            else:
+                x = F.normalize(x, p=2, dim=-1)
         return x
-
 
 def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_output=True):
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -143,5 +157,8 @@ def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_outpu
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
-    model.descriptor_dim = desc.shape[1]
+    if type(desc) == tuple: 
+        model.descriptor_dim = desc[0].shape[0]
+    else: 
+        model.descriptor_dim = desc.shape[1]
     return model

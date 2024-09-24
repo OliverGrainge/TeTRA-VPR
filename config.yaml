@@ -1,7 +1,7 @@
 
 Datasets:
-  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
   
@@ -11,13 +11,14 @@ Training:
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 20 #416 for pretraining
-  max_epochs: 100 
+  batch_size: 18 #416 for pretraining
+  max_epochs: 10
   search_precision: 'float32'
   fast_dev_run: False
   freeze_n_blocks: 8
   val_set_names:
     - pitts30k_val
+    #- sped
   num_workers: 12
   image_size:
     - 224
@@ -27,7 +28,7 @@ Training:
   GSVCities: 
     shuffle_all: True
     optimizer: 'adamw' #adam
-    lr: 0.0002
+    lr: 0.0005
     weight_decay: 0.0
     momentum: 0.9
     warmup_steps: 100 # 600
@@ -59,16 +60,16 @@ Training:
      #- Phoenix
      #- TRT # refers to Toronto
      - Boston
-    # - Lisbon
-    # - Medellin
-    # - Minneapolis
-    # - PRG # refers to Prague
-    # - WashingtonDC
-    # - Brussels
+     #- Lisbon
+     #- Medellin
+     #- Minneapolis
+     #- PRG # refers to Prague
+     #- WashingtonDC
+     #- Brussels
      - London
      - Melbourne
-   #  - Osaka
-   #  - PRS # refers t
+     #- Osaka
+     #- PRS # refers t
     
 
   EigenPlaces: 

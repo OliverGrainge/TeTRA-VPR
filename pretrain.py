@@ -6,7 +6,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.optim import lr_scheduler
 
 import utils
-from dataloaders.QVPR import QVPR
+from dataloaders.QVPR import QVPR, QVPR2
 
 torch.set_float32_matmul_precision("medium")
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
             mode="max",
         )
 
-    if "qvpr" == args.training_method.lower():
+    if "qvpr" in  args.training_method.lower():
         model = get_model(
             args.image_size,
             args.backbone_arch,
@@ -125,21 +125,33 @@ if __name__ == "__main__":
             model.load_state_dict(new_sd, strict=False)
 
             freeze_blocks(model, args.freeze_n_blocks)
-        print("================", args.max_epochs)
-        model_module = QVPR(
-            config["Training"]["GSVCities"],
-            model,
-            args.max_epochs,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            num_workers=args.num_workers,
-            mean_std=MEAN_STD,
-            val_set_names=args.val_set_names,
-            search_precision=args.search_precision,
-        )
+        if "2" in args.training_method.lower():
+            model_module = QVPR2(
+                config["Training"]["GSVCities"],
+                model,
+                args.max_epochs,
+                batch_size=args.batch_size,
+                image_size=args.image_size,
+                num_workers=args.num_workers,
+                mean_std=MEAN_STD,
+                val_set_names=args.val_set_names,
+                search_precision=args.search_precision,
+            )
+        else: 
+            model_module = QVPR(
+                config["Training"]["GSVCities"],
+                model,
+                args.max_epochs,
+                batch_size=args.batch_size,
+                image_size=args.image_size,
+                num_workers=args.num_workers,
+                mean_std=MEAN_STD,
+                val_set_names=args.val_set_names,
+                search_precision=args.search_precision,
+            )            
 
         checkpoint_cb = ModelCheckpoint(
-            monitor="pitts30k_val/binary_R5",
+            monitor="pitts30k_val/binary_R1",
             filename=f"{args.training_method.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
@@ -243,7 +255,7 @@ if __name__ == "__main__":
         #    if args.training_method.lower() == "eigenplaces"
         #    else None
         # ),
-        # limit_train_batches=50,
+        #limit_train_batches=250,
     )
 
     trainer.fit(model_module)
