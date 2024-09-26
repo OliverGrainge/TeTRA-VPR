@@ -89,6 +89,12 @@ def get_aggregator(agg_arch, agg_config, features_dim, image_size):
         return aggregators.ConvAP(**agg_config["convap"])
 
     elif "mixvpr" in agg_arch.lower():
+        if "two_step" in agg_arch.lower():
+            agg_config["mixvpr"]["in_channels"] = features_dim[0]
+            agg_config["mixvpr"]["in_h"] = features_dim[1]
+            agg_config["mixvpr"]["in_w"] = features_dim[2]
+            return aggregators.MixVPR_TWO_STEP(agg_config["mixvpr"])
+
         if len(features_dim) == 3:
             agg_config["mixvpr"]["in_channels"] = features_dim[0]
             agg_config["mixvpr"]["in_h"] = features_dim[1]
@@ -102,22 +108,13 @@ def get_aggregator(agg_arch, agg_config, features_dim, image_size):
         return aggregators.MixVPR(features_dim, agg_config["mixvpr"])
 
     elif "salad" in agg_arch.lower():
-        if "two_step" in agg_arch.lower():
-            agg_config["salad"]["num_channels"] = features_dim[1]
-            agg_config["salad"]["token_dim"] = features_dim[0]
-            agg_config["salad"]["height"] = int(image_size[0])
-            agg_config["salad"]["width"] = int(image_size[1])
-            assert "num_clusters" in agg_config["salad"]
-            assert "cluster_dim" in agg_config["salad"]
-            return aggregators.SALAD_TWO_STEP(**agg_config["salad"])
-        else:
-            agg_config["salad"]["num_channels"] = features_dim[1]
-            agg_config["salad"]["token_dim"] = features_dim[0]
-            agg_config["salad"]["height"] = int(image_size[0])
-            agg_config["salad"]["width"] = int(image_size[1])
-            assert "num_clusters" in agg_config["salad"]
-            assert "cluster_dim" in agg_config["salad"]
-            return aggregators.SALAD(**agg_config["salad"])
+        agg_config["salad"]["num_channels"] = features_dim[1]
+        agg_config["salad"]["token_dim"] = features_dim[0]
+        agg_config["salad"]["height"] = int(image_size[0])
+        agg_config["salad"]["width"] = int(image_size[1])
+        assert "num_clusters" in agg_config["salad"]
+        assert "cluster_dim" in agg_config["salad"]
+        return aggregators.SALAD(**agg_config["salad"])
 
     elif "cls" in agg_arch.lower():
         return aggregators.CLS()

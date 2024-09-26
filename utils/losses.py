@@ -34,7 +34,7 @@ class Combined(nn.Module):
     def forward(self, descriptors, labels, miner_outputs):
         l1 = self.loss1(descriptors, labels, miner_outputs)
         l2 = self.loss2(descriptors, labels, miner_outputs)
-        # print("L1: ", l1.item(), "L2: ", l2.item())
+        #print("L1: ", l1.item(), "L2: ", l2.item())
         return l1 + self.beta * l2
 
 
@@ -87,6 +87,17 @@ class RegSTE(nn.Module):
         return torch.mean(res)
 
 
+class RegABS(nn.Module):
+    def forward(self, descriptors, labels, miner_outputs):
+        loss = torch.mean(torch.abs(torch.abs(descriptors) - 1))
+        return loss 
+    
+class RegHinge(nn.Module): 
+    def forward(self, descriptors, labels, miner_outputs, delta=0.1): 
+        loss = torch.mean(torch.max(torch.zeros_like(descriptors), delta - torch.abs(descriptors)))
+        return loss
+    
+
 def get_loss(loss_name):
     if loss_name == "SupConLoss":
         return losses.SupConLoss(temperature=0.07)
@@ -104,7 +115,7 @@ def get_loss(loss_name):
                 alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
             ),
             RegMSE(),
-            0.25,
+            0.15,
         )
     if loss_name == "MultiSimilarityLossRegSTE":
         return Combined(
@@ -112,7 +123,25 @@ def get_loss(loss_name):
                 alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
             ),
             RegSTE(),
-            0.25,
+            0.15,
+        )
+    
+    if loss_name == "MultiSimilarityLossRegHinge":
+        return Combined(
+            losses.MultiSimilarityLoss(
+                alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
+            ),
+            RegHinge(),
+            1.0,
+        )
+    
+    if loss_name == "MultiSimilarityLossRegABS":
+        return Combined(
+            losses.MultiSimilarityLoss(
+                alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
+            ),
+            RegABS(),
+            1/0.9,
         )
     if loss_name == "HammingSTEMultiSimilarityLoss":
         return losses.MultiSimilarityLoss(

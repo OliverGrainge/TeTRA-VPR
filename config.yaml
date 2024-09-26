@@ -11,7 +11,7 @@ Training:
   monitor: 'pitts30k_val/R1'
   accelerator: 'gpu'
   precision: bf16-mixed
-  batch_size: 18 #416 for pretraining
+  batch_size: 100 #416 for pretraining
   max_epochs: 10
   search_precision: 'float32'
   fast_dev_run: False
@@ -28,7 +28,7 @@ Training:
   GSVCities: 
     shuffle_all: True
     optimizer: 'adamw' #adam
-    lr: 0.0005
+    lr: 0.0002
     weight_decay: 0.0
     momentum: 0.9
     warmup_steps: 100 # 600

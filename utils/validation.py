@@ -88,6 +88,7 @@ def get_validation_recalls(
     faiss_gpu=False,
     dataset_name="dataset without name ?",
     precision="float32",
+    desc='',
 ):
     if precision == "float32":
         predictions = float32_search(r_list, q_list, k_values, faiss_gpu=faiss_gpu)
@@ -115,7 +116,7 @@ def get_validation_recalls(
         table = PrettyTable()
         table.field_names = ["K"] + [str(k) for k in k_values]
         table.add_row(["Recall@K"] + [f"{100*v:.2f}" for v in correct_at_k])
-        print(table.get_string(title=f"Performance on {dataset_name} in {precision}"))
+        print(table.get_string(title=f"Performance on {dataset_name} in {precision} " + desc))
 
     return d, predictions
 
@@ -128,17 +129,24 @@ def get_validation_recalls_two_stage(
     r_list_binary,
     q_list_float,
     q_list_binary,
+    k_values,
     k,
     gt,
     print_results=True,
     faiss_gpu=False,
     dataset_name="dataset without name ?",
 ):  
-    predictions = binary_search(r_list_binary, q_list_binary, [k], faiss_gpu=faiss_gpu)
+    predictions = float32_search(r_list_binary, q_list_binary, [k], faiss_gpu=faiss_gpu)
     new_predictions = []
     r_list_float = r_list_float / torch.norm(r_list_float, p=2, dim=1, keepdim=True)
     q_list_float = q_list_float / torch.norm(q_list_float, p=2, dim=1, keepdim=True)
 
+
+    #r_list = r_list_float[predictions]
+    #new_predictions = float32_search(q_list_float, r_list, k_values, faiss_gpu=faiss_gpu)
+    #predictions = predictions[new_predictions]
+
+    
     for i, pred in enumerate(predictions): 
         r_desc = r_list_float[pred]
         q_desc = q_list_float[i]
@@ -146,9 +154,10 @@ def get_validation_recalls_two_stage(
         index.add(r_desc)
         dist, new_preds = index.search(q_desc[None, :], 1)
         new_predictions.append([pred[new_preds.squeeze().item()]])
+    
     predictions = np.array(new_predictions)
     # start calculating recall_at_k
-    correct_at_k = np.zeros(len([1]))
+    correct_at_k = np.zeros([1])
     for q_idx, pred in enumerate(predictions):
         for i, n in enumerate([1]):
             # if in top N then also in top NN, where NN > N

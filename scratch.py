@@ -6,9 +6,14 @@ from tqdm import tqdm
 import torch
 from torch import nn
 import torch.nn.functional as F
-
+import webdataset as wds
+from torch.utils.data import DataLoader
+import torchvision.transforms as transforms
 from torchvision import transforms as T
 from vit_pytorch import ViT
+import os 
+from glob import glob 
+import tarfile
 
 # helper functions
 
@@ -181,6 +186,8 @@ class NetWrapper(nn.Module):
         projector = self._get_projector(embed)
         return projector(embed), embed
 
+
+
 # main class
 
 class Dino(nn.Module):
@@ -194,8 +201,8 @@ class Dino(nn.Module):
         projection_layers = 4,
         student_temp = 0.9,
         teacher_temp = 0.04,
-        local_upper_crop_scale = 0.4,
-        global_lower_crop_scale = 0.5,
+        local_upper_crop_scale = 0.8,#0.4,
+        global_lower_crop_scale = 0.8,#0.5,
         moving_average_decay = 0.9,
         center_moving_average_decay = 0.9,
         augment_fn = None,
@@ -207,36 +214,50 @@ class Dino(nn.Module):
         self.teacher_arch = teacher_arch
         # default BYOL augmentation
 
-        DEFAULT_AUG = torch.nn.Sequential(
-            RandomApply(
-                T.ColorJitter(0.8, 0.8, 0.8, 0.2),
-                p = 0.3
-            ),
-            T.RandomGrayscale(p=0.2),
-            T.RandomHorizontalFlip(),
-            RandomApply(
-                T.GaussianBlur((3, 3), (1.0, 2.0)),
-                p = 0.2
-            ),
+        augments = T.Compose([
+            #T.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
+            #RandomApply(
+            #    T.ColorJitter(0.4, 0.4, 0.4, 0.1),
+            #    p = 0.3
+            #),
+            #T.RandomGrayscale(p=0.1),
+            #T.RandomRotation(degrees=15),
+            #T.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=10),
+            #T.RandomHorizontalFlip(),
+            #T.RandomErasing(p=0.3, scale=(0.02, 0.1), ratio=(0.3, 3.3), value='random'),
+            #RandomApply(
+            #    T.GaussianBlur((3, 3), (0.5, 1.0)),
+            #    p = 0.2
+            #),
             T.Normalize(
                 mean=torch.tensor([0.485, 0.456, 0.406]),
                 std=torch.tensor([0.229, 0.224, 0.225])),
-        )
+        ])
 
-        self.augment1 = default(augment_fn, DEFAULT_AUG)
-        self.augment2 = default(augment_fn2, DEFAULT_AUG)
+        self.panorama_crop = T.Compose([
+            #transforms.ToTensor(),
+            T.RandomCrop((512, 512)),  
+            T.Resize((image_size, image_size))    
+        ])
+
+        self.augment1 = augments
+        self.augment2 = augments
+
+
 
         # local and global crops
-
-        self.local_crop = T.RandomResizedCrop((image_size, image_size), scale = (0.05, local_upper_crop_scale))
+        print("==============", 0.6, local_upper_crop_scale)
+        self.local_crop = T.Compose(
+            [#T.RandomRotation(degrees=10), #T.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=10),
+            T.RandomResizedCrop((image_size, image_size), scale = (0.6, local_upper_crop_scale))]
+        )
         self.global_crop = T.RandomResizedCrop((image_size, image_size), scale = (global_lower_crop_scale, 1.))
-
-        self.student_encoder = NetWrapper(net, num_classes_K, projection_hidden_size, projection_layers, layer = hidden_layer)
+        self.student_encoder = NetWrapper(net, num_classes_K, projection_hidden_size, projection_layers, layer = 'to_latent')
 
         teacher_net = torch.hub.load('facebookresearch/dinov2', self.teacher_arch)
         set_requires_grad(teacher_net, False)
 
-        self.teacher_encoder = NetWrapper(teacher_net, num_classes_K, projection_hidden_size, projection_layers, layer = hidden_layer)
+        self.teacher_encoder = NetWrapper(teacher_net, num_classes_K, projection_hidden_size, projection_layers, layer = 'head')
         self.teacher_ema_updater = EMA(moving_average_decay)
 
         self.register_buffer('teacher_centers', torch.zeros(1, num_classes_K))
@@ -252,7 +273,7 @@ class Dino(nn.Module):
         self.to(device)
 
         # send a mock image tensor to instantiate singleton parameters
-        self.forward(torch.randn(2, 3, image_size, image_size, device=device))
+        self.forward(torch.randn(2, 3, 512, 1024, device=device))
 
 
     def reset_moving_average(self):
@@ -275,14 +296,38 @@ class Dino(nn.Module):
         student_temp = None,
         teacher_temp = None
     ):
+        #print("=========", x.shape)
         if return_embedding:
             return self.student_encoder(x, return_projection = return_projection)
-
+        
+        #axes[5].imshow(x[0].permute(1, 2, 0).detach().cpu().numpy())
+        #axes[5].set_title("panorama")
+        #plt.imshow(x[0].permute(1, 2, 0).detach().cpu().numpy())
+        #plt.show(block=False)
+        x = self.panorama_crop(x)
+        #print("===", x.shape)
         image_one, image_two = self.augment1(x), self.augment2(x)
 
         local_image_one, local_image_two   = self.local_crop(image_one),  self.local_crop(image_two)
         global_image_one, global_image_two = self.global_crop(image_one), self.global_crop(image_two)
 
+        """
+        fig, axes = plt.subplots(2, 3, figsize=(10, 10))
+        axes = axes.flatten()
+        axes[0].imshow(x[0].permute(1, 2, 0).detach().cpu().numpy())
+        axes[0].set_title("panorama crop")
+        axes[1].imshow(image_one[0].permute(1, 2, 0).detach().cpu().numpy())
+        axes[1].set_title("image_one")
+        axes[2].imshow(image_two[0].permute(1, 2, 0).detach().cpu().numpy())
+        axes[2].set_title("image_two")
+        axes[3].imshow(local_image_one[0].permute(1, 2, 0).detach().cpu().numpy())
+        axes[3].set_title("local_image_one")
+        axes[4].imshow(global_image_one[0].permute(1, 2, 0).detach().cpu().numpy())
+        axes[4].set_title("global_image_one")
+        
+
+        plt.show()
+        """
         student_proj_one, _ = self.student_encoder(local_image_one)
         student_proj_two, _ = self.student_encoder(local_image_two)
 
@@ -302,17 +347,109 @@ class Dino(nn.Module):
 
         dino_loss = (loss_fn_(teacher_proj_one, student_proj_two) + loss_fn_(teacher_proj_two, student_proj_one)) / 2
 
-        return loss
+        return dino_loss
+
+
+
+import pytorch_lightning as pl 
+import matplotlib.pyplot as plt
+
+class DinoSSL(pl.LightningModule): 
+    def __init__(self, model, dataset_dir="", lr=1e-3, batch_size=64, num_workers=4, teacher_arch='dinov2_vitb14', image_size=224, hidden_layer=-2, projection_hidden_size=224, projection_layers=4, num_classes_K = 65336, student_temp=0.9, teacher_temp=0.04, 
+                 local_upper_crop_scale=0.8, global_lower_crop_scale=0.8, moving_average_decay=0.9, center_moving_average_decay=0.9): 
+        super().__init__()
+        self.model = model
+        self.dataset_dir = dataset_dir
+        self.batch_size = batch_size 
+        self.num_workers = num_workers
+        self.teacher_arch = teacher_arch
+        self.lr = lr
+        self.total_images = self.count_total_images(os.path.join(self.dataset_dir, "shard_*.tar"))
+
+        self.learner = Dino(
+            self.model, 
+            image_size=image_size, 
+            teacher_arch = self.teacher_arch,
+            hidden_layer=hidden_layer, 
+            projection_hidden_size=projection_hidden_size, 
+            projection_layers=projection_layers, 
+            num_classes_K=num_classes_K, 
+            student_temp=student_temp, 
+            local_upper_crop_scale=local_upper_crop_scale, 
+            global_lower_crop_scale=global_lower_crop_scale, 
+            moving_average_decay=moving_average_decay, 
+            center_moving_average_decay=center_moving_average_decay,
+        )
+
+
+    def training_step(self, batch, batch_idx):
+        images = batch[0] 
+        #img = images[0]
+        #img = img.permute(1, 2, 0).detach().cpu().numpy()
+        #plt.imshow(img)
+        #plt.show()
+        loss = self.learner(images)
+        self.log("train_loss", loss)
+        return loss 
+
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        self.learner.update_moving_average()
+
+    def count_total_images(self, shard_pattern):
+        total = 0
+        for shard in glob(shard_pattern):
+            with tarfile.open(shard, "r") as tar:
+                total += len([member for member in tar.getmembers() if member.isfile()])
+        return total
+
+    def train_dataloader(self):
+        transform = transforms.Compose([
+            transforms.ToTensor()  # Converts PIL Image to Tensor
+        ])
+        n_shards = len(os.listdir(self.dataset_dir)) - 1
+        shards = os.path.join(self.dataset_dir, "shard_{000000.."+ f"{n_shards:06d}" + "}.tar")
+        dataset = wds.WebDataset(shards).decode("pil").to_tuple("jpg").map(lambda x: (transform(x[0]),))
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        return dataloader
+
+    def configure_optimizers(self):
+        opt = torch.optim.AdamW(self.learner.parameters(), lr=self.lr)
+        return opt
+
+
 
 model = ViT(
-    image_size = 224,
-    patch_size = 16,
-    num_classes = 1000,
-    dim = 768,
-    depth = 6,
-    heads = 8,
-    mlp_dim = 2048
+    image_size = 224,   # Standard image size for ViT.
+    patch_size = 16,    # Standard patch size.
+    num_classes = 1000, # Number of classes for the dataset (ImageNet or similar).
+    dim = 368,          # Embedding dimension, which can be reduced for a smaller ViT.
+    depth = 6,          # Transformer layers, suitable for a small model.
+    heads = 8,          # Number of attention heads, aligned with the embedding dimension.
+    mlp_dim = 2048      # MLP dimension, related to the transformer depth and heads.
 )
+
+
+module = DinoSSL(model, dataset_dir='/home/oliver/datasets_drive/vpr_datasets/sf_xl/compressed/dataset')
+
+trainer = pl.Trainer(
+        enable_progress_bar=True,
+        strategy="auto",
+        accelerator='cuda',
+        precision='bf16-mixed',
+        max_epochs=100,
+        limit_train_batches=module.total_images//module.batch_size
+    )
+
+
+
+
+
+trainer.fit(module)
+
+
+
+"""
+
 learner = Dino(
     model,
     image_size = 224,
@@ -328,23 +465,22 @@ learner = Dino(
     center_moving_average_decay = 0.9, # moving average of teacher centers - paper showed anywhere from 0.9 to 0.999 was ok
 )
 
-import pytorch_lightning as pl 
 
-class DinoSSL(pl.LighningModule): 
-    def __init__(self, model, teacher_arch='dinov2_vits14_reg'): 
-        self.model = model
-
-learner = learner.to('cuda')
 opt = torch.optim.Adam(learner.parameters(), lr = 3e-4)
 
 def sample_unlabelled_images():
-    return torch.randn(20, 3, 224, 224)
+    return torch.randn(1, 3, 224, 224)
 
 for _ in tqdm(range(100)):
     images = sample_unlabelled_images()
-    images = images.to('cuda')
+    #images = images.to("cuda")
     loss = learner(images)
     opt.zero_grad()
     loss.backward()
     opt.step()
     learner.update_moving_average() # update moving average of teacher encoder and teacher centers
+"""
+
+
+
+

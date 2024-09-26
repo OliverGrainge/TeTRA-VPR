@@ -151,38 +151,3 @@ class SALAD(nn.Module):
         return f
 
 
-class SALAD_TWO_STEP(nn.Module): 
-    def __init__(self, 
-                num_channels=1536,
-                num_clusters=64,
-                cluster_dim=128,
-                token_dim=256,
-                dropout=0.3,
-                height=224,
-                width=224
-    ):
-        super().__init__()
-        self.salad_coarse = SALAD(num_channels=num_channels, 
-                                  num_clusters=num_clusters, 
-                                  cluster_dim=cluster_dim , 
-                                  token_dim=token_dim, 
-                                  dropout=dropout, 
-                                  height=height, 
-                                  width=width)
-        
-        self.salad_fine = SALAD(num_channels=num_channels, 
-                            num_clusters=num_clusters, 
-                            cluster_dim=cluster_dim , 
-                            token_dim=token_dim, 
-                            dropout=dropout, 
-                            height=height, 
-                            width=width)
-        
-
-    def forward(self, x):
-        coarse_desc = self.salad_coarse(x)
-        fine_desc = self.salad_fine(x)
-        return (coarse_desc, fine_desc)
-
-
-

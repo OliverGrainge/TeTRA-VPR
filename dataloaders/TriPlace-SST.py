@@ -57,11 +57,11 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO:
-    def __init__(self, hyperparams):
-        self.global_crop_scale = hyperparams['global_crop_scale']
-        self.local_crop_scale = hyperparams['local_crop_scale']
-        self.global_crops_number = hyperparams['global_crops_number']
-        self.local_crops_number = hyperparams['local_crops_number']
+    def __init__(self, config):
+        self.global_crop_scale = config['global_crop_scale']
+        self.local_crop_scale = config['local_crop_scale']
+        self.global_crops_number = config['global_crops_number']
+        self.local_crops_number = config['local_crops_number']
         
         flip_and_color_jitter = transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
@@ -73,12 +73,12 @@ class DataAugmentationDINO:
         
         normalize = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=hyperparams['mean'], std=hyperparams['std'])
+            transforms.Normalize(mean=config['mean'], std=config['std'])
         ])
         
         # Global crops
         self.global_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(hyperparams['image_size'], scale=self.global_crop_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.RandomResizedCrop(config['image_size'], scale=self.global_crop_scale, interpolation=transforms.InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             transforms.GaussianBlur(1.0),
             normalize,
@@ -86,7 +86,7 @@ class DataAugmentationDINO:
         
         # Local crops
         self.local_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(hyperparams['image_size'], scale=self.local_crop_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.RandomResizedCrop(config['image_size'], scale=self.local_crop_scale, interpolation=transforms.InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             transforms.GaussianBlur(p=0.1),
             transforms.RandomSolarize(170, p=0.2),
@@ -103,35 +103,35 @@ class DataAugmentationDINO:
         return self.transforms[idx]
     
 
-    
+
 class DINOTrainer(pl.LightningModule):
-    def __init__(self, student_model, teacher_model, hyperparams):
+    def __init__(self, student_model, teacher_model, config):
         super(DINOTrainer, self).__init__()
         self.student = student_model
         self.teacher = teacher_model
-        self.hyperparams = hyperparams
+        self.config = config
         
         # Freeze teacher model
         for param in self.teacher.parameters():
             param.requires_grad = False
 
         # Create projection heads if necessary
-        self.student_head = DINOHead(self.hyperparams['embed_dim'], self.hyperparams['out_dim'])
-        self.teacher_head = DINOHead(self.hyperparams['embed_dim'], self.hyperparams['out_dim'])
+        self.student_head = DINOHead(self.config['embed_dim'], self.config['out_dim'])
+        self.teacher_head = DINOHead(self.config['embed_dim'], self.config['out_dim'])
         
         # Temperature parameters
-        self.student_temp = self.hyperparams['student_temp']
-        self.teacher_temp = self.hyperparams['teacher_temp']
-        self.center_momentum = self.hyperparams['center_momentum']
+        self.student_temp = self.config['student_temp']
+        self.teacher_temp = self.config['teacher_temp']
+        self.center_momentum = self.config['center_momentum']
         
         # Centering for teacher outputs
-        self.register_buffer("center", torch.zeros(1, self.hyperparams['out_dim']))
+        self.register_buffer("center", torch.zeros(1, self.config['out_dim']))
         
         # Loss function
         self.criterion = DINOLoss(self.student_temp, self.teacher_temp, self.center_momentum)
         
         # Data augmentations
-        self.train_transforms = DataAugmentationDINO(self.hyperparams)
+        self.train_transforms = DataAugmentationDINO(self.config)
     
     def forward(self, x):
         # Forward pass through student model
@@ -167,7 +167,7 @@ class DINOTrainer(pl.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.student.parameters(), lr=self.hyperparams['learning_rate'])
+        optimizer = torch.optim.Adam(self.student.parameters(), lr=self.config['learning_rate'])
         return optimizer
     
     @torch.no_grad()

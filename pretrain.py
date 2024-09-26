@@ -6,7 +6,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from torch.optim import lr_scheduler
 
 import utils
-from dataloaders.QVPR import QVPR, QVPR2
+from dataloaders.QVPR import QVPR
 
 torch.set_float32_matmul_precision("medium")
 
@@ -69,10 +69,9 @@ if __name__ == "__main__":
             args.backbone_arch,
             args.agg_arch,
             config["Model"],
-            normalize_output=True,
+            normalize_output=False,
         )
-
-        if args.load_checkpoint is not None:
+        if args.load_checkpoint != '':
             sd = torch.load(args.load_checkpoint)
             sd = sd["state_dict"]
             new_sd = {}
@@ -92,13 +91,17 @@ if __name__ == "__main__":
             mean_std=MEAN_STD,
             val_set_names=args.val_set_names,
             search_precision=args.search_precision,
+            loss_name=args.loss_name,
+            miner_name=args.miner_name
         )
 
         checkpoint_cb = ModelCheckpoint(
-            monitor=args.monitor,
+            monitor='pitts30k_val/binary_R1',
             filename=f"{args.training_method.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
+            + f"_{args.loss_name}"
+            + f"_{args.miner_name}"
             + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
             auto_insert_metric_name=False,
             save_weights_only=True,
@@ -115,7 +118,7 @@ if __name__ == "__main__":
             normalize_output=True,
         )
 
-        if args.load_checkpoint is not None:
+        if args.load_checkpoint != '':
             sd = torch.load(args.load_checkpoint)
             sd = sd["state_dict"]
             new_sd = {}
@@ -125,30 +128,18 @@ if __name__ == "__main__":
             model.load_state_dict(new_sd, strict=False)
 
             freeze_blocks(model, args.freeze_n_blocks)
-        if "2" in args.training_method.lower():
-            model_module = QVPR2(
-                config["Training"]["GSVCities"],
-                model,
-                args.max_epochs,
-                batch_size=args.batch_size,
-                image_size=args.image_size,
-                num_workers=args.num_workers,
-                mean_std=MEAN_STD,
-                val_set_names=args.val_set_names,
-                search_precision=args.search_precision,
-            )
-        else: 
-            model_module = QVPR(
-                config["Training"]["GSVCities"],
-                model,
-                args.max_epochs,
-                batch_size=args.batch_size,
-                image_size=args.image_size,
-                num_workers=args.num_workers,
-                mean_std=MEAN_STD,
-                val_set_names=args.val_set_names,
-                search_precision=args.search_precision,
-            )            
+
+        model_module = QVPR(
+            config["Training"]["GSVCities"],
+            model,
+            args.max_epochs,
+            batch_size=args.batch_size,
+            image_size=args.image_size,
+            num_workers=args.num_workers,
+            mean_std=MEAN_STD,
+            val_set_names=args.val_set_names,
+            search_precision=args.search_precision,
+        )            
 
         checkpoint_cb = ModelCheckpoint(
             monitor="pitts30k_val/binary_R1",
@@ -255,7 +246,7 @@ if __name__ == "__main__":
         #    if args.training_method.lower() == "eigenplaces"
         #    else None
         # ),
-        #limit_train_batches=250,
+        #limit_train_batches=10,
     )
 
     trainer.fit(model_module)

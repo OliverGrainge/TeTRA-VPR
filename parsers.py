@@ -120,6 +120,20 @@ def training_arguments(parser=None):
         help="number of blocks to freeze weights",
     )
 
+    parser.add_argument( 
+        "--loss_name", 
+        type=str, 
+        default="MultiSimilarityLoss", 
+        help="choose the loss function name" 
+    )
+
+    parser.add_argument(
+        "--miner_name", 
+        type=str, 
+        default="MultiSimilarityMiner",
+        help="choose the miner name"
+    )
+
     return parser
 
 

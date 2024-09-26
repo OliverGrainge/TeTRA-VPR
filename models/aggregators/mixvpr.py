@@ -114,11 +114,25 @@ class MixVPR_Token(nn.Module):
         return x
 
 
+
+class MixVPR_TWO_STEP(nn.Module): 
+    def __init__(self, config):
+        super().__init__()
+        self.mix1 = MixVPR_Conv(**config)
+        self.mix2 = MixVPR_Conv(**config)
+
+    def forward(self, x): 
+        out1 = self.mix1(x)
+        out2 = self.mix2(x)
+        return (out1, out2)
+    
+
 def MixVPR(features_dim, config):
     if len(features_dim) == 2:
         return MixVPR_Token(**config)
     else:
         return MixVPR_Conv(**config)
+
 
 
 # -------------------------------------------------------------------------------
