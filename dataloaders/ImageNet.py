@@ -24,6 +24,47 @@ with open("config.yaml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
 
+class QLambdaScheduler: 
+    def __init__(self, model, max_steps, init_val=0.0): 
+        self.layers = []
+        self.max_steps = max_steps 
+
+        for module in model: 
+            if isinstance(module, nn.Linear) and hasattr(module, 'q_lamda'): 
+                module.q_lambda = torch.tensor(init_val)
+                self.layers.append(module)
+        self.current_step = 0 
+
+    def step(self):
+        t = self.current_step / self.max_steps
+        t = torch.tensor((t * 10) - 4)  # Scale t for sigmoid function
+        val = 1 / (1 + torch.exp(-t))  # Sigmoid decay
+        # Update q_lambda for each module
+        for module in self.layers:
+            module.q_lambda = torch.tensor(val)  # Update q_lambda attribute
+        self.current_step += 1
+
+    def get_val(self):
+        t = self.current_step / self.max_steps
+        t = torch.tensor((t * 10) - 4)  # Scale t for sigmoid function
+        val = 1 / (1 + torch.exp(-t))
+        return val
+
+
+class QRegScheduler: 
+    def __init__(self, max_steps, scale): 
+        self.max_steps = max_steps 
+        self.scale = scale 
+        self.current_step = 0
+
+    def step(self): 
+        self.current_step += 1 
+
+    def get_scalar(self):
+        t = self.current_step/self.max_steps 
+        return self.scale
+
+
 class ImageNet(LightningModule):
     """
     PyTorch Lightning Model for training a Vision Transformer on ImageNet with Hugging Face Datasets.
@@ -50,9 +91,11 @@ class ImageNet(LightningModule):
         self.workers = workers
         self.warmup_epochs = warmup_epochs
         self.max_epochs = max_epochs
+        self.max_steps = max_epochs * len(self.train_dataloader())
         self.opt_type = opt_type
         self.weight_decay_reset_epoch = int(max_epochs * 0.5)
-
+        self.quantization_scheduler = QLambdaScheduler(model, self.max_steps)
+        self.reg_scheduler = QRegScheduler(self.max_steps, 0.000001)
         # Define the transformations for training and validation
         self.train_transforms = create_transform(
             input_size=224,
@@ -80,20 +123,31 @@ class ImageNet(LightningModule):
         self.fc = nn.Linear(model.descriptor_dim, 1000)
 
     def forward(self, x):
-
         return self.fc(self.model(x))
 
     def training_step(self, batch, batch_idx):
         images, target = batch
         output = self(images)
         loss_train = F.cross_entropy(output, target, label_smoothing=0.1)
+        loss_reg = self.reg_loss()
+        alpha = self.reg_scheduler.get_scalar()
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
+        loss = loss_train + alpha * loss_reg
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
+        self.log("reg_loss", alpha * loss_reg, on_step=True, on_epoch=True, logger=True)
+        self.log("loss", loss, on_step=True, on_epoch=True, logger=True)
         self.log(
             "train_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True, logger=True
         )
         self.log("train_acc5", acc5, on_step=True, on_epoch=True, logger=True)
-        return loss_train
+        return loss
+    
+    def reg_loss(self, x): 
+        reg = torch.tensor(0.0)
+        for module in self.model.modules(): 
+            if isinstance(module, nn.Linear) and hasattr(module, 'compute_reg'):
+                reg += module.compute_reg()
+        return reg
 
     def eval_step(self, batch, batch_idx, prefix: str):
         images, target = batch
@@ -106,6 +160,11 @@ class ImageNet(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "val")
+
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        if self.global_rank == 0: 
+            self.quantization_scheduler.step()
+            self.log(self.quantization_scheduler.get_val())
 
     @staticmethod
     def __accuracy(output, target, topk=(1,)):
