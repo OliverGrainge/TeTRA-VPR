@@ -44,7 +44,7 @@ class MultiSimilarityMiner(BaseMiner):
         neg_sorted, neg_sorted_idx = torch.sort(mat_neg_sorting, dim=1)
 
         if self.distance.is_inverted:
-            print(neg_sorted[:, -1])
+            
             hard_pos_idx = torch.where(
                 pos_sorted - self.epsilon < neg_sorted[:, -1].unsqueeze(1)
             )
