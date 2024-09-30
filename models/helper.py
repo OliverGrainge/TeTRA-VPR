@@ -13,11 +13,10 @@ from NeuroPress.layers import LINEAR_LAYERS
 
 LINEAR_REPR = [layer(12, 12).__repr__() for layer in LINEAR_LAYERS]
 
-def find_first_match_with_index(target_string, list_of_strings):
+def find_best_match(target_string, list_of_strings):
     for s in list_of_strings:
-        index = target_string.find(s)
-        if index != -1:  # Substring found
-            return s, index
+        if s in target_string:
+            return s  # Return the first match found
     return None
 
 def get_backbone(backbone_arch):
@@ -39,8 +38,9 @@ def get_backbone(backbone_arch):
             return backbones.ResNet(model_name="resnet50")
 
     elif "vit" in backbone_arch.lower():
-        layer_matches = find_first_match_with_index(backbone_arch.lower(), LINEAR_REPR)
-        if layer_matches is None: 
+        match_layer_str = find_best_match(backbone_arch, LINEAR_REPR)
+        print("=====================", backbone_arch, LINEAR_REPR)
+        if match_layer_str is None: 
             if "small" in backbone_arch.lower():
                 return backbones.ViT_Small(layer_type=nn.Linear)
             elif "base" in backbone_arch.lower(): 
@@ -48,8 +48,9 @@ def get_backbone(backbone_arch):
             elif "large" in backbone_arch.lower():
                 return backbones.ViT_Large(layer_type=nn.Linear)
         else: 
-            module = importlib.import_module(f"NeuroPress.layers.{layer_matches[0]}")
-            layer_type = getattr(module, layer_matches[0])
+            module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
+            layer_type = getattr(module, match_layer_str)
+            
             if "small" in backbone_arch.lower():
                 return backbones.ViT_Small(layer_type=layer_type)
             elif "base" in backbone_arch.lower(): 
