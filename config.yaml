@@ -4,8 +4,6 @@ Datasets:
   #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
-  
-  
 Training:
   training_method: gsvcities
   monitor: 'pitts30k_val/R1'
@@ -92,77 +90,4 @@ Training:
     saturation: 0.7 
     hue: 0.5
     random_resized_crop: 0.5
-
-
-Model:
-  load_checkpoint: ""
-  backbone_arch: 'resnet18'
-  agg_arch: 'GeM'
-
-  backbone_config: 
-    resnet18: 
-      model_name: 'resnet18'
-      pretrained: True
-      layers_to_freeze: 2
-      layers_to_crop: 
-        -
-    resnet50: 
-      model_name: 'resnet50'
-      pretrained: True
-      layers_to_freeze: 2
-      layers_to_crop: 
-        -
-    efficientnet: 
-      model_name: 'efficientnet_b0'
-      pretrained: True
-      layers_to_freeze: 4
-
-    dinov2: 
-      model_name: 'dinov2_vits14'
-      num_trainable_blocks: 4
-      norm_layer: True
-      return_token: True
-
-    swin: 
-      model_name: 'swinv2_base_window12to16_192to256_22kft1k'
-      pretrained: True 
-      layers_to_freeze: 2
-
-    vit: 
-      pretrained: False
-      layers_to_freeze: 0
-      layers_to_truncate: 12
-
-    mobilevit: 
-        num_classes: 1024
-
-    cct: 
-      embedding_dim: 768
-      num_layers: 14
-      num_heads: 12
-      mlp_ratio: 4.0
-
     
-    
-
-  agg_config:
-    convap: 
-      out_channels: 128
-      s1: 2
-      s2: 2
-    gem: 
-      out_dim: 1024
-    mixvpr: 
-      out_channels: 1024 
-      mix_depth: 4
-      mlp_ratio: 1
-      out_rows: 4
-    salad: 
-      num_clusters: 64
-      cluster_dim: 128
-    cls: 
-
-
-Quantize:
-  qlinear: LinearW4A16
-  qconv: Conv2dW4A8

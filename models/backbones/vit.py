@@ -10,10 +10,6 @@ from einops.layers.torch import Rearrange
 from transformers import ViTModel
 
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
-
-from NeuroPress.layers import LINEAR_LAYERS
-
 # Model definition (same as before)
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0, layer_type=nn.Linear):

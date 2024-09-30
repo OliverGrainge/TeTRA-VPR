@@ -20,7 +20,7 @@ def find_first_match_with_index(target_string, list_of_strings):
             return s, index
     return None
 
-def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
+def get_backbone(backbone_arch):
     """Helper function that returns the backbone given its name
 
     Args:
@@ -34,9 +34,9 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
     """
     if "resnet" in backbone_arch.lower():
         if "18" in backbone_arch.lower():
-            return backbones.ResNet(**backbone_config["resnet18"])
+            return backbones.ResNet(model_name="resnet18")
         elif "50" in backbone_arch.lower():
-            return backbones.ResNet(**backbone_config["resnet50"])
+            return backbones.ResNet(model_name="resnet50")
 
     elif "vit" in backbone_arch.lower():
         layer_matches = find_first_match_with_index(backbone_arch.lower(), LINEAR_REPR)
@@ -60,7 +60,7 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
 
 
 
-def get_aggregator(agg_arch, agg_config, features_dim, image_size):
+def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
     """Helper function that returns the aggregation layer given its name.
     If you happen to make your own aggregator, you might need to add a call
     to this helper function.
@@ -74,40 +74,38 @@ def get_aggregator(agg_arch, agg_config, features_dim, image_size):
     """
 
     if "gem" in agg_arch.lower():
-        agg_config["gem"]["in_dim"] = features_dim[0]
-        return aggregators.GeM(**agg_config["gem"])
+        return aggregators.GeM(out_dim=out_dim)
 
     elif "convap" in agg_arch.lower():
-        agg_config["convap"]["in_channels"] = features_dim[0]
-        return aggregators.ConvAP(**agg_config["convap"])
+        assert out_dim % 4 == 0
+        return aggregators.ConvAP(s1=2, s2=2, out_channels=out_dim//4)
 
     elif "mixvpr" in agg_arch.lower():
-        if "two_step" in agg_arch.lower():
-            agg_config["mixvpr"]["in_channels"] = features_dim[0]
-            agg_config["mixvpr"]["in_h"] = features_dim[1]
-            agg_config["mixvpr"]["in_w"] = features_dim[2]
-            return aggregators.MixVPR_TWO_STEP(agg_config["mixvpr"])
-
+        config = {}
         if len(features_dim) == 3:
-            agg_config["mixvpr"]["in_channels"] = features_dim[0]
-            agg_config["mixvpr"]["in_h"] = features_dim[1]
-            agg_config["mixvpr"]["in_w"] = features_dim[2]
+            config["in_channels"] = features_dim[0]
+            config["in_h"] = features_dim[1]
+            config["in_w"] = features_dim[2]
         else:
-            agg_config["mixvpr"]["channel_number"] = features_dim[1]
-            agg_config["mixvpr"]["token_dim"] = features_dim[0]
+            config["channel_number"] = features_dim[1]
+            config["token_dim"]= features_dim[0]
 
-        assert "out_channels" in agg_config["mixvpr"]
-        assert "mix_depth" in agg_config["mixvpr"]
-        return aggregators.MixVPR(features_dim, agg_config["mixvpr"])
+        config["out_channels"] = 1024 
+        config["mix_depth"] = 4 
+        return aggregators.MixVPR(
+            features_dim=features_dim, 
+            config=config
+            )
 
     elif "salad" in agg_arch.lower():
-        agg_config["salad"]["num_channels"] = features_dim[1]
-        agg_config["salad"]["token_dim"] = features_dim[0]
-        agg_config["salad"]["height"] = int(image_size[0])
-        agg_config["salad"]["width"] = int(image_size[1])
-        assert "num_clusters" in agg_config["salad"]
-        assert "cluster_dim" in agg_config["salad"]
-        return aggregators.SALAD(**agg_config["salad"])
+        config = {}
+        config["num_channels"] = features_dim[1]
+        config["token_dim"] = features_dim[0]
+        config["height"] = int(image_size[0])
+        config["width"] = int(image_size[1])
+        config["num_clusters"] = 64 
+        config["cluster_dim"] = 128 
+        return aggregators.SALAD(**config)
 
     elif "cls" in agg_arch.lower():
         return aggregators.CLS()
@@ -134,15 +132,15 @@ class VPRModel(nn.Module):
                 x = F.normalize(x, p=2, dim=-1)
         return x
 
-def get_model(image_size, backbone_arch, agg_arch, model_config, normalize_output=True):
+def get_model(image_size, backbone_arch, agg_arch, normalize_output=True):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    backbone = get_backbone(image_size, backbone_arch, model_config["backbone_config"])
+    backbone = get_backbone(backbone_arch)
     backbone = backbone.to(device)
     image = torch.randn(3, *(image_size)).to(device)
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
     aggregation = get_aggregator(
-        agg_arch, model_config["agg_config"], features_dim, image_size
+        agg_arch, features_dim, image_size
     )
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
