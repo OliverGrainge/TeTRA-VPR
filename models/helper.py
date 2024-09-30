@@ -1,10 +1,24 @@
+import os 
+import sys 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import importlib
 
 from . import aggregators, backbones
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../NeuroCompress/")))
 
+from NeuroPress.layers import LINEAR_LAYERS
+
+LINEAR_REPR = [layer(12, 12).__repr__() for layer in LINEAR_LAYERS]
+
+def find_first_match_with_index(target_string, list_of_strings):
+    for s in list_of_strings:
+        index = target_string.find(s)
+        if index != -1:  # Substring found
+            return s, index
+    return None
 
 def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
     """Helper function that returns the backbone given its name
@@ -24,47 +38,26 @@ def get_backbone(image_size, backbone_arch="resnet50", backbone_config={}):
         elif "50" in backbone_arch.lower():
             return backbones.ResNet(**backbone_config["resnet50"])
 
-    elif "efficient" in backbone_arch.lower():
-        return backbones.EfficientNet(**backbone_config["efficientnet"])
-
-    elif "swin" in backbone_arch.lower():
-        return backbones.Swin(**backbone_config["swin"])
-
-    elif "dinov2" in backbone_arch.lower():
-        if torch.cuda.is_available():
-            return backbones.DINOv2(**backbone_config["dinov2"]).cuda()
-        else:
-            raise Exception("Dinov2 not available without cuda")
-
     elif "vit" in backbone_arch.lower():
-        if "ternary" in backbone_arch.lower():
+        layer_matches = find_first_match_with_index(backbone_arch.lower(), LINEAR_REPR)
+        if layer_matches is None: 
             if "small" in backbone_arch.lower():
-                return backbones.Ternary_ViT_Small()
-            elif "base" in backbone_arch.lower():
-                return backbones.Ternary_ViT_Base()
+                return backbones.ViT_Small(layer_type=nn.Linear)
+            elif "base" in backbone_arch.lower(): 
+                return backbones.ViT_Base(layer_type=nn.Linear)
             elif "large" in backbone_arch.lower():
-                return backbones.Ternary_ViT_Large()
-        else:
+                return backbones.ViT_Large(layer_type=nn.Linear)
+        else: 
+            module = importlib.import_module(f"NeuroPress.layers.{layer_matches[0]}")
+            layer_type = getattr(module, layer_matches[0])
             if "small" in backbone_arch.lower():
-                return backbones.ViT_Small()
-            elif "base" in backbone_arch.lower():
-                return backbones.ViT_Base()
+                return backbones.ViT_Small(layer_type=layer_type)
+            elif "base" in backbone_arch.lower(): 
+                return backbones.ViT_Base(layer_type=layer_type)
             elif "large" in backbone_arch.lower():
-                return backbones.ViT_Large()
+                return backbones.ViT_Large(layer_type=layer_type)
+            
 
-    elif "mobilevit" in backbone_arch.lower():
-        backbone_arch["mobilevit"]["image_size"] = image_size
-        if "ternary" in backbone_arch.lower():
-            return backbones.Ternary_MobileViT(**backbone_config["mobilevit"])
-        else:
-            return backbones.MobileViT(**backbone_config["mobilevit"])
-
-    elif "cct" in backbone_arch.lower():
-        backbone_config["cct"]["image_size"] = image_size
-        if "ternary" in backbone_arch.lower():
-            return backbones.Ternary_CCT(**backbone_config["cct"])
-        else:
-            return backbones.CCT(**backbone_config["cct"])
 
 
 def get_aggregator(agg_arch, agg_config, features_dim, image_size):

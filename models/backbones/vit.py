@@ -10,16 +10,20 @@ from einops.layers.torch import Rearrange
 from transformers import ViTModel
 
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../NeuroCompress/")))
+
+from NeuroPress.layers import LINEAR_LAYERS
+
 # Model definition (same as before)
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0):
+    def __init__(self, dim, hidden_dim, dropout=0.0, layer_type=nn.Linear):
         super().__init__()
         self.net = nn.Sequential(
             nn.LayerNorm(dim),
-            nn.Linear(dim, hidden_dim),
+            layer_type(dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
+            layer_type(hidden_dim, dim),
             nn.Dropout(dropout),
         )
 
@@ -28,7 +32,7 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0, layer_type=nn.Linear):
         super().__init__()
         inner_dim = dim_head * heads
         self.heads = heads
@@ -36,8 +40,8 @@ class Attention(nn.Module):
         self.norm = nn.LayerNorm(dim)
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_qkv = layer_type(dim, inner_dim * 3, bias=False)
+        self.to_out = nn.Sequential(layer_type(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         x = self.norm(x)
@@ -52,16 +56,25 @@ class Attention(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0, attention_layer_type=nn.Linear, ff_layer_type=nn.Linear):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth):
+        for _ in range(depth-1):
             self.layers.append(
                 nn.ModuleList(
                     [
-                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                        FeedForward(dim, mlp_dim, dropout=dropout),
+                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout, layer_type=attention_layer_type),
+                        FeedForward(dim, mlp_dim, dropout=dropout, layer_type=ff_layer_type),
+                    ]
+                )
+            )
+        
+        self.layers.append(
+                nn.ModuleList(
+                    [
+                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout, layer_type=attention_layer_type),
+                        FeedForward(dim, mlp_dim, dropout=dropout, layer_type=nn.Linear),
                     ]
                 )
             )
@@ -73,7 +86,7 @@ class Transformer(nn.Module):
         return self.norm(x)
 
 
-class ViTUntrained(nn.Module):
+class ViT(nn.Module):
     def __init__(
         self,
         image_size=224,  # Smaller image size for reduced complexity
@@ -86,6 +99,9 @@ class ViTUntrained(nn.Module):
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
         dim_head=96,  # Dimension of each attention head
+        patch_layer_type=nn.Linear,
+        attention_layer_type=nn.Linear,
+        ff_layer_type=nn.Linear,
     ):
         super().__init__()
         image_height, image_width = image_size, image_size
@@ -99,13 +115,13 @@ class ViTUntrained(nn.Module):
                 p2=patch_width,
             ),
             nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim),
+            patch_layer_type(patch_dim, dim),
             nn.LayerNorm(dim),
         )
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
-        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout, attention_layer_type=attention_layer_type, ff_layer_type=ff_layer_type)
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
@@ -117,46 +133,8 @@ class ViTUntrained(nn.Module):
         x = self.transformer(x)
         return x
 
-
-class ViTPretrained(nn.Module):
-    def __init__(
-        self,
-        image_size=[224, 224],
-        pretrained=True,
-        layers_to_freeze=4,
-        layers_to_truncate=12,
-    ):
-        super().__init__()
-        if image_size[0] == 224:
-            backbone = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
-        elif image_size[1] == 384:
-            backbone = ViTModel.from_pretrained("google/vit-base-patch16-384")
-        else:
-            raise Exception(
-                "pretrained models only available with 224 or 384 image size"
-            )
-
-        backbone.encoder.layer = backbone.encoder.layer[:layers_to_truncate]
-
-        for p in backbone.parameters():
-            p.requires_grad = False
-
-        for name, child in backbone.encoder.layer.named_children():
-            if int(name) > layers_to_freeze:
-                for params in child.parameters():
-                    params.requires_grad = True
-        self.backbone = backbone
-
-    def forward(self, x):
-        return self.backbone(x).last_hidden_state
-
-
-def ViT_Small(image_size=[224, 224], pretrained=False):
-
-    if pretrained:
-        raise Exception("pretrain vision transformer is not available")
-    else:
-        return ViTUntrained(
+def ViT_Small(image_size=[224, 224], layer_type=nn.Linear):
+        return ViT(
             image_size=224,  # Smaller image size for reduced complexity
             patch_size=16,  # More patches for better granularity
             dim=384,  # Reduced embedding dimension
@@ -167,34 +145,33 @@ def ViT_Small(image_size=[224, 224], pretrained=False):
             emb_dropout=0.1,  # Dropout for the embedding layer
             channels=3,  # RGB images
             dim_head=96,  # Dimension of each attention head
+            patch_layer_type=nn.Linear,
+            attention_layer_type=layer_type,
+            ff_layer_type=layer_type
         )
 
 
-def ViT_Base(image_size=[224, 224], pretrained=False):
+def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
+    return ViT(
+        image_size=224,  # Smaller image size for reduced complexity
+        patch_size=16,
+        dim=768,
+        depth=12,
+        heads=12,
+        mlp_dim=3072,
+        dropout=0.1,
+        emb_dropout=0.1,
+        channels=3,
+        dim_head=64,  # Usually dim_head = dim // heads
+        patch_layer_type=nn.Linear,
+        attention_layer_type=layer_type,
+        ff_layer_type=layer_type
 
-    if pretrained:
-        raise Exception("pretrain vision transformer is not available")
-    else:
-        return ViTUntrained(
-            image_size=224,  # Smaller image size for reduced complexity
-            patch_size=16,
-            dim=768,
-            depth=12,
-            heads=12,
-            mlp_dim=3072,
-            dropout=0.1,
-            emb_dropout=0.1,
-            channels=3,
-            dim_head=64,  # Usually dim_head = dim // heads
-        )
+    )
 
 
-def ViT_Large(image_size=[224, 224], pretrained=False):
-
-    if pretrained:
-        raise Exception("pretrain vision transformer is not available")
-    else:
-        return ViTUntrained(
+def ViT_Large(image_size=[224, 224], layer_type=nn.Linear):
+        return ViT(
             image_size=224,  # Smaller image size for reduced complexity
             patch_size=16,
             dim=1024,
@@ -205,4 +182,7 @@ def ViT_Large(image_size=[224, 224], pretrained=False):
             emb_dropout=0.1,
             channels=3,
             dim_head=64,  # Usually dim_head = dim // heads
+            patch_layer_type=nn.Linear, 
+            attention_layer_type=layer_type,
+            ff_layer_type=layer_type, 
         )

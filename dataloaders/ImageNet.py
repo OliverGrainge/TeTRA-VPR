@@ -50,7 +50,6 @@ class QLambdaScheduler:
         val = 1 / (1 + torch.exp(-t))
         return val
 
-
 class QRegScheduler: 
     def __init__(self, max_steps, scale): 
         self.max_steps = max_steps 
@@ -132,6 +131,7 @@ class ImageNet(LightningModule):
         loss_reg = self.reg_loss()
         alpha = self.reg_scheduler.get_scalar()
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
+        print(loss_train.item(), alpha*loss_reg)
         loss = loss_train + alpha * loss_reg
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
         self.log("reg_loss", alpha * loss_reg, on_step=True, on_epoch=True, logger=True)
