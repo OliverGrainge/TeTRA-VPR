@@ -39,7 +39,7 @@ def get_backbone(backbone_arch):
 
     elif "vit" in backbone_arch.lower():
         match_layer_str = find_best_match(backbone_arch, LINEAR_REPR)
-        print("=====================", backbone_arch, LINEAR_REPR)
+        print("=====================", backbone_arch, LINEAR_REPR, match_layer_str)
         if match_layer_str is None: 
             if "small" in backbone_arch.lower():
                 return backbones.ViT_Small(layer_type=nn.Linear)
@@ -50,7 +50,6 @@ def get_backbone(backbone_arch):
         else: 
             module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
             layer_type = getattr(module, match_layer_str)
-            
             if "small" in backbone_arch.lower():
                 return backbones.ViT_Small(layer_type=layer_type)
             elif "base" in backbone_arch.lower(): 
