@@ -119,10 +119,9 @@ class ImageNet(LightningModule):
             ]
         )
 
-        self.fc = nn.Linear(model.descriptor_dim, 1000)
 
     def forward(self, x):
-        return self.fc(self.model(x))
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         images, target = batch

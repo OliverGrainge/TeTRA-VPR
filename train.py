@@ -68,7 +68,7 @@ if __name__ == "__main__":
             args.image_size,
             args.backbone_arch,
             args.agg_arch,
-            config["Model"],
+            out_dim=args.out_dim,
             normalize_output=False,
         )
         if args.load_checkpoint != '':
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             args.image_size,
             args.backbone_arch,
             args.agg_arch,
-            config["Model"],
+            out_dim=args.out_dim,
             normalize_output=True,
         )
 
@@ -158,9 +158,10 @@ if __name__ == "__main__":
             args.image_size,
             args.backbone_arch,
             args.agg_arch,
-            config["Model"],
+            out_dim=args.out_dim,
             normalize_output=True,
         )
+
 
         model_module = EigenPlaces(
             config["Training"]["EigenPlaces"],
@@ -189,7 +190,7 @@ if __name__ == "__main__":
             args.image_size,
             args.backbone_arch,
             args.agg_arch,
-            config["Model"],
+            out_dim=1000,
             normalize_output=False,
         )
 
@@ -225,7 +226,7 @@ if __name__ == "__main__":
             mode="max",
         )
 
-    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+    lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
         enable_progress_bar=True,
