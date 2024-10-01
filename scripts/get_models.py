@@ -5,10 +5,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 from models.helper import get_model 
+import torch 
 
 
+model = get_model(preset="DinoSalad")
 
-model = get_model((224, 224), backbone_arch="vit_small_BitLinear", agg_arch="cls", normalize_output=True)
 
-
-print(model)
+img = torch.randn(1, 3, 224, 224)
+out = model(img)
+print(out.shape)

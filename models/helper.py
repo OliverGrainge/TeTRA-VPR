@@ -31,6 +31,7 @@ def get_backbone(backbone_arch):
     Returns:
         model: the backbone as a nn.Model object
     """
+    
     if "resnet" in backbone_arch.lower():
         if "18" in backbone_arch.lower():
             return backbones.ResNet(model_name="resnet18")
@@ -38,8 +39,8 @@ def get_backbone(backbone_arch):
             return backbones.ResNet(model_name="resnet50")
 
     elif "vit" in backbone_arch.lower():
+        
         match_layer_str = find_best_match(backbone_arch, LINEAR_REPR)
-        print("=====================", backbone_arch, LINEAR_REPR, match_layer_str)
         if match_layer_str is None: 
             if "small" in backbone_arch.lower():
                 return backbones.ViT_Small(layer_type=nn.Linear)
@@ -47,6 +48,8 @@ def get_backbone(backbone_arch):
                 return backbones.ViT_Base(layer_type=nn.Linear)
             elif "large" in backbone_arch.lower():
                 return backbones.ViT_Large(layer_type=nn.Linear)
+            else: 
+                raise Exception("must choose small/medium/large")
         else: 
             module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
             layer_type = getattr(module, match_layer_str)
@@ -56,6 +59,10 @@ def get_backbone(backbone_arch):
                 return backbones.ViT_Base(layer_type=layer_type)
             elif "large" in backbone_arch.lower():
                 return backbones.ViT_Large(layer_type=layer_type)
+            else: 
+                raise Exception("must choose small/medium/large")
+    else: 
+        raise Exception("Backbone not available")
             
 
 
@@ -90,8 +97,10 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
             config["channel_number"] = features_dim[1]
             config["token_dim"]= features_dim[0]
 
-        config["out_channels"] = 1024 
+        
         config["mix_depth"] = 4 
+        config["out_rows"] = 4
+        config["out_channels"] = out_dim // config["out_rows"]
         return aggregators.MixVPR(
             features_dim=features_dim, 
             config=config
@@ -103,12 +112,13 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         config["token_dim"] = features_dim[0]
         config["height"] = int(image_size[0])
         config["width"] = int(image_size[1])
-        config["num_clusters"] = 64 
-        config["cluster_dim"] = 128 
+        scale_factor = out_dim / 8192 
+        config["num_clusters"] = int(64 * scale_factor**0.5)
+        config["cluster_dim"] = int(128  * scale_factor**0.5)
         return aggregators.SALAD(**config)
 
     elif "cls" in agg_arch.lower():
-        return aggregators.CLS()
+        return aggregators.CLS(features_dim, out_dim)
 
 
 class VPRModel(nn.Module):
@@ -132,7 +142,12 @@ class VPRModel(nn.Module):
                 x = F.normalize(x, p=2, dim=-1)
         return x
 
-def get_model(image_size, backbone_arch, agg_arch, normalize_output=True):
+def get_model(image_size=(224,224), backbone_arch="vit_small", agg_arch="cls", out_dim=2048, normalize_output=True, preset=None):
+    if preset is not None: 
+        module = importlib.import_module(f"models.presets.{preset}")
+        model = getattr(module, preset)
+        return model()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     backbone = get_backbone(backbone_arch)
     backbone = backbone.to(device)
@@ -140,7 +155,7 @@ def get_model(image_size, backbone_arch, agg_arch, normalize_output=True):
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
     aggregation = get_aggregator(
-        agg_arch, features_dim, image_size
+        agg_arch, features_dim, image_size, out_dim=out_dim
     )
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
