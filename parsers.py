@@ -10,21 +10,30 @@ with open("config.yaml", "r") as config_file:
 import argparse
 
 
-def model_arguments(parser=None):
+def training_arguments(parser=None):
     if parser is None:
-        parser = argparse.ArgumentParser(description="Model configuration arguments")
+        parser = argparse.ArgumentParser(description="Training configuration arguments")
 
-    # Model options with config as default
+
+        # Model options with config as default
     parser.add_argument(
         "--load_checkpoint",
         type=str,
-        default=config["Model"]["load_checkpoint"],
+        default=config["Training"]["load_checkpoint"],
         help="Path to model checkpoint",
     )
+
+    parser.add_argument(
+        "--out_dim",
+        type=int,
+        default=config["Training"]["out_dim"],
+        help="Path to model checkpoint",
+    )
+
     parser.add_argument(
         "--backbone_arch",
         type=str,
-        default=config["Model"]["backbone_arch"],
+        default=config["Training"]["backbone_arch"],
         help="Backbone architecture for the model",
     )
 
@@ -32,16 +41,9 @@ def model_arguments(parser=None):
     parser.add_argument(
         "--agg_arch",
         type=str,
-        default=config["Model"]["agg_arch"],
+        default=config["Training"]["agg_arch"],
         help="Aggregation architecture",
     )
-
-    return parser
-
-
-def training_arguments(parser=None):
-    if parser is None:
-        parser = argparse.ArgumentParser(description="Training configuration arguments")
 
     parser.add_argument(
         "--training_method",
@@ -149,7 +151,6 @@ def quantize_arguments(parser=None):
 
 def get_args_parser():
     parser = argparse.ArgumentParser(description="Model and Training arguments")
-    parser = model_arguments(parser)
     parser = training_arguments(parser)
     return parser
 

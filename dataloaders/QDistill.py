@@ -1,20 +1,25 @@
 import torch
 import torch.nn.functional as F
 from prettytable import PrettyTable
-from pytorch_lightning import pl
+import pytorch_lightning as pl 
 from pytorch_metric_learning import miners
 from pytorch_metric_learning.distances import CosineSimilarity
 from torch.utils.data import DataLoader
+import torch.optim as optim
+from transformers import get_cosine_schedule_with_warmup
+from torchvision import transforms as T
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 
-from ..models.helper import get_model
+from models.helper import get_model
 
+IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
-class QVPRDistill(pl.LightninModule):
+class QVPRDistill(pl.LightningModule):
     def __init__(
         self,
+        config,
         teacher_arch="DinoSalad",
         student_backbone_arch="vit_small",
         student_agg_arch="cls",
@@ -24,6 +29,7 @@ class QVPRDistill(pl.LightninModule):
         num_workers=4,
         val_set_names=["pitts30k_val", "msls_val"],
         margin=0.1,
+        max_epochs=10
     ):
 
         super().__init__()
@@ -31,6 +37,71 @@ class QVPRDistill(pl.LightninModule):
         self.image_size = (image_size,)
         self.num_workers = num_workers
         self.val_set_names = val_set_names
+        self.max_epochs = max_epochs
+    
+
+        self.lr = config["lr"]
+        self.optimizer_type = config["optimizer"]
+        self.weight_decay = config["weight_decay"]
+        self.momentum = config["momentum"]
+        self.warmup_steps = config["warmup_steps"]
+        self.milestones = config["milestones"]
+        self.lr_mult = config["lr_mult"]
+        self.miner_margin = config["miner_margin"]
+        self.faiss_gpu = config["faiss_gpu"]
+        self.img_per_place = config["img_per_place"]
+        self.min_img_per_place = config["min_img_per_place"]
+        self.cities = config["cities"]
+        self.shuffle_all = config["shuffle_all"]
+
+
+        # Data parameters
+        self.batch_size = batch_size
+        self.image_size = image_size
+        self.num_workers = num_workers
+        self.mean_dataset = IMAGENET_MEAN_STD["mean"]
+        self.std_dataset = IMAGENET_MEAN_STD["std"]
+        self.val_set_names = val_set_names
+        self.random_sample_from_each_place = True
+        self.train_dataset = None
+        self.val_datasets = []
+        self.show_data_stats = True
+        self.warmup_epochs=1
+
+        # Train and valid transforms
+        self.train_transform = T.Compose(
+            [
+                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
+                T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
+                T.ToTensor(),
+                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
+            ]
+        )
+
+        self.valid_transform = T.Compose(
+            [
+                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
+                T.ToTensor(),
+                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
+            ]
+        )
+
+        # Dataloader configs
+        self.train_loader_config = {
+            "batch_size": self.batch_size,
+            "num_workers": self.num_workers,
+            "drop_last": False,
+            "pin_memory": False,
+            "shuffle": self.shuffle_all,
+        }
+
+        self.valid_loader_config = {
+            "batch_size": self.batch_size,
+            "num_workers": self.num_workers // 2,
+            "drop_last": False,
+            "pin_memory": False,
+            "shuffle": False,
+        }
 
         self.miner = miners.MultiSimilarityMiner(
             epsilon=margin, distance=CosineSimilarity()
@@ -46,7 +117,7 @@ class QVPRDistill(pl.LightninModule):
         self.freeze_model(self.teacher)
 
     def freeze_model(self, model):
-        for param in model.params():
+        for param in model.parameters():
             param.requires_grad = False
 
     def forward(self, x):
@@ -54,7 +125,7 @@ class QVPRDistill(pl.LightninModule):
 
     @staticmethod
     def cosine_sim_vec(a, b):
-        a = F.nromalize(a, dim=1, p=2)
+        a = F.normalize(a, dim=1, p=2)
         b = F.normalize(b, dim=1, p=2)
         return torch.diag(a @ b.t())
 
@@ -77,6 +148,26 @@ class QVPRDistill(pl.LightninModule):
         loss = F.mse_loss(student_rel, teacher_rel)
         self.log("loss", loss)
         return loss
+    
+    def configure_optimizers(self):
+        optimizer = optim.AdamW(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
+
+        # Compute total steps
+        steps_per_epoch = len(self.train_dataloader())
+        total_steps = steps_per_epoch * self.max_epochs
+        warmup_steps = steps_per_epoch * self.warmup_epochs
+        # raise Exception
+        # Scheduler
+
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps,
+        )
+        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
+        return [optimizer], [scheduler]
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
