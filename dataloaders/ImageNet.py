@@ -163,7 +163,7 @@ class ImageNet(LightningModule):
     def on_train_batch_end(self, outputs, batch, batch_idx):
         if self.global_rank == 0: 
             self.quantization_scheduler.step()
-            self.log(self.quantization_scheduler.get_val())
+            self.log("q_lambda", self.quantization_scheduler.get_val(), on_step=True, logger=True)
 
     @staticmethod
     def __accuracy(output, target, topk=(1,)):
