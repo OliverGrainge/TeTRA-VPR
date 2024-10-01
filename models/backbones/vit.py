@@ -52,28 +52,52 @@ class Attention(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0, attention_layer_type=nn.Linear, ff_layer_type=nn.Linear):
+    def __init__(
+        self,
+        dim,
+        depth,
+        heads,
+        dim_head,
+        mlp_dim,
+        dropout=0.0,
+        attention_layer_type=nn.Linear,
+        ff_layer_type=nn.Linear,
+    ):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth-1):
+        for _ in range(depth - 1):
             self.layers.append(
                 nn.ModuleList(
                     [
-                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout, layer_type=attention_layer_type),
-                        FeedForward(dim, mlp_dim, dropout=dropout, layer_type=ff_layer_type),
+                        Attention(
+                            dim,
+                            heads=heads,
+                            dim_head=dim_head,
+                            dropout=dropout,
+                            layer_type=attention_layer_type,
+                        ),
+                        FeedForward(
+                            dim, mlp_dim, dropout=dropout, layer_type=ff_layer_type
+                        ),
                     ]
                 )
             )
-        
+
         self.layers.append(
-                nn.ModuleList(
-                    [
-                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout, layer_type=attention_layer_type),
-                        FeedForward(dim, mlp_dim, dropout=dropout, layer_type=nn.Linear),
-                    ]
-                )
+            nn.ModuleList(
+                [
+                    Attention(
+                        dim,
+                        heads=heads,
+                        dim_head=dim_head,
+                        dropout=dropout,
+                        layer_type=attention_layer_type,
+                    ),
+                    FeedForward(dim, mlp_dim, dropout=dropout, layer_type=nn.Linear),
+                ]
             )
+        )
 
     def forward(self, x):
         for attn, ff in self.layers:
@@ -117,7 +141,16 @@ class ViT(nn.Module):
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
-        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout, attention_layer_type=attention_layer_type, ff_layer_type=ff_layer_type)
+        self.transformer = Transformer(
+            dim,
+            depth,
+            heads,
+            dim_head,
+            mlp_dim,
+            dropout,
+            attention_layer_type=attention_layer_type,
+            ff_layer_type=ff_layer_type,
+        )
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
@@ -129,22 +162,23 @@ class ViT(nn.Module):
         x = self.transformer(x)
         return x
 
+
 def ViT_Small(image_size=[224, 224], layer_type=nn.Linear):
-        return ViT(
-            image_size=224,  # Smaller image size for reduced complexity
-            patch_size=16,  # More patches for better granularity
-            dim=384,  # Reduced embedding dimension
-            depth=12,  # Fewer transformer layers
-            heads=6,  # Fewer attention heads
-            mlp_dim=1536,  # MLP layer dimension (4x dim)
-            dropout=0.1,  # Regularization via dropout
-            emb_dropout=0.1,  # Dropout for the embedding layer
-            channels=3,  # RGB images
-            dim_head=96,  # Dimension of each attention head
-            patch_layer_type=nn.Linear,
-            attention_layer_type=layer_type,
-            ff_layer_type=layer_type
-        )
+    return ViT(
+        image_size=224,  # Smaller image size for reduced complexity
+        patch_size=16,  # More patches for better granularity
+        dim=384,  # Reduced embedding dimension
+        depth=12,  # Fewer transformer layers
+        heads=6,  # Fewer attention heads
+        mlp_dim=1536,  # MLP layer dimension (4x dim)
+        dropout=0.1,  # Regularization via dropout
+        emb_dropout=0.1,  # Dropout for the embedding layer
+        channels=3,  # RGB images
+        dim_head=96,  # Dimension of each attention head
+        patch_layer_type=nn.Linear,
+        attention_layer_type=layer_type,
+        ff_layer_type=layer_type,
+    )
 
 
 def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
@@ -161,24 +195,23 @@ def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
         dim_head=64,  # Usually dim_head = dim // heads
         patch_layer_type=nn.Linear,
         attention_layer_type=layer_type,
-        ff_layer_type=layer_type
-
+        ff_layer_type=layer_type,
     )
 
 
 def ViT_Large(image_size=[224, 224], layer_type=nn.Linear):
-        return ViT(
-            image_size=224,  # Smaller image size for reduced complexity
-            patch_size=16,
-            dim=1024,
-            depth=24,
-            heads=16,
-            mlp_dim=4096,
-            dropout=0.1,
-            emb_dropout=0.1,
-            channels=3,
-            dim_head=64,  # Usually dim_head = dim // heads
-            patch_layer_type=nn.Linear, 
-            attention_layer_type=layer_type,
-            ff_layer_type=layer_type, 
-        )
+    return ViT(
+        image_size=224,  # Smaller image size for reduced complexity
+        patch_size=16,
+        dim=1024,
+        depth=24,
+        heads=16,
+        mlp_dim=4096,
+        dropout=0.1,
+        emb_dropout=0.1,
+        channels=3,
+        dim_head=64,  # Usually dim_head = dim // heads
+        patch_layer_type=nn.Linear,
+        attention_layer_type=layer_type,
+        ff_layer_type=layer_type,
+    )

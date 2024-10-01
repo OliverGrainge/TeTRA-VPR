@@ -149,5 +149,3 @@ class SALAD(nn.Module):
             dim=-1,
         )
         return f
-
-

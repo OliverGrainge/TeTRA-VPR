@@ -1,14 +1,16 @@
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
+from pytorch_metric_learning import losses, miners
+from pytorch_metric_learning.distances import CosineSimilarity
 from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-from pytorch_metric_learning import losses, miners
-from pytorch_metric_learning.distances import CosineSimilarity
+
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 
@@ -27,11 +29,11 @@ class GSVCities(pl.LightningModule):
         num_workers=4,
         show_data_stats=True,
         mean_std=IMAGENET_MEAN_STD,
-        #val_set_names=["pitts30k_val", "msls_val"],
+        # val_set_names=["pitts30k_val", "msls_val"],
         val_set_names=["pitts30k_val"],
         search_precision="float32",
         loss_name="MultiSimilarityLoss",
-        miner_name="MultiSimilarityMiner"
+        miner_name="MultiSimilarityMiner",
     ):
         super().__init__()
         # Model parameters
@@ -54,12 +56,20 @@ class GSVCities(pl.LightningModule):
 
         self.batch_acc = []
         margin = 0.1
-        self.coarse_loss_fn = losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity())
-        self.coarse_miner = miners.MultiSimilarityMiner(epsilon=0.2, distance=CosineSimilarity())
-        self.fine_loss_fn = losses.MultiSimilarityLoss(alpha=1.0, beta=100, base=0.0, distance=CosineSimilarity())
-        self.fine_miner = miners.MultiSimilarityMiner(epsilon=-0.05, distance=CosineSimilarity())
-        #self.fine_miner = miners.TripletMarginMiner(margin=0.05, type_of_triplets="hard")
-        #self.fine_loss_fn = losses.TripletMarginLoss(margin=0.05,
+        self.coarse_loss_fn = losses.MultiSimilarityLoss(
+            alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
+        )
+        self.coarse_miner = miners.MultiSimilarityMiner(
+            epsilon=0.2, distance=CosineSimilarity()
+        )
+        self.fine_loss_fn = losses.MultiSimilarityLoss(
+            alpha=1.0, beta=100, base=0.0, distance=CosineSimilarity()
+        )
+        self.fine_miner = miners.MultiSimilarityMiner(
+            epsilon=-0.05, distance=CosineSimilarity()
+        )
+        # self.fine_miner = miners.TripletMarginMiner(margin=0.05, type_of_triplets="hard")
+        # self.fine_loss_fn = losses.TripletMarginLoss(margin=0.05,
         #                swap=False,
         #                smooth_loss=False,
         #                triplets_per_anchor="all")
@@ -202,7 +212,7 @@ class GSVCities(pl.LightningModule):
     def coarse_loss_function(self, descriptors, labels):
         if self.coarse_miner is not None:
             miner_outputs = self.coarse_miner(descriptors, labels)
-            #print("coarse negative pairs: ", miner_outputs[2].shape[0], "Coarse positive pairs: ", miner_outputs[0].shape[0])
+            # print("coarse negative pairs: ", miner_outputs[2].shape[0], "Coarse positive pairs: ", miner_outputs[0].shape[0])
             loss = self.coarse_loss_fn(descriptors, labels, miner_outputs)
             nb_samples = descriptors.shape[0]
             nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
@@ -220,11 +230,11 @@ class GSVCities(pl.LightningModule):
             logger=True,
         )
         return loss
-    
+
     def fine_loss_function(self, descriptors, labels):
         if self.fine_miner is not None:
             miner_outputs = self.fine_miner(descriptors, labels)
-            #print("fine negative pairs: ", miner_outputs[2].shape[0], "fine positive pairs: ", miner_outputs[0].shape[0])
+            # print("fine negative pairs: ", miner_outputs[2].shape[0], "fine positive pairs: ", miner_outputs[0].shape[0])
             loss = self.fine_loss_fn(descriptors, labels, miner_outputs)
             nb_samples = descriptors.shape[0]
             nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
@@ -243,7 +253,6 @@ class GSVCities(pl.LightningModule):
         )
         return loss
 
-
     def training_step(self, batch, batch_idx):
         places, labels = batch
         BS, N, ch, h, w = places.shape
@@ -252,7 +261,7 @@ class GSVCities(pl.LightningModule):
         desc_coarse, desc_fine = self(images)
         coarse_loss = self.coarse_loss_function(desc_coarse, labels)
         fine_loss = self.fine_loss_function(desc_fine, labels)
-        loss = coarse_loss/2 + fine_loss/2
+        loss = coarse_loss / 2 + fine_loss / 2
         self.log("coarse loss", coarse_loss)
         self.log("fine loss", fine_loss)
         self.log("loss", loss)
@@ -310,16 +319,28 @@ class GSVCities(pl.LightningModule):
                 print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu,
-                precision='float32',
-                desc='coarse stage'
+                precision="float32",
+                desc="coarse stage",
             )
 
-            self.log(f"{val_set_name}/coarse_R1", recalls_dict_float[1], prog_bar=False, logger=True)
-            self.log(f"{val_set_name}/coarse_R5", recalls_dict_float[5], prog_bar=False, logger=True)
             self.log(
-                f"{val_set_name}/coarse_R10", recalls_dict_float[10], prog_bar=False, logger=True
+                f"{val_set_name}/coarse_R1",
+                recalls_dict_float[1],
+                prog_bar=False,
+                logger=True,
             )
-
+            self.log(
+                f"{val_set_name}/coarse_R5",
+                recalls_dict_float[5],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/coarse_R10",
+                recalls_dict_float[10],
+                prog_bar=False,
+                logger=True,
+            )
 
             recalls_dict_float, predictions = utils.get_validation_recalls(
                 r_list=r_list_fine,
@@ -329,21 +350,33 @@ class GSVCities(pl.LightningModule):
                 print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu,
-                precision='float32',
-                desc='fine stage'
+                precision="float32",
+                desc="fine stage",
             )
 
-            self.log(f"{val_set_name}/fine_R1", recalls_dict_float[1], prog_bar=False, logger=True)
-            self.log(f"{val_set_name}/fine_R5", recalls_dict_float[5], prog_bar=False, logger=True)
             self.log(
-                f"{val_set_name}/fine_R10", recalls_dict_float[10], prog_bar=False, logger=True
+                f"{val_set_name}/fine_R1",
+                recalls_dict_float[1],
+                prog_bar=False,
+                logger=True,
             )
-
+            self.log(
+                f"{val_set_name}/fine_R5",
+                recalls_dict_float[5],
+                prog_bar=False,
+                logger=True,
+            )
+            self.log(
+                f"{val_set_name}/fine_R10",
+                recalls_dict_float[10],
+                prog_bar=False,
+                logger=True,
+            )
 
             recalls_dict_float, predictions = utils.get_validation_recalls_two_stage(
-                r_list_binary=r_list_coarse, 
-                q_list_binary=q_list_coarse, 
-                r_list_float=r_list_fine, 
+                r_list_binary=r_list_coarse,
+                q_list_binary=q_list_coarse,
+                r_list_float=r_list_fine,
                 q_list_float=q_list_fine,
                 k_values=[1, 5, 10, 15, 20, 25],
                 k=20,
@@ -352,14 +385,23 @@ class GSVCities(pl.LightningModule):
                 dataset_name=val_set_name,
             )
 
-            self.log(f"{val_set_name}/two_stage_R1", recalls_dict_float[1], prog_bar=False, logger=True)
-    
+            self.log(
+                f"{val_set_name}/two_stage_R1",
+                recalls_dict_float[1],
+                prog_bar=False,
+                logger=True,
+            )
 
-
-
-
-
-            del r_list_coarse, r_list_fine, q_list_coarse, q_list_fine, coarse_feats, fine_feats, num_references, ground_truth
+            del (
+                r_list_coarse,
+                r_list_fine,
+                q_list_coarse,
+                q_list_fine,
+                coarse_feats,
+                fine_feats,
+                num_references,
+                ground_truth,
+            )
 
         # Clear the outputs after processing
         self.fine_validation_outputs.clear()
@@ -388,47 +430,48 @@ class GSVCities(pl.LightningModule):
         print(table.get_string(title="Training config"))
 
 
-
-
-
-
 if __name__ == "__main__":
-    from models.helper import get_model 
-    import yaml 
+    import yaml
+
+    from models.helper import get_model
     from parsers import get_args_parser
 
     parser = get_args_parser()
     args = parser.parse_args()
-    
-    with open('config.yaml', 'r') as f: 
+
+    with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    model = get_model((224, 224), 'resnet50', 'mixvpr_two_step', config["Model"], normalize_output=True)
+    model = get_model(
+        (224, 224),
+        "resnet50",
+        "mixvpr_two_step",
+        config["Model"],
+        normalize_output=True,
+    )
 
     model_module = GSVCities(
-            config["Training"]["GSVCities"],
-            model,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            num_workers=args.num_workers,
-            mean_std={"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-            #val_set_names=args.val_set_names,
-            val_set_names=['pitts30k_val'],
-            search_precision=args.search_precision,
-            loss_name=args.loss_name,
-            miner_name=args.miner_name,
-        )
-    
-        
+        config["Training"]["GSVCities"],
+        model,
+        batch_size=args.batch_size,
+        image_size=args.image_size,
+        num_workers=args.num_workers,
+        mean_std={"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+        # val_set_names=args.val_set_names,
+        val_set_names=["pitts30k_val"],
+        search_precision=args.search_precision,
+        loss_name=args.loss_name,
+        miner_name=args.miner_name,
+    )
+
     trainer = pl.Trainer(
         enable_progress_bar=True,
         strategy="auto",
-        accelerator='auto',
+        accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=100,
-        #limit_train_batches=50
-        )
-    
+        # limit_train_batches=50
+    )
 
     trainer.fit(model_module)

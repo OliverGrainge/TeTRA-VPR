@@ -10,6 +10,7 @@ from models.helper import get_model
 from NeuroCompress.NeuroPress import freeze_model
 from parsers import get_args_parser
 
+
 def measure_latency(model, input_tensor, num_runs=100, warmup_runs=10, verbose=True):
     if not torch.cuda.is_available():
         raise RuntimeError(
@@ -92,7 +93,6 @@ def eval_imagenet(args):
     measure_memory(model)
     trainer = pl.Trainer(limit_test_batches=20)
     trainer.test(module)
-
 
 
 if __name__ == "__main__":

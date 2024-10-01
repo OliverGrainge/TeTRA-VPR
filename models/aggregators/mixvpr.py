@@ -114,14 +114,8 @@ class MixVPR_Token(nn.Module):
         return x
 
 
-
-
 def MixVPR(features_dim, config):
     if len(features_dim) == 2:
         return MixVPR_Token(**config)
     else:
         return MixVPR_Conv(**config)
-
-
-
-

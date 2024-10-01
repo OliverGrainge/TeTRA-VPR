@@ -1,104 +1,82 @@
-import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
 from prettytable import PrettyTable
-from torch.optim import lr_scheduler
-from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms as T
+from pytorch_lightning import pl
+from pytorch_metric_learning import miners
+from pytorch_metric_learning.distances import CosineSimilarity
+from torch.utils.data import DataLoader
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 
-IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
-VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
+from ..models.helper import get_model
 
 
-class GSVCities(pl.LightningModule):
+class QVPRDistill(pl.LightninModule):
     def __init__(
         self,
-        config,
-        model,
+        teacher_arch="DinoSalad",
+        student_backbone_arch="vit_small",
+        student_agg_arch="cls",
+        student_out_dim=1024,
         batch_size=32,
-        shuffle_all=False,
-        image_size=(480, 640),
+        image_size=(224, 224),
         num_workers=4,
-        show_data_stats=True,
-        mean_std=IMAGENET_MEAN_STD,
         val_set_names=["pitts30k_val", "msls_val"],
-        search_precision="float32",
-        loss_name="MultiSimilarityLoss",
-        miner_name="MultiSimilarityMiner",
+        margin=0.1,
     ):
+
         super().__init__()
-        # Model parameters
-        self.lr = config["lr"]
-        self.optimizer_type = config["optimizer"]
-        self.weight_decay = config["weight_decay"]
-        self.momentum = config["momentum"]
-        self.warmup_steps = config["warmup_steps"]
-        self.milestones = config["milestones"]
-        self.lr_mult = config["lr_mult"]
-        self.loss_name = loss_name
-        self.miner_name = miner_name
-        self.miner_margin = config["miner_margin"]
-        self.faiss_gpu = config["faiss_gpu"]
-        self.search_precision = search_precision
-        self.img_per_place = config["img_per_place"]
-        self.min_img_per_place = config["min_img_per_place"]
-        self.cities = config["cities"]
-        self.shuffle_all = config["shuffle_all"]
-
-        self.batch_acc = []
-        self.loss_fn = utils.get_loss(self.loss_name)
-        self.miner = utils.get_miner(self.miner_name, self.miner_margin)
-
-        self.model = model
-
-        # Data parameters
-        self.batch_size = batch_size
-        self.image_size = image_size
+        self.batch_size = (batch_size,)
+        self.image_size = (image_size,)
         self.num_workers = num_workers
-        self.mean_dataset = mean_std["mean"]
-        self.std_dataset = mean_std["std"]
         self.val_set_names = val_set_names
-        self.random_sample_from_each_place = True
-        self.train_dataset = None
-        self.val_datasets = []
-        self.show_data_stats = show_data_stats
 
-        # Train and valid transforms
-        self.train_transform = T.Compose(
-            [
-                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-                T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
-                T.ToTensor(),
-                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
-            ]
+        self.miner = miners.MultiSimilarityMiner(
+            epsilon=margin, distance=CosineSimilarity()
+        )
+        self.teacher = get_model(preset=teacher_arch)
+        self.student = get_model(
+            backbone_arch=student_backbone_arch,
+            agg_arch=student_agg_arch,
+            normalize_output=True,
+            out_dim=student_out_dim,
         )
 
-        self.valid_transform = T.Compose(
-            [
-                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-                T.ToTensor(),
-                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
-            ]
-        )
+        self.freeze_model(self.teacher)
 
-        # Dataloader configs
-        self.train_loader_config = {
-            "batch_size": self.batch_size,
-            "num_workers": self.num_workers,
-            "drop_last": False,
-            "pin_memory": False,
-            "shuffle": self.shuffle_all,
-        }
+    def freeze_model(self, model):
+        for param in model.params():
+            param.requires_grad = False
 
-        self.valid_loader_config = {
-            "batch_size": self.batch_size,
-            "num_workers": self.num_workers // 2,
-            "drop_last": False,
-            "pin_memory": False,
-            "shuffle": False,
-        }
+    def forward(self, x):
+        return self.student(x)
+
+    @staticmethod
+    def cosine_sim_vec(a, b):
+        a = F.nromalize(a, dim=1, p=2)
+        b = F.normalize(b, dim=1, p=2)
+        return torch.diag(a @ b.t())
+
+    def training_step(self, batch, batch_idx):
+        places, labels = batch
+        BS, N, ch, h, w = places.shape
+        images = places.view(BS * N, ch, h, w)
+        labels = labels.view(-1)
+        student_desc = self.student(images)
+        teacher_desc = self.teacher(images)
+        miner_outputs = self.miner(teacher_desc, labels)
+        a1, p, a2, n = miner_outputs
+        teacher_pos_rel = self.cosine_sim_vec(teacher_desc[a1], teacher_desc[p])
+        teacher_neg_rel = self.cosine_sim_vec(teacher_desc[a2], teacher_desc[n])
+        student_pos_rel = self.cosine_sim_vec(student_desc[a1], student_desc[p])
+        student_neg_rel = self.cosine_sim_vec(student_desc[a2], student_desc[n])
+        teacher_rel = torch.cat((teacher_pos_rel, teacher_neg_rel))
+        student_rel = torch.cat((student_pos_rel, student_neg_rel))
+
+        loss = F.mse_loss(student_rel, teacher_rel)
+        self.log("loss", loss)
+        return loss
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
@@ -158,64 +136,6 @@ class GSVCities(pl.LightningModule):
                 DataLoader(dataset=val_dataset, **self.valid_loader_config)
             )
         return val_dataloaders
-
-    def forward(self, x):
-        x = self.model(x)
-        return x
-
-    def configure_optimizers(self):
-        if self.optimizer_type.lower() == "sgd":
-            optimizer = torch.optim.SGD(
-                self.parameters(),
-                lr=self.lr,
-                weight_decay=self.weight_decay,
-                momentum=self.momentum,
-            )
-        elif self.optimizer_type.lower() == "adamw":
-            optimizer = torch.optim.AdamW(
-                self.parameters(), lr=self.lr, weight_decay=self.weight_decay
-            )
-        elif self.optimizer_type.lower() == "adam":
-            optimizer = torch.optim.Adam(
-                self.parameters(), lr=self.lr, weight_decay=self.weight_decay
-            )
-        else:
-            raise ValueError(f"Optimizer {self.optimizer_type} not recognized.")
-        scheduler = lr_scheduler.MultiStepLR(
-            optimizer, milestones=self.milestones, gamma=self.lr_mult
-        )
-        return [optimizer], [scheduler]
-
-    def loss_function(self, descriptors, labels):
-        if self.miner is not None:
-            miner_outputs = self.miner(descriptors, labels)
-            loss = self.loss_fn(descriptors, labels, miner_outputs)
-            nb_samples = descriptors.shape[0]
-            nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
-            batch_acc = 1.0 - (nb_mined / nb_samples)
-        else:
-            loss = self.loss_fn(descriptors, labels)
-            batch_acc = 0.0
-            if isinstance(loss, tuple):
-                loss, batch_acc = loss
-        self.batch_acc.append(batch_acc)
-        self.log(
-            "b_acc",
-            sum(self.batch_acc) / len(self.batch_acc),
-            prog_bar=True,
-            logger=True,
-        )
-        return loss
-
-    def training_step(self, batch, batch_idx):
-        places, labels = batch
-        BS, N, ch, h, w = places.shape
-        images = places.view(BS * N, ch, h, w)
-        labels = labels.view(-1)
-        descriptors = self(images)
-        loss = self.loss_function(descriptors, labels)
-        self.log("loss", loss)
-        return {"loss": loss}
 
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs

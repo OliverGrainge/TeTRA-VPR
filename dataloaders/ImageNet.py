@@ -24,16 +24,16 @@ with open("config.yaml", "r") as config_file:
     config = yaml.safe_load(config_file)
 
 
-class QLambdaScheduler: 
-    def __init__(self, model, max_steps, init_val=0.0): 
+class QLambdaScheduler:
+    def __init__(self, model, max_steps, init_val=0.0):
         self.layers = []
-        self.max_steps = max_steps 
+        self.max_steps = max_steps
 
-        for module in model: 
-            if isinstance(module, nn.Linear) and hasattr(module, 'q_lamda'): 
+        for module in model:
+            if isinstance(module, nn.Linear) and hasattr(module, "q_lamda"):
                 module.q_lambda = torch.tensor(init_val)
                 self.layers.append(module)
-        self.current_step = 0 
+        self.current_step = 0
 
     def step(self):
         t = self.current_step / self.max_steps
@@ -50,17 +50,18 @@ class QLambdaScheduler:
         val = 1 / (1 + torch.exp(-t))
         return val
 
-class QRegScheduler: 
-    def __init__(self, max_steps, scale): 
-        self.max_steps = max_steps 
-        self.scale = scale 
+
+class QRegScheduler:
+    def __init__(self, max_steps, scale):
+        self.max_steps = max_steps
+        self.scale = scale
         self.current_step = 0
 
-    def step(self): 
-        self.current_step += 1 
+    def step(self):
+        self.current_step += 1
 
     def get_scalar(self):
-        t = self.current_step/self.max_steps 
+        t = self.current_step / self.max_steps
         return self.scale
 
 
@@ -119,7 +120,6 @@ class ImageNet(LightningModule):
             ]
         )
 
-
     def forward(self, x):
         return self.model(x)
 
@@ -130,7 +130,7 @@ class ImageNet(LightningModule):
         loss_reg = self.reg_loss()
         alpha = self.reg_scheduler.get_scalar()
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
-        print(loss_train.item(), alpha*loss_reg)
+        print(loss_train.item(), alpha * loss_reg)
         loss = loss_train + alpha * loss_reg
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
         self.log("reg_loss", alpha * loss_reg, on_step=True, on_epoch=True, logger=True)
@@ -140,11 +140,11 @@ class ImageNet(LightningModule):
         )
         self.log("train_acc5", acc5, on_step=True, on_epoch=True, logger=True)
         return loss
-    
-    def reg_loss(self, x): 
+
+    def reg_loss(self, x):
         reg = torch.tensor(0.0)
-        for module in self.model.modules(): 
-            if isinstance(module, nn.Linear) and hasattr(module, 'compute_reg'):
+        for module in self.model.modules():
+            if isinstance(module, nn.Linear) and hasattr(module, "compute_reg"):
                 reg += module.compute_reg()
         return reg
 
@@ -161,9 +161,14 @@ class ImageNet(LightningModule):
         return self.eval_step(batch, batch_idx, "val")
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
-        if self.global_rank == 0: 
+        if self.global_rank == 0:
             self.quantization_scheduler.step()
-            self.log("q_lambda", self.quantization_scheduler.get_val(), on_step=True, logger=True)
+            self.log(
+                "q_lambda",
+                self.quantization_scheduler.get_val(),
+                on_step=True,
+                logger=True,
+            )
 
     @staticmethod
     def __accuracy(output, target, topk=(1,)):

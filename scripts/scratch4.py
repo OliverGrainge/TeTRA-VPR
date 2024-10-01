@@ -1,14 +1,14 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import torch
-import matplotlib.pyplot as plt
-from pytorch_metric_learning.utils import common_functions
-from pytorch_metric_learning.distances import CosineSimilarity
-from pytorch_metric_learning.utils import common_functions as c_f
-from pytorch_metric_learning.utils import loss_and_miner_utils as lmu 
-from pytorch_metric_learning.miners.base_miner import BaseMiner
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import matplotlib.pyplot as plt
+import torch
+from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning.miners.base_miner import BaseMiner
+from pytorch_metric_learning.utils import common_functions
+from pytorch_metric_learning.utils import common_functions as c_f
+from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 
 
 class MultiSimilarityMiner(BaseMiner):
@@ -46,7 +46,7 @@ class MultiSimilarityMiner(BaseMiner):
         neg_sorted, neg_sorted_idx = torch.sort(mat_neg_sorting, dim=1)
 
         if self.distance.is_inverted:
-            
+
             hard_pos_idx = torch.where(
                 pos_sorted - self.epsilon < neg_sorted[:, -1].unsqueeze(1)
             )
@@ -70,6 +70,8 @@ class MultiSimilarityMiner(BaseMiner):
 
     def get_default_distance(self):
         return CosineSimilarity()
+
+
 # Set random seed for reproducibility
 torch.manual_seed(0)
 
@@ -93,13 +95,13 @@ embeddings = torch.cat(embeddings, dim=0)
 labels = torch.cat(labels, dim=0)
 
 # Visualize the embedding distribution
-#plt.figure(figsize=(6, 6))
-#for class_idx in range(num_classes):
+# plt.figure(figsize=(6, 6))
+# for class_idx in range(num_classes):
 #    class_embeddings = embeddings[labels == class_idx]
 #    plt.scatter(class_embeddings[:, 0], class_embeddings[:, 1], label=f'Class {class_idx}', s=50)
-#plt.legend()
+# plt.legend()
 # #plt.title("Embedding Distributions of Different Classes")
-#plt.show()
+# plt.show()
 
 # Initialize the MultiSimilarityMiner
 miner = MultiSimilarityMiner(epsilon=0.0, distance=CosineSimilarity())
@@ -108,4 +110,9 @@ embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 miner_outputs = miner(embeddings, labels)
 
 
-print(miner_outputs[0].shape, miner_outputs[1].shape, miner_outputs[2].shape, miner_outputs[3].shape)
+print(
+    miner_outputs[0].shape,
+    miner_outputs[1].shape,
+    miner_outputs[2].shape,
+    miner_outputs[3].shape,
+)

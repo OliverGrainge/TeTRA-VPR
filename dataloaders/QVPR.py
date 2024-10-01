@@ -4,12 +4,12 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
-from torch.optim import lr_scheduler
-from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms as T
 from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import (CosineSimilarity,
                                                DotProductSimilarity)
+from torch.optim import lr_scheduler
+from torch.utils.data.dataloader import DataLoader
+from torchvision import transforms as T
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
@@ -396,27 +396,3 @@ class QVPR(pl.LightningModule):
         )
         table.add_row(["Image size", f"{self.image_size}"])
         print(table.get_string(title="Training config"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
