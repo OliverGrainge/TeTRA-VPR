@@ -136,6 +136,13 @@ def training_arguments(parser=None):
         help="choose the miner name",
     )
 
+    parser.add_argument(
+        "--teacher_preset",
+        type=str,
+        default=config["Training"]["Distill"]["teacher_preset"],
+        help="choose the teacher preset",
+    )
+
     return parser
 
 

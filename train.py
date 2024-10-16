@@ -3,10 +3,7 @@ import time
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from torch.optim import lr_scheduler
 
-import utils
-from dataloaders.QVPR import QVPR
 
 torch.set_float32_matmul_precision("medium")
 
@@ -18,7 +15,7 @@ import yaml
 
 from dataloaders.EigenPlaces import EigenPlaces
 from dataloaders.GSVCities import GSVCities
-from dataloaders.QDistill import QVPRDistill
+from dataloaders.Distill import VPRDistill
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model
 from parsers import get_args_parser
@@ -110,33 +107,28 @@ if __name__ == "__main__":
             mode="max",
         )
 
-    if "qdistill" in args.training_method.lower(): 
-        model_module = QVPRDistill(
-            config["Training"]["GSVCities"],
-            teacher_arch="DinoSalad",
-            student_backbone_arch=args.backbone_arch, 
+    if "distill" in args.training_method.lower(): 
+        model_module = VPRDistill(
+            config["Training"]["Distill"],
+            args=args,
+            data_directory="/Users/olivergrainge/Documents/github/Datasets/SF_XL/small/test/queries_v1",
+            teacher_arch="EigenPlaces",
+            student_backbone_arch=args.backbone_arch,
             student_agg_arch=args.agg_arch,
-            student_out_dim=args.out_dim, 
-            batch_size=32, 
-            image_size=(224,224),
-            num_workers=args.num_workers,
-            val_set_names=["pitts30k_val"], 
-            max_epochs=args.max_epochs,
         )
 
         checkpoint_cb = ModelCheckpoint(
-            monitor="pitts30k_val/float_R1",
+            monitor="train_loss",
             filename=f"{args.training_method.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
-            + f"_{args.loss_name}"
-            + f"_{args.miner_name}"
-            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
+            + "_epoch({epoch:02d})_step({step:04d})_A1[{loss:.4f}]",
             auto_insert_metric_name=False,
             save_weights_only=True,
             save_top_k=1,
             mode="max",
         )
+
 
 
     elif "eigenplaces" == args.training_method.lower():
@@ -223,16 +215,16 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        limit_train_batches=(
-            int(
-                config["Training"]["EigenPlaces"]["iterations_per_epoch"]
-                * 32
-                / args.batch_size
-            )
-            if args.training_method.lower() == "eigenplaces"
-            else None
-        ),
-        #limit_train_batches=10,
+        #limit_train_batches=(
+        #    int(
+        #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
+        #        * 32
+        #        / args.batch_size
+        #    )
+        #    if args.training_method.lower() == "eigenplaces"
+        #    else None
+        #),
+        limit_train_batches=50,
     )
 
     trainer.fit(model_module)

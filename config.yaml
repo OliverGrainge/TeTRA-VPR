@@ -95,4 +95,8 @@ Training:
     saturation: 0.7 
     hue: 0.5
     random_resized_crop: 0.5
+
+  Distill: 
+    lr: 0.01
+    teacher_preset: 'DinoSalad'
     
