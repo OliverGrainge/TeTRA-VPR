@@ -215,16 +215,16 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        #limit_train_batches=(
-        #    int(
-        #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
-        #        * 32
-        #        / args.batch_size
-        #    )
-        #    if args.training_method.lower() == "eigenplaces"
-        #    else None
-        #),
-        limit_train_batches=50,
+        limit_train_batches=(
+            int(
+                config["Training"]["EigenPlaces"]["iterations_per_epoch"]
+                * 32
+                / args.batch_size
+            )
+            if args.training_method.lower() == "eigenplaces"
+            else None
+        ),
+        #limit_train_batches=50,
     )
 
     trainer.fit(model_module)
