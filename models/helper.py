@@ -27,10 +27,16 @@ def find_best_match(target_string, list_of_strings):
 
 
 def get_transform(preset): 
-    if preset.lower() == "boq":
+    if preset.lower() == "dinov2_boq":
         transform = T.Compose([
             T.ToTensor(),
             T.Resize((322, 322), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif preset.lower() == "resnet50_boq":
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((384, 384), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
     elif preset.lower() == "dinosalad":
