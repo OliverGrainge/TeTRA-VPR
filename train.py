@@ -127,8 +127,6 @@ if __name__ == "__main__":
             mode="max",
         )
 
-
-
     elif "eigenplaces" == args.training_method.lower():
         model = get_model(
             args.image_size,

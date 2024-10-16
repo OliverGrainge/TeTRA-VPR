@@ -4,9 +4,10 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import yaml
+import torchvision.transforms as T
 
 from dataloaders.ImageNet import ImageNet
-from models.helper import get_model
+from models.helper import get_model, get_transform
 from NeuroCompress.NeuroPress import freeze_model
 from parsers import get_args_parser
 
@@ -76,6 +77,40 @@ def measure_memory(model, verbose=True):
     return total_megabytes
 
 
+def eval_vpr(args):
+    from dataloaders.VPREval import VPREval
+
+    if args.preset is not None:
+        model = get_model(
+            preset=args.preset
+        )
+        transform = get_transform(args.preset)
+    else:
+        model = get_model(
+            args.image_size,
+            args.backbone_arch,
+            args.agg_arch,
+            out_dim=args.out_dim,
+            normalize_output=False,
+        )
+
+        model.load_state_dict(torch.load(args.load_checkpoint))
+        transform = T.Compose([
+            T.Resize(args.image_size),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+
+    module = VPREval(model, transform, args.val_set_names, args.search_precision, args.batch_size, args.num_workers)
+
+    trainer = pl.Trainer(
+        accelerator="auto",
+        precision="fp32",
+    )
+    results = trainer.validate(module)
+    return results
+
+
 def eval_imagenet(args):
     model = get_model(
         args.image_size,
@@ -99,4 +134,9 @@ if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
 
-    eval_imagenet(args)
+    if args.eval_method == "vpr":
+        eval_vpr(args)
+    elif args.eval_method == "imagenet":
+        eval_imagenet(args)
+    else:
+        raise ValueError(f"Invalid evaluation method: {args.eval_method}")

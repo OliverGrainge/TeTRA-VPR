@@ -143,6 +143,20 @@ def training_arguments(parser=None):
         help="choose the teacher preset",
     )
 
+    parser.add_argument(
+        "--preset",
+        type=str,
+        default=None,
+        help="Choose a pre-trained benchmark model",
+    )
+
+    parser.add_argument(
+        "eval_method",
+        type=str,
+        default="vpr",
+        help="Evaluation method",
+    )
+
 
     return parser
 
