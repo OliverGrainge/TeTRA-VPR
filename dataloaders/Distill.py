@@ -19,7 +19,7 @@ import os
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 
-from models.helper import get_model
+from models.helper import get_model, get_transform
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
@@ -84,6 +84,21 @@ class ImageDataset(Dataset):
         return image
         
         
+class DistillDataset(Dataset):
+    def __init__(self, dataset, student_transform, teacher_transform):
+        self.dataset = dataset
+        self.student_transform = student_transform
+        self.teacher_transform = teacher_transform
+
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self, idx):
+        image = self.dataset[idx]
+        student_image = self.student_transform(image)
+        teacher_image = self.teacher_transform(image)
+        return student_image, teacher_image
+    
 
 
 class VPRDistill(pl.LightningModule):
@@ -91,17 +106,16 @@ class VPRDistill(pl.LightningModule):
         self,
         config,
         args,
-        teacher_arch="DinoSalad",
         student_backbone_arch="vit_small",
         student_agg_arch="cls",
     ):
         super().__init__()
+        self.config = config
         self.teacher = get_model(preset=config["teacher_preset"])   
         self.student = get_model(backbone_arch=student_backbone_arch, agg_arch=student_agg_arch, out_dim=get_feature_dim(self.teacher, args.image_size))
         
         freeze_model(self.teacher)
 
-        
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.image_size = args.image_size
@@ -112,9 +126,9 @@ class VPRDistill(pl.LightningModule):
         return self.student(x)
     
     def training_step(self, batch, batch_idx):
-        images = batch 
-        teacher_features = self.teacher(images)
-        student_features = self(images)
+        student_images, teacher_images = batch 
+        teacher_features = self.teacher(teacher_images)
+        student_features = self(student_images)
         teacher_features = F.normalize(teacher_features, dim=1)
         student_features = F.normalize(student_features, dim=1)
         mse_loss = F.mse_loss(teacher_features, student_features)
@@ -130,12 +144,16 @@ class VPRDistill(pl.LightningModule):
         optimizer = optim.Adam(self.student.parameters(), lr=self.lr)
         return optimizer
     
-    def train_transform(self):
+    def student_train_transform(self):
         return T.Compose([
             T.Resize(self.image_size),
             T.ToTensor(),
             T.Normalize(mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"])
         ])
+    
+    def teacher_train_transform(self):
+        return get_transform(self.config["teacher_preset"])
+    
     
     def train_dataloader(self):
         paths = os.listdir(self.data_directory)
@@ -143,8 +161,9 @@ class VPRDistill(pl.LightningModule):
             raise ValueError(f"Invalid data directory: {self.data_directory}")
 
         if "*tar" in paths[0]:
-            train_dataset = TarImageDataset(self.data_directory, transform=self.train_transform())
+            train_dataset = TarImageDataset(self.data_directory)
         else:
-            train_dataset = ImageDataset(self.data_directory, transform=self.train_transform())
+            train_dataset = ImageDataset(self.data_directory)
 
-        return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+        dataset = DistillDataset(train_dataset, self.student_train_transform(), self.teacher_train_transform())
+        return DataLoader(dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)

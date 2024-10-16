@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import transforms as T
 
 from . import aggregators, backbones
 
@@ -24,6 +25,36 @@ def find_best_match(target_string, list_of_strings):
             return s  # Return the first match found
     return None
 
+
+def get_transform(preset): 
+    if preset.lower() == "boq":
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((322, 322), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif preset.lower() == "dinosalad":
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((322, 322), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif preset.lower() == "eigenplaces":
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((512, 512), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif preset.lower() == "cosplaces":
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((512, 512), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+    else:
+        raise ValueError(f"Unknown preset: {preset}")
+    return transform
 
 def get_backbone(backbone_arch):
     """Helper function that returns the backbone given its name
