@@ -99,4 +99,5 @@ Training:
   Distill: 
     lr: 0.01
     teacher_preset: 'DinoSalad'
+    data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     

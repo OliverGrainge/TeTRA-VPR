@@ -91,22 +91,22 @@ class VPRDistill(pl.LightningModule):
         self,
         config,
         args,
-        data_directory,
         teacher_arch="DinoSalad",
         student_backbone_arch="vit_small",
         student_agg_arch="cls",
     ):
         super().__init__()
-        self.teacher = get_model(preset=teacher_arch)   
+        self.teacher = get_model(preset=config["teacher_preset"])   
         self.student = get_model(backbone_arch=student_backbone_arch, agg_arch=student_agg_arch, out_dim=get_feature_dim(self.teacher, args.image_size))
         
         freeze_model(self.teacher)
 
-        self.data_directory = data_directory
+        
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.image_size = args.image_size
         self.lr = config["lr"]
+        self.data_directory = config["data_directory"]
     
     def forward(self, x):
         return self.student(x)

@@ -111,8 +111,6 @@ if __name__ == "__main__":
         model_module = VPRDistill(
             config["Training"]["Distill"],
             args=args,
-            data_directory="/Users/olivergrainge/Documents/github/Datasets/SF_XL/small/test/queries_v1",
-            teacher_arch="EigenPlaces",
             student_backbone_arch=args.backbone_arch,
             student_agg_arch=args.agg_arch,
         )
@@ -207,6 +205,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(
         enable_progress_bar=True,
+        devices=1,
         strategy="auto",
         accelerator="auto",
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
@@ -215,16 +214,16 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        limit_train_batches=(
-            int(
-                config["Training"]["EigenPlaces"]["iterations_per_epoch"]
-                * 32
-                / args.batch_size
-            )
-            if args.training_method.lower() == "eigenplaces"
-            else None
-        ),
-        #limit_train_batches=50,
+        #limit_train_batches=(
+        #    int(
+        #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
+        #        * 32
+        #        / args.batch_size
+        #    )
+        #    if args.training_method.lower() == "eigenplaces"
+        #    else None
+        #),
+        limit_train_batches=5,
     )
 
     trainer.fit(model_module)
