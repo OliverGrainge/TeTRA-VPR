@@ -8,7 +8,6 @@ import torchvision.transforms as T
 
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model, get_transform
-from NeuroCompress.NeuroPress import freeze_model
 from parsers import get_args_parser
 
 
@@ -105,7 +104,8 @@ def eval_vpr(args):
 
     trainer = pl.Trainer(
         accelerator="auto",
-        precision="fp32",
+        precision="32",
+        devices=1,
     )
     results = trainer.validate(module)
     return results
@@ -126,7 +126,7 @@ def eval_imagenet(args):
 
     measure_latency(model, torch.randn(1, 3, 224, 224))
     measure_memory(model)
-    trainer = pl.Trainer(limit_test_batches=20)
+    trainer = pl.Trainer(precision='bf32-true', devices=1)
     trainer.test(module)
 
 

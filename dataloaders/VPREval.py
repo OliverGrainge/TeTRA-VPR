@@ -30,10 +30,10 @@ class VPREval(pl.LightningModule):
         self.val_set_names = val_set_names
         self.search_precision = search_precision
 
+
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
         if stage == "fit" or stage == "validate":
-            self.reload()
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
@@ -65,20 +65,21 @@ class VPREval(pl.LightningModule):
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
                     )
-            if self.show_data_stats:
-                self.print_stats()
+
 
 
     def val_dataloader(self):
         val_dataloaders = []
         for val_dataset in self.val_datasets:
+            print("=====================", self.num_workers)
             val_dataloaders.append(
-                DataLoader(dataset=val_dataset, **self.valid_loader_config)
+                DataLoader(dataset=val_dataset, shuffle=False, num_workers=self.num_workers, batch_size=self.batch_size)
             )
         return val_dataloaders
 
     def forward(self, x):
         x = self.model(x)
+        print(type(x))
         return x
 
 
@@ -126,7 +127,7 @@ class VPREval(pl.LightningModule):
                 gt=ground_truth,
                 print_results=True,
                 dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu,
+                faiss_gpu=False,
                 precision="float32",
             )
 
@@ -149,27 +150,5 @@ class VPREval(pl.LightningModule):
                 logger=True,
             )
             result_dict[val_set_name] = recalls_dict
-        
         return result_dict
 
-
-    def print_stats(self):
-        table = PrettyTable()
-        table.field_names = ["Data", "Value"]
-        table.add_row(["# of cities", f"{len(self.cities)}"])
-        table.add_row(["# of places", f"{self.train_dataset.__len__()}"])
-        table.add_row(["# of images", f"{self.train_dataset.total_nb_images}"])
-        print(table.get_string(title="Training Dataset"))
-
-        table = PrettyTable()
-        for i, val_set_name in enumerate(self.val_set_names):
-            table.add_row([f"Validation set {i+1}", f"{val_set_name}"])
-        print(table.get_string(title="Validation Datasets"))
-
-        table = PrettyTable()
-        table.add_row(["Batch size (PxK)", f"{self.batch_size}x{self.img_per_place}"])
-        table.add_row(
-            ["# of iterations", f"{self.train_dataset.__len__() // self.batch_size}"]
-        )
-        table.add_row(["Image size", f"{self.image_size}"])
-        print(table.get_string(title="Training config"))

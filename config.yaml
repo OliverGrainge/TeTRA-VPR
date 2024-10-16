@@ -1,8 +1,8 @@
 
 Datasets:
   #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
-  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
+  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
 Training:

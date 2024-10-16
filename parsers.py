@@ -151,7 +151,7 @@ def training_arguments(parser=None):
     )
 
     parser.add_argument(
-        "eval_method",
+        "--eval_method",
         type=str,
         default="vpr",
         help="Evaluation method",
@@ -160,15 +160,6 @@ def training_arguments(parser=None):
 
     return parser
 
-
-def quantize_arguments(parser=None):
-    if parser is None:
-        parser = argparse.ArgumentParser(description="Quantize configuration arguments")
-
-    parser.add_argument("--qlinear", type=str, default=config["Quantize"]["qlinear"])
-    parser.add_argument("--qconv", type=str, default=config["Quantize"]["qconv"])
-
-    return parser
 
 
 def get_args_parser():
