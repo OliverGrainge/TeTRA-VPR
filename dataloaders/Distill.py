@@ -14,6 +14,7 @@ import tarfile
 from io import BytesIO
 import json
 import glob
+import random
 import os
 
 import utils
@@ -62,6 +63,14 @@ class TarImageDataset(Dataset):
             image = Image.open(BytesIO(file.read()))
             image = image.convert('RGB')  # Convert to RGB if necessary
 
+        width, height = image.size
+        if width > height:
+            height, height = 512, 512
+            left = random.randint(0, width - height)
+            right = left + height
+            bottom = height
+            image = image.crop((left, 0, right, bottom))
+
         if self.transform:
             image = self.transform(image)
         
@@ -80,6 +89,14 @@ class ImageDataset(Dataset):
         image_path = self.image_paths[idx]
         image = Image.open(image_path)
         image = image.convert('RGB')
+
+        width, height = image.size
+        if width > height:
+            height, height = 512, 512
+            left = random.randint(0, width - height)
+            right = left + height
+            bottom = height
+            image = image.crop((left, 0, right, bottom))
         
         if self.transform:
             image = self.transform(image)
@@ -132,7 +149,6 @@ class VPRDistill(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch 
-        print(student_images.shape, teacher_images.shape)
         teacher_features = self.teacher(teacher_images)
         student_features = self(student_images)
         
@@ -141,7 +157,6 @@ class VPRDistill(pl.LightningModule):
         mse_loss = F.mse_loss(teacher_features, student_features)
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)).mean()
         loss = 1000 * mse_loss + cosine_loss
-        print(loss.item(), 1000 * mse_loss.item(), cosine_loss.item())
         self.log("train_loss", loss)
         self.log("mse_loss", mse_loss)
         self.log("cosine_loss", cosine_loss)

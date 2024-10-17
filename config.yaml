@@ -95,7 +95,7 @@ Training:
     random_resized_crop: 0.5
 
   Distill: 
-    lr: 0.01
+    lr: 0.001
     teacher_preset: 'EigenPlaces'
     data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     
