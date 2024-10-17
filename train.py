@@ -203,7 +203,6 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(
         enable_progress_bar=True,
-        devices=1,
         strategy="auto",
         accelerator="auto",
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
@@ -216,12 +215,11 @@ if __name__ == "__main__":
         #    int(
         #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
         #        * 32
-        #        / args.batch_size
+        #        / args.batch_sizes
         #    )
         #    if args.training_method.lower() == "eigenplaces"
         #    else None
         #),
-        limit_train_batches=5,
     )
 
     trainer.fit(model_module)

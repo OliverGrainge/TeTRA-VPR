@@ -42,7 +42,7 @@ def get_transform(preset):
     elif preset.lower() == "dinosalad":
         transform = T.Compose([
             T.ToTensor(),
-            T.Resize((322, 322), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
+            T.Resize((224, 224), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
     elif preset.lower() == "eigenplaces":

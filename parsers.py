@@ -111,7 +111,8 @@ def training_arguments(parser=None):
     )
     parser.add_argument(
         "--image_size",
-        type=list,
+        type=int,
+        nargs='+',
         default=config["Training"]["image_size"],
         help="Size of the images (width, height)",
     )
@@ -156,7 +157,6 @@ def training_arguments(parser=None):
         default="vpr",
         help="Evaluation method",
     )
-
 
     return parser
 

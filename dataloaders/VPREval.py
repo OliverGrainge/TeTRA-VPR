@@ -71,7 +71,6 @@ class VPREval(pl.LightningModule):
     def val_dataloader(self):
         val_dataloaders = []
         for val_dataset in self.val_datasets:
-            print("=====================", self.num_workers)
             val_dataloaders.append(
                 DataLoader(dataset=val_dataset, shuffle=False, num_workers=self.num_workers, batch_size=self.batch_size)
             )
@@ -79,7 +78,6 @@ class VPREval(pl.LightningModule):
 
     def forward(self, x):
         x = self.model(x)
-        print(type(x))
         return x
 
 
@@ -101,7 +99,7 @@ class VPREval(pl.LightningModule):
         """Process the validation outputs stored in self.validation_outputs."""
 
         # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a list
+        # we need to put the outputs in a listpython train.py --training_method distill --backbone_arch resnet18 --agg_arch gem --batch_size 10
         if len(self.val_datasets) == 1:
             val_step_outputs = [self.validation_outputs]
         else:

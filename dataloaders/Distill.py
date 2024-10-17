@@ -24,9 +24,12 @@ from models.helper import get_model, get_transform
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
 
-def get_feature_dim(model, image_size):
-    x = torch.randn(3, *(image_size)).to(next(model.parameters()).device)
-    features = model(x[None, :])
+def get_feature_dim(model, transform):
+    x = torch.randint(0, 255, size=(3, 512, 512), dtype=torch.uint8)
+    x_np = x.numpy()
+    x_img = Image.fromarray(x_np.transpose(1, 2, 0))
+    x_transformed = transform(x_img)
+    features = model(x_transformed[None, :].to(next(model.parameters()).device))
     return features.shape[1]
 
 def freeze_model(model): 
@@ -111,24 +114,28 @@ class VPRDistill(pl.LightningModule):
     ):
         super().__init__()
         self.config = config
-        self.teacher = get_model(preset=config["teacher_preset"])   
-        self.student = get_model(backbone_arch=student_backbone_arch, agg_arch=student_agg_arch, out_dim=get_feature_dim(self.teacher, args.image_size))
-        
-        freeze_model(self.teacher)
-
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.image_size = args.image_size
         self.lr = config["lr"]
         self.data_directory = config["data_directory"]
+        self.teacher_preset = args.teacher_preset
+
+        self.teacher = get_model(preset=args.teacher_preset)   
+        self.student = get_model(backbone_arch=student_backbone_arch, agg_arch=student_agg_arch, out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()))
+        
+        freeze_model(self.teacher)
+
     
     def forward(self, x):
         return self.student(x)
     
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch 
+        print(student_images.shape, teacher_images.shape)
         teacher_features = self.teacher(teacher_images)
         student_features = self(student_images)
+        
         teacher_features = F.normalize(teacher_features, dim=1)
         student_features = F.normalize(student_features, dim=1)
         mse_loss = F.mse_loss(teacher_features, student_features)
@@ -152,7 +159,7 @@ class VPRDistill(pl.LightningModule):
         ])
     
     def teacher_train_transform(self):
-        return get_transform(self.config["teacher_preset"])
+        return get_transform(self.teacher_preset)
     
     
     def train_dataloader(self):

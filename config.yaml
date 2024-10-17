@@ -23,9 +23,7 @@ Training:
     - pitts30k_val
     #- sped
   num_workers: 12
-  image_size:
-    - 224
-    - 224
+  image_size: 224
 
 
   GSVCities: 
@@ -98,6 +96,6 @@ Training:
 
   Distill: 
     lr: 0.01
-    teacher_preset: 'DinoSalad'
+    teacher_preset: 'EigenPlaces'
     data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     
