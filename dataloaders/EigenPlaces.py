@@ -129,15 +129,15 @@ class EigenPlaces(pl.LightningModule):
         # Train and valid transforms
         self.train_transform = T.Compose(
             [
-                #augmentations.DeviceAgnosticColorJitter(
-                #    brightness=self.brightness,
-                #    contrast=self.contrast,
-                #    saturation=self.saturation,
-                #    hue=self.hue,
-                #),
-                #augmentations.DeviceAgnosticRandomResizedCrop(
-                #    self.image_size, scale=[1 - self.random_resized_crop, 1]
-                #),
+                augmentations.DeviceAgnosticColorJitter(
+                    brightness=self.brightness,
+                    contrast=self.contrast,
+                    saturation=self.saturation,
+                    hue=self.hue,
+                ),
+                augmentations.DeviceAgnosticRandomResizedCrop(
+                    self.image_size, scale=[1 - self.random_resized_crop, 1]
+                ),
                 T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
             ]
         )
