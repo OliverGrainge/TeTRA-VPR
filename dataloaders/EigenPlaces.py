@@ -206,8 +206,7 @@ class EigenPlaces(pl.LightningModule):
             for val_set_name in self.val_set_names:
                 print(val_set_name)
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -284,7 +283,9 @@ class EigenPlaces(pl.LightningModule):
             images = self.train_transform(images)
             descriptors = self(images)
             classifier_opts[current_dataset_num + i].zero_grad()
-            output = self.classifiers[current_dataset_num + i](descriptors["global_desc"], targets)
+            output = self.classifiers[current_dataset_num + i](
+                descriptors["global_desc"], targets
+            )
             loss = self.criterion(output, targets)
             if i == 0:
                 loss *= self.lambda_lat

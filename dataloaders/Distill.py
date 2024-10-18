@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from prettytable import PrettyTable
-import pytorch_lightning as pl 
+import pytorch_lightning as pl
 from pytorch_metric_learning import miners
 from pytorch_metric_learning.distances import CosineSimilarity
 from torch.utils.data import DataLoader
@@ -33,7 +33,8 @@ def get_feature_dim(model, transform):
     features = model(x_transformed[None, :].to(next(model.parameters()).device))
     return features.shape[1]
 
-def freeze_model(model): 
+
+def freeze_model(model):
     for param in model.parameters():
         param.requires_grad = False
     return model
@@ -45,23 +46,25 @@ class TarImageDataset(Dataset):
         self.tar_paths = tar_paths
         self.transform = transform
         self.image_paths = []
-        
+
         # Store tar file info and image paths for later access
         self.tar_info = []
         for tar_path in tar_paths:
-            with tarfile.open(tar_path, 'r') as tar:
+            with tarfile.open(tar_path, "r") as tar:
                 members = tar.getmembers()
-                self.tar_info.extend([(tar_path, member) for member in members if member.isfile()])
-                
+                self.tar_info.extend(
+                    [(tar_path, member) for member in members if member.isfile()]
+                )
+
     def __len__(self):
         return len(self.tar_info)
-    
+
     def __getitem__(self, idx):
         tar_path, member = self.tar_info[idx]
-        with tarfile.open(tar_path, 'r') as tar:
+        with tarfile.open(tar_path, "r") as tar:
             file = tar.extractfile(member)
             image = Image.open(BytesIO(file.read()))
-            image = image.convert('RGB')  # Convert to RGB if necessary
+            image = image.convert("RGB")  # Convert to RGB if necessary
 
         width, height = image.size
         if width > height:
@@ -73,9 +76,9 @@ class TarImageDataset(Dataset):
 
         if self.transform:
             image = self.transform(image)
-        
+
         return image
-    
+
 
 class ImageDataset(Dataset):
     def __init__(self, data_directory, transform=None):
@@ -83,12 +86,12 @@ class ImageDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return len(self.image_paths)    
-    
+        return len(self.image_paths)
+
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
         image = Image.open(image_path)
-        image = image.convert('RGB')
+        image = image.convert("RGB")
 
         width, height = image.size
         if width > height:
@@ -97,13 +100,13 @@ class ImageDataset(Dataset):
             right = left + height
             bottom = height
             image = image.crop((left, 0, right, bottom))
-        
+
         if self.transform:
             image = self.transform(image)
-            
+
         return image
-        
-        
+
+
 class DistillDataset(Dataset):
     def __init__(self, dataset, student_transform, teacher_transform):
         self.dataset = dataset
@@ -112,13 +115,12 @@ class DistillDataset(Dataset):
 
     def __len__(self):
         return len(self.dataset)
-    
+
     def __getitem__(self, idx):
         image = self.dataset[idx]
         student_image = self.student_transform(image)
         teacher_image = self.teacher_transform(image)
         return student_image, teacher_image
-    
 
 
 class VPRDistill(pl.LightningModule):
@@ -138,45 +140,52 @@ class VPRDistill(pl.LightningModule):
         self.data_directory = config["data_directory"]
         self.teacher_preset = args.teacher_preset
 
-        self.teacher = get_model(preset=args.teacher_preset)   
-        self.student = get_model(backbone_arch=student_backbone_arch, agg_arch=student_agg_arch, out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()))
-        
+        self.teacher = get_model(preset=args.teacher_preset)
+        self.student = get_model(
+            backbone_arch=student_backbone_arch,
+            agg_arch=student_agg_arch,
+            out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()),
+        )
+
         freeze_model(self.teacher)
 
-    
     def forward(self, x):
         return self.student(x)
-    
+
     def training_step(self, batch, batch_idx):
-        student_images, teacher_images = batch 
+        student_images, teacher_images = batch
         teacher_features = self.teacher(teacher_images)
         student_features = self(student_images)
-        
         teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
         student_features = F.normalize(student_features["global_desc"], dim=1)
         mse_loss = F.mse_loss(teacher_features, student_features)
-        cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)).mean()
+        cosine_loss = (
+            1 - F.cosine_similarity(teacher_features, student_features)
+        ).mean()
         loss = 1000 * mse_loss + cosine_loss
         self.log("train_loss", loss)
         self.log("mse_loss", mse_loss)
         self.log("cosine_loss", cosine_loss)
         return loss
-    
+
     def configure_optimizers(self):
         optimizer = optim.Adam(self.student.parameters(), lr=self.lr)
         return optimizer
-    
+
     def student_train_transform(self):
-        return T.Compose([
-            T.Resize(self.image_size),
-            T.ToTensor(),
-            T.Normalize(mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"])
-        ])
-    
+        return T.Compose(
+            [
+                T.Resize(self.image_size),
+                T.ToTensor(),
+                T.Normalize(
+                    mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
+                ),
+            ]
+        )
+
     def teacher_train_transform(self):
         return get_transform(self.teacher_preset)
-    
-    
+
     def train_dataloader(self):
         paths = os.listdir(self.data_directory)
         if not os.path.isdir(self.data_directory):
@@ -187,5 +196,14 @@ class VPRDistill(pl.LightningModule):
         else:
             train_dataset = ImageDataset(self.data_directory)
 
-        dataset = DistillDataset(train_dataset, self.student_train_transform(), self.teacher_train_transform())
-        return DataLoader(dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+        dataset = DistillDataset(
+            train_dataset,
+            self.student_train_transform(),
+            self.teacher_train_transform(),
+        )
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )

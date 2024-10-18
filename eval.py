@@ -80,9 +80,7 @@ def eval_vpr(args):
     from dataloaders.VPREval import VPREval
 
     if args.preset is not None:
-        model = get_model(
-            preset=args.preset
-        )
+        model = get_model(preset=args.preset)
         transform = get_transform(args.preset)
     else:
         model = get_model(
@@ -94,18 +92,27 @@ def eval_vpr(args):
         )
 
         model.load_state_dict(torch.load(args.load_checkpoint))
-        transform = T.Compose([
-            T.Resize(args.image_size),
-            T.ToTensor(),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+        transform = T.Compose(
+            [
+                T.Resize(args.image_size),
+                T.ToTensor(),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
 
-    module = VPREval(model, transform, args.val_set_names, args.search_precision, args.batch_size, args.num_workers)
+    module = VPREval(
+        model,
+        transform,
+        args.val_set_names,
+        args.search_precision,
+        args.batch_size,
+        args.num_workers,
+    )
 
     trainer = pl.Trainer(
         accelerator="auto",
         precision="32",
-        devices=1,
+        devices=1
     )
     results = trainer.validate(module)
     return results
@@ -126,7 +133,7 @@ def eval_imagenet(args):
 
     measure_latency(model, torch.randn(1, 3, 224, 224))
     measure_memory(model)
-    trainer = pl.Trainer(precision='bf32-true', devices=1)
+    trainer = pl.Trainer(precision="bf32-true", devices=1)
     trainer.test(module)
 
 

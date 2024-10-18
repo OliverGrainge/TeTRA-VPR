@@ -107,7 +107,7 @@ if __name__ == "__main__":
             mode="max",
         )
 
-    if "distill" in args.training_method.lower(): 
+    if "distill" in args.training_method.lower():
         model_module = VPRDistill(
             config["Training"]["Distill"],
             args=args,
@@ -217,8 +217,8 @@ if __name__ == "__main__":
                 * 32
                 / args.batch_size
             )
-           if args.training_method.lower() == "eigenplaces"
-           else None
+            if args.training_method.lower() == "eigenplaces"
+            else None
         ),
     )
 

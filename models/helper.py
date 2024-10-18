@@ -26,41 +26,72 @@ def find_best_match(target_string, list_of_strings):
     return None
 
 
-def get_transform(preset): 
+def get_transform(preset):
     if preset.lower() == "dinov2_boq":
-        transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((322, 322), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize(
+                    (322, 322),
+                    interpolation=T.InterpolationMode.BICUBIC,
+                    antialias=True,
+                ),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
     elif preset.lower() == "resnet50_boq":
-        transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((384, 384), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize(
+                    (384, 384),
+                    interpolation=T.InterpolationMode.BICUBIC,
+                    antialias=True,
+                ),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
     elif preset.lower() == "dinosalad":
-        transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((224, 224), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize(
+                    (224, 224),
+                    interpolation=T.InterpolationMode.BICUBIC,
+                    antialias=True,
+                ),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
     elif preset.lower() == "eigenplaces":
-        transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((512, 512), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize(
+                    (512, 512),
+                    interpolation=T.InterpolationMode.BICUBIC,
+                    antialias=True,
+                ),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
     elif preset.lower() == "cosplaces":
-        transform = T.Compose([
-            T.ToTensor(),
-            T.Resize((512, 512), interpolation=T.InterpolationMode.BICUBIC, antialias=True),
-            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        transform = T.Compose(
+            [
+                T.ToTensor(),
+                T.Resize(
+                    (512, 512),
+                    interpolation=T.InterpolationMode.BICUBIC,
+                    antialias=True,
+                ),
+                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
 
     else:
         raise ValueError(f"Unknown preset: {preset}")
     return transform
+
 
 def get_backbone(backbone_arch):
     """Helper function that returns the backbone given its name
@@ -150,7 +181,7 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         config["height"] = int(image_size[0])
         config["width"] = int(image_size[1])
         scale_factor = out_dim / (8448 - features_dim[1])
-        config["num_clusters"] = 64 * int(scale_factor**0.5) 
+        config["num_clusters"] = 64 * int(scale_factor**0.5)
         config["cluster_dim"] = 128 * int(scale_factor**0.5)
         return aggregators.SALAD(**config)
 
@@ -177,7 +208,7 @@ class VPRModel(nn.Module):
                 x = tuple(x)  # Optionally convert back to tuple if needed
             else:
                 x = F.normalize(x, p=2, dim=-1)
-        return {"global_desc": x, "local_desc": None}
+        return {"global_desc": x}
 
 
 def get_model(

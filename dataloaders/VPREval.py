@@ -4,7 +4,10 @@ from prettytable import PrettyTable
 from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-
+import numpy as np
+from PIL import Image
+from collections import defaultdict
+from matching.global_cosine_sim import global_cosine_sim
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 
@@ -12,15 +15,26 @@ IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
 
 
+def get_sample_output(model, transform):
+    model.eval()
+    sample = np.random.randint(0, 255, size=(224, 224, 3))
+    sample = Image.fromarray(sample.astype(np.uint8))
+    sample = transform(sample)
+    sample = sample.unsqueeze(0)
+    output = model(sample)
+    return output
+
 class VPREval(pl.LightningModule):
     def __init__(
         self,
         model,
         transform,
-        val_set_names=["pitts30k_val"],
+        val_set_names=["pitts30k"],
         search_precision="float32",
         batch_size=32,
         num_workers=4,
+        matching_function=global_cosine_sim,
+
     ):
         super().__init__()
         self.model = model
@@ -29,6 +43,7 @@ class VPREval(pl.LightningModule):
         self.num_workers = num_workers
         self.val_set_names = val_set_names
         self.search_precision = search_precision
+        self.matching_function = matching_function
 
 
     def setup(self, stage=None):
@@ -37,8 +52,7 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -66,13 +80,16 @@ class VPREval(pl.LightningModule):
                         f"Validation set {val_set_name} not implemented"
                     )
 
-
-
     def val_dataloader(self):
         val_dataloaders = []
         for val_dataset in self.val_datasets:
             val_dataloaders.append(
-                DataLoader(dataset=val_dataset, shuffle=False, num_workers=self.num_workers, batch_size=self.batch_size)
+                DataLoader(
+                    dataset=val_dataset,
+                    shuffle=False,
+                    num_workers=self.num_workers,
+                    batch_size=self.batch_size,
+                )
             )
         return val_dataloaders
 
@@ -80,31 +97,47 @@ class VPREval(pl.LightningModule):
         x = self.model(x)
         return x
 
-
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
-        self.validation_outputs = []
+        self.validation_outputs = {}
+        for name in self.val_set_names:
+            self.validation_outputs[name] = defaultdict(list)
 
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
-    def validation_step(self, batch, batch_idx, dataloader_idx=None):
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
-        return descriptors.detach().cpu()
+        for key, value in descriptors.items():
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+        return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
-        """Process the validation outputs stored in self.validation_outputs."""
+        """Process the validation outputs stored in self.validation_outputs_global."""
 
-        # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a listpython train.py --training_method distill --backbone_arch resnet18 --agg_arch gem --batch_size 10
-        if len(self.val_datasets) == 1:
-            val_step_outputs = [self.validation_outputs]
-        else:
-            val_step_outputs = self.validation_outputs
-        result_dict = {}
+
+        results_dict = {}
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+            set_outputs = self.validation_outputs[val_set_name]
+            for key, value in set_outputs.items():
+                set_outputs[key] = torch.concat(value, dim=0)
+
+            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+
+            self.log_dict(
+                recalls_dict,
+                prog_bar=False,
+                logger=True,
+            )
+    
+            results_dict[val_set_name] = recalls_dict
+        return results_dict
+
+
+        """
+        result_dict = {}    
         for i, (val_set_name, val_dataset) in enumerate(
             zip(self.val_set_names, self.val_datasets)
         ):
@@ -128,25 +161,4 @@ class VPREval(pl.LightningModule):
                 faiss_gpu=False,
                 precision="float32",
             )
-
-            self.log(
-                f"{val_set_name}/R1",
-                recalls_dict[1],
-                prog_bar=False,
-                logger=True,
-            )
-            self.log(
-                f"{val_set_name}/R5",
-                recalls_dict[5],
-                prog_bar=False,
-                logger=True,
-            )
-            self.log(
-                f"{val_set_name}/R10",
-                recalls_dict[10],
-                prog_bar=False,
-                logger=True,
-            )
-            result_dict[val_set_name] = recalls_dict
-        return result_dict
-
+            """

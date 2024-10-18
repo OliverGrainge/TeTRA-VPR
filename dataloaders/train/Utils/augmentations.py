@@ -53,6 +53,7 @@ if __name__ == "__main__":
     the augmentations are applied individually on each image of the batch.
     """
     from PIL import Image
+
     # Import skimage in here, so it is not necessary to install it unless you run this script
     from skimage import data
 

@@ -1,8 +1,8 @@
 
 Datasets:
   #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
-  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
+  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
 Training:
@@ -19,18 +19,15 @@ Training:
   search_precision: 'float32'
   fast_dev_run: False
   freeze_n_blocks: 8
-  val_set_names:
-    - pitts30k_val
-    #- sped
   num_workers: 12
-  image_size: 224 224
+  image_size: [224, 224]
 
 
   GSVCities: 
     shuffle_all: True
     optimizer: 'adamw' #adam
     lr: 0.0002
-    weight_decay: 0.0
+    weight_decay: 0.0de
     momentum: 0.9
     warmup_steps: 100 # 600
     milestones:

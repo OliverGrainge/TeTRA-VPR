@@ -299,7 +299,7 @@ class VPRModel(pl.LightningModule):
     def forward(self, x):
         x = self.backbone(x)
         x = self.aggregator(x)
-        return {"global_desc": x, "local_desc": None}
+        return {"global_desc": x}
 
 
 def DinoSalad(

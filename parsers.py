@@ -14,7 +14,6 @@ def training_arguments(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description="Training configuration arguments")
 
-
         # Model options with config as default
     parser.add_argument(
         "--load_checkpoint",
@@ -99,8 +98,9 @@ def training_arguments(parser=None):
 
     parser.add_argument(
         "--val_set_names",
-        type=list,
-        default=config["Training"]["val_set_names"],
+        type=str,
+        nargs="+",
+        default=["pitts30k_val"],
         help="Validation set names",
     )
     parser.add_argument(
@@ -112,7 +112,7 @@ def training_arguments(parser=None):
     parser.add_argument(
         "--image_size",
         type=int,
-        nargs='+',
+        nargs=2,
         default=config["Training"]["image_size"],
         help="Size of the images (width, height)",
     )
@@ -159,7 +159,6 @@ def training_arguments(parser=None):
     )
 
     return parser
-
 
 
 def get_args_parser():
