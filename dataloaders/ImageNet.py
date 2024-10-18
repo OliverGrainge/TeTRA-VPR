@@ -126,10 +126,10 @@ class ImageNet(LightningModule):
     def training_step(self, batch, batch_idx):
         images, target = batch
         output = self(images)
-        loss_train = F.cross_entropy(output, target, label_smoothing=0.1)
+        loss_train = F.cross_entropy(output["global_desc"], target, label_smoothing=0.1)
         loss_reg = self.reg_loss()
         alpha = self.reg_scheduler.get_scalar()
-        acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
+        acc1, acc5 = self.__accuracy(output["global_desc"], target, topk=(1, 5))
         print(loss_train.item(), alpha * loss_reg)
         loss = loss_train + alpha * loss_reg
         self.log("train_loss", loss_train, on_step=True, on_epoch=True, logger=True)
@@ -151,7 +151,7 @@ class ImageNet(LightningModule):
     def eval_step(self, batch, batch_idx, prefix: str):
         images, target = batch
         output = self(images)
-        loss_val = F.cross_entropy(output, target)
+        loss_val = F.cross_entropy(output["global_desc"], target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
         self.log(f"{prefix}_loss", loss_val, on_step=True, on_epoch=True)
         self.log(f"{prefix}_acc1", acc1, on_step=True, prog_bar=True, on_epoch=True)

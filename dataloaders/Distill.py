@@ -152,8 +152,8 @@ class VPRDistill(pl.LightningModule):
         teacher_features = self.teacher(teacher_images)
         student_features = self(student_images)
         
-        teacher_features = F.normalize(teacher_features, dim=1)
-        student_features = F.normalize(student_features, dim=1)
+        teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
+        student_features = F.normalize(student_features["global_desc"], dim=1)
         mse_loss = F.mse_loss(teacher_features, student_features)
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)).mean()
         loss = 1000 * mse_loss + cosine_loss

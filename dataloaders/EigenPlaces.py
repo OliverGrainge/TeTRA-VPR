@@ -179,7 +179,6 @@ class EigenPlaces(pl.LightningModule):
                 T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
             ]
         )
-        self.mycount = 0 
 
         # Dataloader configs
         self.train_loader_config = {
@@ -282,25 +281,10 @@ class EigenPlaces(pl.LightningModule):
         for dataset_key, b in batch.items():
             current_dataset_num, i = dataset_key
             images, targets, _ = b
-            print(images.shape, images.min(), images.max())
-            
-            # Save the plot to a file instead of displaying it
-            
-            if self.global_step % 9 == 0:
-                self.mycount += 1
-                import matplotlib.pyplot as plt
-                plt.figure()
-                idx = torch.randint(0, images.shape[0], (1,))
-                plt.imshow(images[int(idx.item())].permute(1, 2, 0).detach().cpu().numpy())
-                plt.savefig(f'sample_image_{self.current_epoch}_{self.mycount}_{i}.png')
-                plt.close()
-            if self.mycount > 5:
-                raise Exception("Stop here")
-
             images = self.train_transform(images)
             descriptors = self(images)
             classifier_opts[current_dataset_num + i].zero_grad()
-            output = self.classifiers[current_dataset_num + i](descriptors, targets)
+            output = self.classifiers[current_dataset_num + i](descriptors["global_desc"], targets)
             loss = self.criterion(output, targets)
             if i == 0:
                 loss *= self.lambda_lat
@@ -345,7 +329,7 @@ class EigenPlaces(pl.LightningModule):
     def validation_step(self, batch, batch_idx, dataloader_idx=None):
         places, _ = batch
         descriptors = self(places)
-        self.validation_outputs.append(descriptors.detach().cpu())
+        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
         return None
 
     def on_validation_epoch_end(self):

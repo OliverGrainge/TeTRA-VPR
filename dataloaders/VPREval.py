@@ -92,7 +92,7 @@ class VPREval(pl.LightningModule):
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        self.validation_outputs.append(descriptors.detach().cpu())
+        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
         return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):

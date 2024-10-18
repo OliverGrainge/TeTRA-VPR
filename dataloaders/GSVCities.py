@@ -213,7 +213,7 @@ class GSVCities(pl.LightningModule):
         images = places.view(BS * N, ch, h, w)
         labels = labels.view(-1)
         descriptors = self(images)
-        loss = self.loss_function(descriptors, labels)
+        loss = self.loss_function(descriptors["global_desc"], labels)
         self.log("loss", loss)
         return {"loss": loss}
 
@@ -228,7 +228,7 @@ class GSVCities(pl.LightningModule):
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        self.validation_outputs.append(descriptors.detach().cpu())
+        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
         return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):

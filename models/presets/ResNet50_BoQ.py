@@ -6,6 +6,7 @@ def ResNet50_BoQ():
 
     original_forward = model.forward
     def new_forward(x):
-        return original_forward(x)[0]
+        desc, attn = original_forward(x)
+        return {"global_desc": desc, "local_desc": None, "attention": attn}
     model.forward = new_forward
     return model

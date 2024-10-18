@@ -177,7 +177,7 @@ class VPRModel(nn.Module):
                 x = tuple(x)  # Optionally convert back to tuple if needed
             else:
                 x = F.normalize(x, p=2, dim=-1)
-        return x
+        return {"global_desc": x, "local_desc": None}
 
 
 def get_model(
