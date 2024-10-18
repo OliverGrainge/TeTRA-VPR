@@ -149,9 +149,9 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         config["token_dim"] = features_dim[0]
         config["height"] = int(image_size[0])
         config["width"] = int(image_size[1])
-        scale_factor = out_dim / 8192
-        config["num_clusters"] = int(64 * scale_factor**0.5)
-        config["cluster_dim"] = int(128 * scale_factor**0.5)
+        scale_factor = out_dim / (8448 - features_dim[1])
+        config["num_clusters"] = 64 * int(scale_factor**0.5) 
+        config["cluster_dim"] = 128 * int(scale_factor**0.5)
         return aggregators.SALAD(**config)
 
     elif "cls" in agg_arch.lower():

@@ -202,7 +202,7 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,
+        enable_progress_bar=False,
         strategy="auto",
         accelerator="auto",
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
@@ -211,15 +211,15 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
-        #limit_train_batches=(
-        #    int(
-        #        config["Training"]["EigenPlaces"]["iterations_per_epoch"]
-        #        * 32
-        #        / args.batch_sizes
-        #    )
-        #    if args.training_method.lower() == "eigenplaces"
-        #    else None
-        #),
+        limit_train_batches=(
+            int(
+                config["Training"]["EigenPlaces"]["iterations_per_epoch"]
+                * 32
+                / args.batch_size
+            )
+           if args.training_method.lower() == "eigenplaces"
+           else None
+        ),
     )
 
     trainer.fit(model_module)

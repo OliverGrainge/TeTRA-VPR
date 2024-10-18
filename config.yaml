@@ -23,7 +23,7 @@ Training:
     - pitts30k_val
     #- sped
   num_workers: 12
-  image_size: 224
+  image_size: 224 224
 
 
   GSVCities: 
@@ -74,13 +74,13 @@ Training:
     
 
   EigenPlaces: 
-    weight_decay: 0.01
-    dataset_size: large
-    lr: 0.00001 # 0.00001 for large dataset
+    dataset_size: small
+    weight_decay: 0.001
+    lr: 0.0001 # 0.00001 for large dataset
     classifiers_lr: 0.01
     lambda_lat: 1.
     lambda_front: 1.
-    iterations_per_epoch: 5000
+    iterations_per_epoch: 2000
     M: 15 
     N: 3
     s: 100
