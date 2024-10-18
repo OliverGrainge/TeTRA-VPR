@@ -125,7 +125,7 @@ class GSVCitiesDataset(Dataset):
 
         # NOTE: contrary to image classification where __getitem__ returns only one image
         # in GSVCities, we return a place, which is a Tesor of K images (K=self.img_per_place)
-        # this will return a Tensor of shape [K, channels, height, width]. This needs to be taken into account
+        # this will return a Tensor of shape [K, channels, hdownload_12122.lo=.ht, width]. This needs to be taken into account
         # in the Dataloader (which will yield batches of shape [BS, K, channels, height, width])
         return torch.stack(imgs), torch.tensor(place_id).repeat(self.img_per_place)
 
