@@ -76,7 +76,7 @@ Training:
     classifiers_lr: 0.01
     lambda_lat: 1.
     lambda_front: 1.
-    iterations_per_epoch: 2000
+    iterations_per_epoch: 5000
     M: 15 
     N: 3
     s: 100

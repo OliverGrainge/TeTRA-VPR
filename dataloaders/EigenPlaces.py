@@ -231,6 +231,18 @@ class EigenPlaces(pl.LightningModule):
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.valid_transform)
                     )
+                elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
+                    from dataloaders.val.SF_XL import SF_XL
+
+                    self.val_datasets.append(
+                        SF_XL(which_ds="sf_xl_small_val", input_transform=self.valid_transform)
+                    )
+                elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
+                    from dataloaders.val.SF_XL import SF_XL
+
+                    self.val_datasets.append(
+                        SF_XL(which_ds="sf_xl_small_test", input_transform=self.valid_transform)
+                    )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"

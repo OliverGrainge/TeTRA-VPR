@@ -210,6 +210,7 @@ if __name__ == "__main__":
         max_epochs=args.max_epochs,
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
+        reload_dataloaders_every_n_epochs=1,
         limit_train_batches=(
             int(
                 config["Training"]["EigenPlaces"]["iterations_per_epoch"]
