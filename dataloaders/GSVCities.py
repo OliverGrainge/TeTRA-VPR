@@ -4,6 +4,8 @@ from prettytable import PrettyTable
 from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
+from collections import defaultdict
+from matching.global_cosine_sim import global_cosine_sim
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
@@ -27,6 +29,7 @@ class GSVCities(pl.LightningModule):
         search_precision="float32",
         loss_name="MultiSimilarityLoss",
         miner_name="MultiSimilarityMiner",
+        matching_function=global_cosine_sim,
     ):
         super().__init__()
         # Model parameters
@@ -46,7 +49,7 @@ class GSVCities(pl.LightningModule):
         self.min_img_per_place = config["min_img_per_place"]
         self.cities = config["cities"]
         self.shuffle_all = config["shuffle_all"]
-
+        self.matching_function = matching_function
         self.batch_acc = []
         self.loss_fn = utils.get_loss(self.loss_name)
         self.miner = utils.get_miner(self.miner_name, self.miner_margin)
@@ -216,126 +219,38 @@ class GSVCities(pl.LightningModule):
         self.log("loss", loss)
         return {"loss": loss}
 
+
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
-        self.validation_outputs = []
+        self.validation_outputs = {}
+        for name in self.val_set_names:
+            self.validation_outputs[name] = defaultdict(list)
 
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
-    def validation_step(self, batch, batch_idx, dataloader_idx=None):
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
-        return descriptors.detach().cpu()
+        for key, value in descriptors.items():
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+        return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
-        """Process the validation outputs stored in self.validation_outputs."""
+        """Process the validation outputs stored in self.validation_outputs_global."""
 
-        # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a list
-        if len(self.val_datasets) == 1:
-            val_step_outputs = [self.validation_outputs]
-        else:
-            val_step_outputs = self.validation_outputs
+        results_dict = {}
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+            set_outputs = self.validation_outputs[val_set_name]
+            for key, value in set_outputs.items():
+                set_outputs[key] = torch.concat(value, dim=0)
 
-        for i, (val_set_name, val_dataset) in enumerate(
-            zip(self.val_set_names, self.val_datasets)
-        ):
-            feats = torch.concat(val_step_outputs[i], dim=0)
-
-            num_references = val_dataset.num_references
-            num_queries = val_dataset.num_queries
-            ground_truth = val_dataset.ground_truth
-
-            # split to ref and queries
-            r_list = feats[:num_references]
-            q_list = feats[num_references:]
-
-            recalls_dict_float, predictions = utils.get_validation_recalls(
-                r_list=r_list,
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 25],
-                gt=ground_truth,
-                print_results=True,
-                dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu,
-                precision="float32",
-            )
-
-            self.log(
-                f"{val_set_name}/float_R1",
-                recalls_dict_float[1],
+            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+            self.log_dict(
+                recalls_dict,
                 prog_bar=False,
                 logger=True,
             )
-            self.log(
-                f"{val_set_name}/float_R5",
-                recalls_dict_float[5],
-                prog_bar=False,
-                logger=True,
-            )
-            self.log(
-                f"{val_set_name}/float_R10",
-                recalls_dict_float[10],
-                prog_bar=False,
-                logger=True,
-            )
-
-            recalls_dict_binary, predictions = utils.get_validation_recalls(
-                r_list=r_list,
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 25],
-                gt=ground_truth,
-                print_results=True,
-                dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu,
-                precision="binary",
-            )
-
-            self.log(
-                f"{val_set_name}/binary_R1",
-                recalls_dict_binary[1],
-                prog_bar=False,
-                logger=True,
-            )
-            self.log(
-                f"{val_set_name}/binary_R5",
-                recalls_dict_binary[5],
-                prog_bar=False,
-                logger=True,
-            )
-            self.log(
-                f"{val_set_name}/binary_R10",
-                recalls_dict_binary[10],
-                prog_bar=False,
-                logger=True,
-            )
-
-            del r_list, q_list, feats, num_references, ground_truth
-
-        # Clear the outputs after processing
-        self.validation_outputs.clear()
-        print("\n\n")
-
-    def print_stats(self):
-        table = PrettyTable()
-        table.field_names = ["Data", "Value"]
-        table.add_row(["# of cities", f"{len(self.cities)}"])
-        table.add_row(["# of places", f"{self.train_dataset.__len__()}"])
-        table.add_row(["# of images", f"{self.train_dataset.total_nb_images}"])
-        print(table.get_string(title="Training Dataset"))
-
-        table = PrettyTable()
-        for i, val_set_name in enumerate(self.val_set_names):
-            table.add_row([f"Validation set {i+1}", f"{val_set_name}"])
-        print(table.get_string(title="Validation Datasets"))
-
-        table = PrettyTable()
-        table.add_row(["Batch size (PxK)", f"{self.batch_size}x{self.img_per_place}"])
-        table.add_row(
-            ["# of iterations", f"{self.train_dataset.__len__() // self.batch_size}"]
-        )
-        table.add_row(["Image size", f"{self.image_size}"])
-        print(table.get_string(title="Training config"))
+            results_dict[val_set_name] = recalls_dict
+        return results_dict

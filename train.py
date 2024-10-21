@@ -88,7 +88,6 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
             mean_std=MEAN_STD,
             val_set_names=args.val_set_names,
-            search_precision=args.search_precision,
             loss_name=args.loss_name,
             miner_name=args.miner_name,
         )
@@ -132,6 +131,7 @@ if __name__ == "__main__":
             args.image_size,
             args.backbone_arch,
             args.agg_arch,
+            preset=args.preset,
             out_dim=args.out_dim,
             normalize_output=True,
         )
@@ -144,11 +144,10 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
             mean_std=MEAN_STD,
             val_set_names=args.val_set_names,
-            search_precision=args.search_precision,
         )
 
         checkpoint_cb = ModelCheckpoint(
-            monitor=args.monitor,
+            monitor="R5",
             filename=f"{args.training_method.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"

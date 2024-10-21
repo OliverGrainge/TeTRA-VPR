@@ -62,7 +62,6 @@ def get_focal_point(utm_coords, meters_from_center=20, angle=0):
 class EigenPlacesDataset(torch.utils.data.Dataset):
     def __init__(
         self,
-        dataset_size="small",
         M=20,
         N=5,
         focal_dist=10,
@@ -108,12 +107,10 @@ class EigenPlacesDataset(torch.utils.data.Dataset):
             raise FileNotFoundError(
                 "BASE_PATH is hardcoded, please adjust to point to gsv_cities"
             )
-
-        if dataset_size == "small":
-            BASE_PATH = os.path.join(BASE_PATH, "small/train/")
-        elif dataset_size == "large":
-            BASE_PATH = os.path.join(BASE_PATH, "processed/train/")
-        else:
+        try:
+            BASE_PATH = os.path.join(BASE_PATH, "raw/train/panoramas")
+            assert os.path.exists(BASE_PATH), f"BASE_PATH {BASE_PATH} does not exist"
+        except:
             raise Exception(f"BASE_PATH {BASE_PATH} is not available")
 
         self.dataset_folder = BASE_PATH

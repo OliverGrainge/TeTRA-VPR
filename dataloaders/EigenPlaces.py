@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms as T
 from dataloaders.train.EigenPlacesDataset import EigenPlacesDataset
 from dataloaders.train.Utils import augmentations
+from collections import defaultdict
+from matching.global_cosine_sim import global_cosine_sim
 
 import utils
 
@@ -70,7 +72,7 @@ class MarginCosineProduct(nn.Module):
 def get_output_dim(image_size, model):
     image = torch.randn(3, *image_size).to(next(model.parameters()).device)
     out = model(image[None, :])
-    return out.shape[1]
+    return out["global_desc"].shape[1]
 
 
 class EigenPlaces(pl.LightningModule):
@@ -83,9 +85,11 @@ class EigenPlaces(pl.LightningModule):
         val_set_names=["pitts30k_val"],
         mean_std=IMAGENET_MEAN_STD,
         num_workers=8,
-        search_precision="float32",
+        matching_function=global_cosine_sim,
     ):
         super().__init__()
+
+        self.mystep = 0
 
         # Get backbone and aggregator
         self.model = model
@@ -96,7 +100,7 @@ class EigenPlaces(pl.LightningModule):
 
         # FAISS settings
         self.faiss_gpu = False
-        self.search_precision = search_precision
+        self.matching_function = matching_function
 
         # Lateral and Frontal Loss Scaling
         self.lambda_lat = config["lambda_lat"]
@@ -123,28 +127,27 @@ class EigenPlaces(pl.LightningModule):
         self.hue = config["hue"]
         self.saturation = config["saturation"]
         self.random_resized_crop = config["random_resized_crop"]
-        self.dataset_size = config["dataset_size"]
         self.weight_decay = config["weight_decay"]
 
         # Train and valid transforms
         self.train_transform = T.Compose(
             [
-                augmentations.DeviceAgnosticColorJitter(
-                    brightness=self.brightness,
-                    contrast=self.contrast,
-                    saturation=self.saturation,
-                    hue=self.hue,
-                ),
-                augmentations.DeviceAgnosticRandomResizedCrop(
-                    self.image_size, scale=[1 - self.random_resized_crop, 1]
-                ),
+                #augmentations.DeviceAgnosticColorJitter(
+                #    brightness=self.brightness,
+                #    contrast=self.contrast,
+                #    saturation=self.saturation,
+                #    hue=self.hue,
+                #),
+                #augmentations.DeviceAgnosticRandomResizedCrop(
+                #    self.image_size, scale=[1 - self.random_resized_crop, 1]
+                #),
+                T.Resize(size=self.image_size[0], interpolation=T.InterpolationMode.BILINEAR),
                 T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
             ]
         )
 
         self.groups = [
             EigenPlacesDataset(
-                dataset_size=self.dataset_size,
                 M=self.M,
                 N=self.N,
                 focal_dist=self.focal_dist,
@@ -204,7 +207,6 @@ class EigenPlaces(pl.LightningModule):
         if stage == "fit" or stage == "validate":
             self.val_datasets = []
             for val_set_name in self.val_set_names:
-                print(val_set_name)
                 if "pitts30k" in val_set_name.lower():
                     from dataloaders.val.PittsburghDataset import PittsburghDataset
 
@@ -280,8 +282,40 @@ class EigenPlaces(pl.LightningModule):
         for dataset_key, b in batch.items():
             current_dataset_num, i = dataset_key
             images, targets, _ = b
+
+            #import matplotlib.pyplot as plt
+            #plt.figure()
+            #plt.imshow(images[0].permute(1, 2, 0).detach().cpu().numpy())
+            #plt.savefig(f'sample_image_epoch_{self.current_epoch}_batch_{batch_idx}.png')
+            #plt.close()
+            #self.mystep += 1
+            #if self.mystep > 10: 
+            #    raise Exception("Stopping here")
+            
             images = self.train_transform(images)
+            
+            # Option 1: Remove visualization code
+            # Delete or comment out the following lines:
+            # import matplotlib.pyplot as plt
+            # plt.imshow(images[0].permute(1, 2, 0).detach().cpu().numpy())
+            # plt.show()
+
+            # Option 2: Save image to file instead of displaying
+
+
+
+            # Option 3: Use a non-interactive backend (add this at the top of your file)
+            # import matplotlib
+            # matplotlib.use('Agg')
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # plt.imshow(images[0].permute(1, 2, 0).detach().cpu().numpy())
+            # plt.savefig(f'sample_image_epoch_{self.current_epoch}_batch_{batch_idx}.png')
+            # plt.close()
+
             descriptors = self(images)
+            #print(descriptors["global_desc"].shape)
+            #print(descriptors["global_desc"][0].norm())
             classifier_opts[current_dataset_num + i].zero_grad()
             output = self.classifiers[current_dataset_num + i](
                 descriptors["global_desc"], targets
@@ -325,53 +359,45 @@ class EigenPlaces(pl.LightningModule):
         return val_dataloaders
 
     def on_validation_epoch_start(self):
-        self.validation_outputs = []
+        # Initialize or reset the list to store validation outputs
+        self.validation_outputs = {}
+        for name in self.val_set_names:
+            self.validation_outputs[name] = defaultdict(list)
 
-    def validation_step(self, batch, batch_idx, dataloader_idx=None):
+    # For validation, we will also iterate step by step over the validation set
+    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
+        # calculate descriptors
         descriptors = self(places)
-        self.validation_outputs.append(descriptors["global_desc"].detach().cpu())
-        return None
+        # store the outputs
+        for key, value in descriptors.items():
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+        return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
-        """Process the validation outputs stored in self.validation_outputs."""
-        if len(self.val_datasets) == 1:
-            val_step_outputs = [self.validation_outputs]
-        else:
-            val_step_outputs = self.validation_outputs
+        """Process the validation outputs stored in self.validation_outputs_global."""
 
-        for i, (val_set_name, val_dataset) in enumerate(
-            zip(self.val_set_names, self.val_datasets)
-        ):
-            feats = torch.concat(val_step_outputs[i], dim=0)
+        results_dict = {}
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+            set_outputs = self.validation_outputs[val_set_name]
+            for key, value in set_outputs.items():
+                set_outputs[key] = torch.concat(value, dim=0)
 
-            num_references = val_dataset.num_references
-            num_queries = val_dataset.num_queries
-            ground_truth = val_dataset.ground_truth
-
-            # split to ref and queries
-            r_list = feats[:num_references]
-            q_list = feats[num_references:]
-
-            recalls_dict, predictions = utils.get_validation_recalls(
-                r_list=r_list,
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 25],
-                gt=ground_truth,
-                print_results=True,
-                dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu,
-                precision=self.search_precision,
+            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+            self.log_dict(
+                recalls_dict,
+                prog_bar=True,
+                logger=True,
             )
+            results_dict[val_set_name] = recalls_dict
 
-            self.log(f"{val_set_name}/R1", recalls_dict[1], prog_bar=False, logger=True)
-            self.log(f"{val_set_name}/R5", recalls_dict[5], prog_bar=False, logger=True)
-            self.log(
-                f"{val_set_name}/R10", recalls_dict[10], prog_bar=False, logger=True
-            )
-
-            del r_list, q_list, feats, num_references, ground_truth
-
-        # Clear the outputs after processing
-        self.validation_outputs.clear()
-        print("\n\n")
+            table = PrettyTable()
+            table.field_names = ["Metric", "Value"]
+            for metric, value in recalls_dict.items():
+                table.add_row([metric, f"{value:.4f}"])
+            
+            print(f"\nResults for {val_set_name}:")
+            print(table)
+        
+        return results_dict

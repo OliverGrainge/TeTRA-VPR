@@ -112,7 +112,7 @@ def eval_vpr(args):
     trainer = pl.Trainer(
         accelerator="auto",
         precision="32",
-        devices=1
+        devices=1,
     )
     results = trainer.validate(module)
     return results

@@ -38,6 +38,7 @@ class VPREval(pl.LightningModule):
     ):
         super().__init__()
         self.model = model
+        self.model.eval()
         self.transform = transform
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -75,6 +76,18 @@ class VPREval(pl.LightningModule):
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.transform)
                     )
+                elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
+                    from dataloaders.val.SF_XL import SF_XL
+
+                    self.val_datasets.append(
+                        SF_XL(which_ds="sf_xl_small_val", input_transform=self.transform)
+                    )
+                elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
+                    from dataloaders.val.SF_XL import SF_XL
+
+                    self.val_datasets.append(
+                        SF_XL(which_ds="sf_xl_small_test", input_transform=self.transform)
+                    )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
@@ -92,7 +105,8 @@ class VPREval(pl.LightningModule):
                 )
             )
         return val_dataloaders
-
+    
+    @torch.no_grad()
     def forward(self, x):
         x = self.model(x)
         return x
@@ -117,7 +131,6 @@ class VPREval(pl.LightningModule):
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
-
         results_dict = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
             set_outputs = self.validation_outputs[val_set_name]
@@ -125,40 +138,10 @@ class VPREval(pl.LightningModule):
                 set_outputs[key] = torch.concat(value, dim=0)
 
             recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
-
             self.log_dict(
                 recalls_dict,
                 prog_bar=False,
                 logger=True,
             )
-    
             results_dict[val_set_name] = recalls_dict
         return results_dict
-
-
-        """
-        result_dict = {}    
-        for i, (val_set_name, val_dataset) in enumerate(
-            zip(self.val_set_names, self.val_datasets)
-        ):
-            feats = torch.concat(val_step_outputs[i], dim=0)
-
-            num_references = val_dataset.num_references
-            num_queries = val_dataset.num_queries
-            ground_truth = val_dataset.ground_truth
-
-            # split to ref and queries
-            r_list = feats[:num_references]
-            q_list = feats[num_references:]
-
-            recalls_dict, predictions = utils.get_validation_recalls(
-                r_list=r_list,
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 25],
-                gt=ground_truth,
-                print_results=True,
-                dataset_name=val_set_name,
-                faiss_gpu=False,
-                precision="float32",
-            )
-            """

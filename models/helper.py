@@ -215,13 +215,14 @@ def get_model(
     image_size=(224, 224),
     backbone_arch="vit_small",
     agg_arch="cls",
-    out_dim=2048,
+    out_dim=1024,
     normalize_output=True,
     preset=None,
 ):
     if preset is not None:
         module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
+        print(model())
         return model()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -234,6 +235,7 @@ def get_model(
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
+    print(model)
     if type(desc) == tuple:
         model.descriptor_dim = desc[0].shape[0]
     else:
