@@ -17,3 +17,5 @@ jobfiles/logs/
 
 # In case there are subdirectories that need to be ignored
 **/jobfiles/logs/**
+
+wandb/
