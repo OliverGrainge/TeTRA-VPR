@@ -15,6 +15,8 @@ from io import BytesIO
 import json
 import glob
 import random
+from collections import defaultdict
+from matching.global_cosine_sim import global_cosine_sim
 import os
 
 import utils
@@ -31,7 +33,7 @@ def get_feature_dim(model, transform):
     x_img = Image.fromarray(x_np.transpose(1, 2, 0))
     x_transformed = transform(x_img)
     features = model(x_transformed[None, :].to(next(model.parameters()).device))
-    return features.shape[1]
+    return features["global_desc"].shape[1]
 
 
 def freeze_model(model):
@@ -82,7 +84,29 @@ class TarImageDataset(Dataset):
 
 class ImageDataset(Dataset):
     def __init__(self, data_directory, transform=None):
-        self.image_paths = glob.glob(os.path.join(data_directory, "*.jpg"))
+        self.image_paths = []
+        total_images = 0
+        print(f"Scanning directory: {data_directory}")
+
+        # Check if the directory contains subdirectories
+        subdirs = [d for d in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, d))]
+
+        if subdirs:
+            print("Found subdirectories. Scanning each:")
+            for subdir in subdirs:
+                subdir_path = os.path.join(data_directory, subdir)
+                subdir_images = glob.glob(os.path.join(subdir_path, "*.jpg"))
+                num_images = len(subdir_images)
+                self.image_paths.extend(subdir_images)
+                total_images += num_images
+                print(f"  {subdir}: {num_images} images")
+        else:
+            print("No subdirectories found. Scanning for images in the main directory.")
+            self.image_paths = glob.glob(os.path.join(data_directory, "*.jpg"))
+            total_images = len(self.image_paths)
+            print(f"  Main directory: {total_images} images")
+
+        print(f"Total images found: {total_images}")
         self.transform = transform
 
     def __len__(self):
@@ -130,6 +154,7 @@ class VPRDistill(pl.LightningModule):
         args,
         student_backbone_arch="vit_small",
         student_agg_arch="cls",
+        matching_function=global_cosine_sim,
     ):
         super().__init__()
         self.config = config
@@ -139,6 +164,9 @@ class VPRDistill(pl.LightningModule):
         self.lr = config["lr"]
         self.data_directory = config["data_directory"]
         self.teacher_preset = args.teacher_preset
+        self.val_set_names = args.val_set_names
+        self.matching_function = global_cosine_sim
+        self.backbone_arch = student_backbone_arch
 
         self.teacher = get_model(preset=args.teacher_preset)
         self.student = get_model(
@@ -148,6 +176,53 @@ class VPRDistill(pl.LightningModule):
         )
 
         freeze_model(self.teacher)
+
+    def setup(self, stage=None):
+            # Setup for 'fit' or 'validate'self
+            if stage == "fit" or stage == "validate":
+                self.val_datasets = []
+                for val_set_name in self.val_set_names:
+                    if "pitts30k" in val_set_name.lower():
+                        from dataloaders.val.PittsburghDataset import PittsburghDataset
+
+                        self.val_datasets.append(
+                            PittsburghDataset(
+                                which_ds=val_set_name, input_transform=self.student_val_transform()
+                            )
+                        )
+                    elif val_set_name.lower() == "msls_val":
+                        from dataloaders.val.MapillaryDataset import MSLS
+
+                        self.val_datasets.append(MSLS(input_transform=self.student_val_transform()))
+                    elif val_set_name.lower() == "nordland":
+                        from dataloaders.val.NordlandDataset import NordlandDataset
+
+                        self.val_datasets.append(
+                            NordlandDataset(input_transform=self.transform)
+                        )
+                    elif val_set_name.lower() == "sped":
+                        from dataloaders.val.SPEDDataset import SPEDDataset
+
+                        self.val_datasets.append(
+                            SPEDDataset(input_transform=self.student_val_transform())
+                        )
+                    elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
+                        from dataloaders.val.SF_XL import SF_XL
+
+                        self.val_datasets.append(
+                            SF_XL(which_ds="sf_xl_small_val", input_transform=self.student_val_transform())
+                        )
+                    elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
+                        from dataloaders.val.SF_XL import SF_XL
+
+                        self.val_datasets.append(
+                            SF_XL(which_ds="sf_xl_small_test", input_transform=self.student_val_transform())
+                        )
+                    else:
+                        raise NotImplementedError(
+                            f"Validation set {val_set_name} not implemented"
+                        )
+        
 
     def forward(self, x):
         return self.student(x)
@@ -169,8 +244,34 @@ class VPRDistill(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.student.parameters(), lr=self.lr)
-        return optimizer
+        # Apply weight decay only to weight parameters, not biases or normalization layers
+        decay_params = []
+        no_decay_params = []
+        for name, param in self.student.named_parameters():
+            if 'bias' in name or 'norm' in name or 'ln' in name:
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
+        # Use weight decay for ViT models
+        weight_decay = 0.05 if 'vit' in self.backbone_arch.lower() else 0.0
+
+        optimizer = optim.AdamW([
+            {'params': decay_params, 'weight_decay': weight_decay},
+            {'params': no_decay_params, 'weight_decay': 0.0}
+        ], lr=self.lr)
+
+        # Calculate total steps for warmup and cosine annealing
+        total_steps = self.trainer.estimated_stepping_batches
+        warmup_steps = int(0.05 * total_steps)  # 10% of total steps for warmup
+
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps
+        )
+
+        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
     def student_train_transform(self):
         return T.Compose(
@@ -182,8 +283,22 @@ class VPRDistill(pl.LightningModule):
                 ),
             ]
         )
+    
+    def student_val_transform(self):
+        return T.Compose(
+            [
+                T.Resize(self.image_size),
+                T.ToTensor(),
+                T.Normalize(
+                    mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
+                ),
+            ]
+        )
 
     def teacher_train_transform(self):
+        return get_transform(self.teacher_preset)
+    
+    def teacher_val_transform(self):
         return get_transform(self.teacher_preset)
 
     def train_dataloader(self):
@@ -207,3 +322,62 @@ class VPRDistill(pl.LightningModule):
             num_workers=self.num_workers,
             shuffle=False,
         )
+    
+    def val_dataloader(self):
+        val_dataloaders = []
+        for val_dataset in self.val_datasets:
+            val_dataloaders.append(
+                DataLoader(
+                    dataset=val_dataset,
+                    shuffle=False,
+                    num_workers=self.num_workers,
+                    batch_size=self.batch_size,
+                )
+            )
+        return val_dataloaders
+    
+
+    def on_validation_epoch_start(self):
+        # Initialize or reset the list to store validation outputs
+        self.validation_outputs = {}
+        for name in self.val_set_names:
+            self.validation_outputs[name] = defaultdict(list)
+
+    # For validation, we will also iterate step by step over the validation set
+    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        places, _ = batch
+        # calculate descriptors
+        descriptors = self(places)
+        # store the outputs
+        for key, value in descriptors.items():
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+        return descriptors["global_desc"].detach().cpu()
+
+    def on_validation_epoch_end(self):
+        """Process the validation outputs stored in self.validation_outputs_global."""
+
+        results_dict = {}
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+            set_outputs = self.validation_outputs[val_set_name]
+            for key, value in set_outputs.items():
+                set_outputs[key] = torch.concat(value, dim=0)
+
+            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+            self.log_dict(
+                recalls_dict,
+                prog_bar=True,
+                logger=True,
+            )
+            results_dict[val_set_name] = recalls_dict
+
+            table = PrettyTable()
+            table.field_names = ["Metric", "Value"]
+            for metric, value in recalls_dict.items():
+                table.add_row([metric, f"{value:.4f}"])
+            
+            print(f"\nResults for {val_set_name}:")
+            print(table)
+        
+        return results_dict
+

@@ -254,25 +254,9 @@ class EigenPlaces(pl.LightningModule):
 
     def configure_optimizers(self):
         # Separate linear layer parameters (for weight decay) and others (without weight decay)
-        decay_params = []
-        no_decay_params = []
-
-        for name, param in self.model.named_parameters():
-            if isinstance(
-                self.model.get_submodule(name.split(".")[0]), torch.nn.Linear
-            ):
-                decay_params.append(param)  # Apply weight decay to linear layers
-            else:
-                no_decay_params.append(param)  # No weight decay for other layers
-
-        # Create optimizer groups
-        param_groups = [
-            {"params": decay_params, "weight_decay": self.weight_decay},
-            {"params": no_decay_params, "weight_decay": 0.0},
-        ]
 
         # Optimizer for the model with weight decay only on linear layers
-        model_opt = torch.optim.Adam(param_groups, lr=self.lr)
+        model_opt = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
         # Optimizers for the classifiers (without weight decay)
         classifiers_optimizers = [

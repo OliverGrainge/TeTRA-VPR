@@ -184,7 +184,7 @@ def ViT_Small(image_size=[224, 224], layer_type=nn.Linear):
 def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=224,  # Smaller image size for reduced complexity
-        patch_size=16,
+        patch_size=14,
         dim=768,
         depth=12,
         heads=12,

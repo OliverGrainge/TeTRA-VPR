@@ -3,6 +3,7 @@ import time
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 
 
 torch.set_float32_matmul_precision("medium")
@@ -200,9 +201,16 @@ if __name__ == "__main__":
 
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
+    # Initialize WandbLogger
+    wandb_logger = WandbLogger(
+        project=args.training_method.lower(),
+        name=f"{args.backbone_arch.lower()}_{args.agg_arch.lower()}" if args.training_method != "distill" else f"{args.backbone_arch.lower()}_{args.agg_arch.lower()}_teacher_{args.teacher_preset.lower()}"
+    )
+
     trainer = pl.Trainer(
         enable_progress_bar=False,
         strategy="auto",
+        devices=1,
         accelerator="auto",
         default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
         num_sanity_val_steps=0,
@@ -211,15 +219,8 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        limit_train_batches=(
-            int(
-                config["Training"]["EigenPlaces"]["iterations_per_epoch"]
-                * 32
-                / args.batch_size
-            )
-            if args.training_method.lower() == "eigenplaces"
-            else None
-        ),
+        logger=wandb_logger,  # Add this line to use WandbLogger
+        val_check_interval=0.02 if "distill" in args.training_method else 1.0,
     )
 
     trainer.fit(model_module)

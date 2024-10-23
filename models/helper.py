@@ -108,9 +108,9 @@ def get_backbone(backbone_arch):
 
     if "resnet" in backbone_arch.lower():
         if "18" in backbone_arch.lower():
-            return backbones.ResNet(model_name="resnet18")
+            return backbones.ResNet(model_name="ResNet18")
         elif "50" in backbone_arch.lower():
-            return backbones.ResNet(model_name="resnet50")
+            return backbones.ResNet(model_name="ResNet50")
 
     elif "vit" in backbone_arch.lower():
 
@@ -177,12 +177,15 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
     elif "salad" in agg_arch.lower():
         config = {}
         config["num_channels"] = features_dim[1]
-        config["token_dim"] = features_dim[0]
+        config["token_dim"] = features_dim[0] - 1
         config["height"] = int(image_size[0])
         config["width"] = int(image_size[1])
         scale_factor = out_dim / (8448 - features_dim[1])
         config["num_clusters"] = 64 * int(scale_factor**0.5)
         config["cluster_dim"] = 128 * int(scale_factor**0.5)
+        print("--------------------------------")
+        print(config)
+        print("--------------------------------")
         return aggregators.SALAD(**config)
 
     elif "cls" in agg_arch.lower():
@@ -222,7 +225,7 @@ def get_model(
     if preset is not None:
         module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
-        print(model())
+        #print(model())
         return model()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -235,7 +238,7 @@ def get_model(
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
-    print(model)
+    #(model)
     if type(desc) == tuple:
         model.descriptor_dim = desc[0].shape[0]
     else:
