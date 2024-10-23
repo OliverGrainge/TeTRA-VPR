@@ -337,9 +337,6 @@ def DinoSalad(
         "token_dim": 256,
     }
 
-    print("==========================================================")
-    print(agg_args)
-    print("==========================================================")
     model = VPRModel(
         backbone_arch=backbone,
         backbone_config=backbone_args,

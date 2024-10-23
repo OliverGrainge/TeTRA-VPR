@@ -113,6 +113,8 @@ if __name__ == "__main__":
             args=args,
             student_backbone_arch=args.backbone_arch,
             student_agg_arch=args.agg_arch,
+            use_attention=args.use_attention,
+            teacher_preset=args.teacher_preset,
         )
 
         checkpoint_cb = ModelCheckpoint(
@@ -208,7 +210,7 @@ if __name__ == "__main__":
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         strategy="auto",
         devices=1,
         accelerator="auto",

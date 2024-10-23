@@ -93,7 +93,7 @@ def get_transform(preset):
     return transform
 
 
-def get_backbone(backbone_arch):
+def get_backbone(backbone_arch, image_size):
     """Helper function that returns the backbone given its name
 
     Args:
@@ -117,22 +117,22 @@ def get_backbone(backbone_arch):
         match_layer_str = find_best_match(backbone_arch, LINEAR_REPR)
         if match_layer_str is None:
             if "small" in backbone_arch.lower():
-                return backbones.ViT_Small(layer_type=nn.Linear)
+                return backbones.ViT_Small(image_size=image_size, layer_type=nn.Linear)
             elif "base" in backbone_arch.lower():
-                return backbones.ViT_Base(layer_type=nn.Linear)
+                return backbones.ViT_Base(image_size=image_size, layer_type=nn.Linear)
             elif "large" in backbone_arch.lower():
-                return backbones.ViT_Large(layer_type=nn.Linear)
+                return backbones.ViT_Large(image_size=image_size, layer_type=nn.Linear)
             else:
                 raise Exception("must choose small/medium/large")
         else:
             module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
             layer_type = getattr(module, match_layer_str)
             if "small" in backbone_arch.lower():
-                return backbones.ViT_Small(layer_type=layer_type)
+                return backbones.ViT_Small(image_size=image_size, layer_type=layer_type)
             elif "base" in backbone_arch.lower():
-                return backbones.ViT_Base(layer_type=layer_type)
+                return backbones.ViT_Base(image_size=image_size, layer_type=layer_type)
             elif "large" in backbone_arch.lower():
-                return backbones.ViT_Large(layer_type=layer_type)
+                return backbones.ViT_Large(image_size=image_size, layer_type=layer_type)
             else:
                 raise Exception("must choose small/medium/large")
     else:
@@ -227,10 +227,12 @@ def get_model(
         model = getattr(module, preset)
         #print(model())
         return model()
-
+    image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    backbone = get_backbone(backbone_arch)
+    backbone = get_backbone(backbone_arch, image_size=image_size)
     backbone = backbone.to(device)
+   
+    
     image = torch.randn(3, *(image_size)).to(device)
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)

@@ -158,6 +158,12 @@ def training_arguments(parser=None):
         help="Evaluation method",
     )
 
+    parser.add_argument(
+        "--use_attention",
+        type=bool,
+        default=config["Training"]["Distill"]["use_attention"],
+        help="Use attention",
+    )
     return parser
 
 

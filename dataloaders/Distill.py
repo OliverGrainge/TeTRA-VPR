@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import tarfile
 from io import BytesIO
+from einops import rearrange
 import json
 import glob
 import random
@@ -25,6 +26,43 @@ from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from models.helper import get_model, get_transform
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
+
+
+def remove_hooks(hooks):
+    for hook in hooks:
+        hook.remove()
+
+
+def get_attn(model):
+    attention_matrices = []
+    hooks = []
+
+    def dinov2_hook_fn(module, input, output):
+        B, N, C = input[0].shape
+        qkv = module.qkv(input[0]).reshape(B, N, 3, module.num_heads, C // module.num_heads).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0] * module.scale, qkv[1], qkv[2]
+        attn = q @ k.transpose(-2, -1)
+        attn = attn.softmax(dim=-1)
+        attention_matrices.append(attn)
+
+    def vit_hook_fn(module, input, output):
+        qkv = module.to_qkv(input[0]).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=module.heads), qkv)
+        dots = torch.matmul(q, k.transpose(-1, -2)) * module.scale
+        attn = dots.softmax(dim=-1)
+        attention_matrices.append(attn)
+
+    for name, module in model.named_modules():
+        if hasattr(module, 'qkv'):
+            # This is likely a DINOv2 attention module
+            hook = module.register_forward_hook(dinov2_hook_fn)
+            hooks.append(hook)
+        elif hasattr(module, 'to_qkv'):
+            # This is likely a ViT attention module
+            hook = module.register_forward_hook(vit_hook_fn)
+            hooks.append(hook)
+
+    return attention_matrices, hooks
 
 
 def get_feature_dim(model, transform):
@@ -147,14 +185,25 @@ class DistillDataset(Dataset):
         return student_image, teacher_image
 
 
+def test_equal_img_sizes(transform1, transform2):
+    x = torch.randint(0, 255, size=(3, 512, 512), dtype=torch.uint8)
+    x_np = x.numpy()
+    x_img = Image.fromarray(x_np.transpose(1, 2, 0))
+    x_transformed1 = transform1(x_img)
+    x_transformed2 = transform2(x_img)
+    assert x_transformed1.shape[1] == x_transformed2.shape[1], "Teacher and student transforms must be equal"
+    assert x_transformed1.shape[2] == x_transformed2.shape[2], "Teacher and student transforms must be equal"
+
 class VPRDistill(pl.LightningModule):
     def __init__(
         self,
         config,
         args,
-        student_backbone_arch="vit_small",
-        student_agg_arch="cls",
+        student_backbone_arch="ResNet50",
+        student_agg_arch="MixVPR",
+        teacher_preset="EigenPlaces",
         matching_function=global_cosine_sim,
+        use_attention=False,
     ):
         super().__init__()
         self.config = config
@@ -163,11 +212,13 @@ class VPRDistill(pl.LightningModule):
         self.image_size = args.image_size
         self.lr = config["lr"]
         self.data_directory = config["data_directory"]
-        self.teacher_preset = args.teacher_preset
+        self.teacher_preset = teacher_preset
         self.val_set_names = args.val_set_names
-        self.matching_function = global_cosine_sim
         self.backbone_arch = student_backbone_arch
-
+        self.matching_function = matching_function
+        self.use_attention = use_attention
+        if self.use_attention:
+            test_equal_img_sizes(self.teacher_train_transform(), self.student_train_transform())
         self.teacher = get_model(preset=args.teacher_preset)
         self.student = get_model(
             backbone_arch=student_backbone_arch,
@@ -229,18 +280,42 @@ class VPRDistill(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
-        teacher_features = self.teacher(teacher_images)
-        student_features = self(student_images)
+        if self.use_attention:
+            teacher_attn, teacher_hooks = get_attn(self.teacher)
+            sudent_attn, student_hooks = get_attn(self.student)
+            teacher_features = self.teacher(teacher_images)
+            student_features = self(student_images)
+            teacher_attn, student_attn = torch.vstack(teacher_attn), torch.vstack(sudent_attn)
+            remove_hooks(teacher_hooks)
+            remove_hooks(student_hooks)
+        else:
+            teacher_features = self.teacher(teacher_images)
+            student_features = self(student_images)
+        
         teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
         student_features = F.normalize(student_features["global_desc"], dim=1)
+
+        loss = torch.tensor(0.0, device=self.device)
+        # mse loss to align feature spaces
         mse_loss = F.mse_loss(teacher_features, student_features)
+        loss += 1000 * mse_loss
+        # cosine loss to align feature angles
         cosine_loss = (
             1 - F.cosine_similarity(teacher_features, student_features)
         ).mean()
-        loss = 1000 * mse_loss + cosine_loss
+        loss += cosine_loss
+        # attention loss to align attention maps
+        if self.use_attention:
+            attn_loss = F.mse_loss(teacher_attn, student_attn)
+            loss += 1000 *attn_loss
+
         self.log("train_loss", loss)
         self.log("mse_loss", mse_loss)
         self.log("cosine_loss", cosine_loss)
+        if self.use_attention:
+            self.log("attn_loss", attn_loss)
+
+        #print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
         return loss
 
     def configure_optimizers(self):

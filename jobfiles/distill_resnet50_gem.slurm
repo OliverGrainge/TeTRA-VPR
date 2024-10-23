@@ -12,4 +12,4 @@
 #SBATCH --partition=swarm_a100
 
 source activate venv
-python train.py --training_method distill --backbone_arch ResNet50 --agg_arch gem --teacher_preset EigenPlaces --batch_size 256 --num_workers 12 --max_epochs 2
+python train.py --training_method distill --backbone_arch ResNet50 --agg_arch gem --teacher_preset EigenPlaces --batch_size 256 --num_workers 12 --max_epochs 2W
