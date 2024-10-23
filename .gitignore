@@ -6,3 +6,14 @@ lightning_logs
 data/
 cache/
 *experiments.sh
+*/logs/*
+*/wandb/*
+
+# Ignore everything in jobfiles/logs
+jobfiles/logs/*
+
+# Ignore the jobfiles/logs directory itself
+jobfiles/logs/
+
+# In case there are subdirectories that need to be ignored
+**/jobfiles/logs/**
