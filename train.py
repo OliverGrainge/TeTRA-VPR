@@ -3,7 +3,7 @@ import time
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 torch.set_float32_matmul_precision("medium")
@@ -20,6 +20,7 @@ from dataloaders.Distill import VPRDistill
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model
 from parsers import get_args_parser
+
 
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
 
@@ -113,21 +114,23 @@ if __name__ == "__main__":
             args=args,
             student_backbone_arch=args.backbone_arch,
             student_agg_arch=args.agg_arch,
-            use_attention=args.use_attention,
             teacher_preset=args.teacher_preset,
+            use_attention=args.use_attention,
+            
         )
 
-        checkpoint_cb = ModelCheckpoint(
-            monitor="train_loss",
-            filename=f"{args.training_method.lower()}/"
-            + f"{args.backbone_arch.lower()}"
-            + f"_{args.agg_arch.lower()}"
-            + "_epoch({epoch:02d})_step({step:04d})_A1[{loss:.4f}]",
+        mycheckpoint_cb = ModelCheckpoint(
+            monitor=f"{args.val_set_names[0]}_R1",
+            filename=f"{args.backbone_arch.lower()}"
+            + f"_{args.agg_arch.lower()}" + f"_{args.teacher_preset.lower()}"
+            + "_epoch({epoch:02d})_step({step:04d})_loss{train_loss:.4f}]",
             auto_insert_metric_name=False,
             save_weights_only=True,
             save_top_k=1,
             mode="max",
         )
+
+        print("============================= using this checkpoint")
 
     elif "eigenplaces" == args.training_method.lower():
         model = get_model(
@@ -151,7 +154,7 @@ if __name__ == "__main__":
 
         checkpoint_cb = ModelCheckpoint(
             monitor="R5",
-            filename=f"{args.training_method.lower()}/"
+            filename=f"{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}/"
             + f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
             + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
@@ -191,8 +194,7 @@ if __name__ == "__main__":
 
         checkpoint_cb = ModelCheckpoint(
             monitor="val_acc5",
-            filename=f"{args.training_method.lower()}/"
-            + f"{args.backbone_arch.lower()}"
+            filename=f"{args.backbone_arch.lower()}"
             + f"_{args.agg_arch.lower()}"
             + "_epoch({epoch:02d})_step({step:04d})_A1[{val_acc1:.4f}]_A5[{val_acc5:.4f}]",
             auto_insert_metric_name=False,
@@ -203,11 +205,6 @@ if __name__ == "__main__":
 
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
-    # Initialize WandbLogger
-    wandb_logger = WandbLogger(
-        project=args.training_method.lower(),
-        name=f"{args.backbone_arch.lower()}_{args.agg_arch.lower()}" if args.training_method != "distill" else f"{args.backbone_arch.lower()}_{args.agg_arch.lower()}_teacher_{args.teacher_preset.lower()}"
-    )
 
     trainer = pl.Trainer(
         enable_progress_bar=True,
@@ -218,11 +215,10 @@ if __name__ == "__main__":
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[lr_monitor, checkpoint_cb],
+        callbacks=[lr_monitor, mycheckpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        logger=wandb_logger,  # Add this line to use WandbLogger
-        val_check_interval=0.02 if "distill" in args.training_method else 1.0,
+        limit_train_batches=1000 if "distill" in args.training_method else None,
     )
 
     trainer.fit(model_module)

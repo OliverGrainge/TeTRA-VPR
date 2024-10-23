@@ -5,7 +5,7 @@ import faiss
 
 
 
-def global_cosine_sim(global_desc, num_references, ground_truth, k_values=[1, 5, 10, 15, 20]):
+def global_cosine_sim(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):
     global_desc = global_desc.cpu().numpy()
     reference_desc = global_desc[:num_references]
     query_desc = global_desc[num_references:]

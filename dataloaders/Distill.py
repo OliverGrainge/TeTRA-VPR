@@ -185,15 +185,6 @@ class DistillDataset(Dataset):
         return student_image, teacher_image
 
 
-def test_equal_img_sizes(transform1, transform2):
-    x = torch.randint(0, 255, size=(3, 512, 512), dtype=torch.uint8)
-    x_np = x.numpy()
-    x_img = Image.fromarray(x_np.transpose(1, 2, 0))
-    x_transformed1 = transform1(x_img)
-    x_transformed2 = transform2(x_img)
-    assert x_transformed1.shape[1] == x_transformed2.shape[1], "Teacher and student transforms must be equal"
-    assert x_transformed1.shape[2] == x_transformed2.shape[2], "Teacher and student transforms must be equal"
-
 class VPRDistill(pl.LightningModule):
     def __init__(
         self,
@@ -217,8 +208,6 @@ class VPRDistill(pl.LightningModule):
         self.backbone_arch = student_backbone_arch
         self.matching_function = matching_function
         self.use_attention = use_attention
-        if self.use_attention:
-            test_equal_img_sizes(self.teacher_train_transform(), self.student_train_transform())
         self.teacher = get_model(preset=args.teacher_preset)
         self.student = get_model(
             backbone_arch=student_backbone_arch,
@@ -280,12 +269,35 @@ class VPRDistill(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
+        B = student_images.shape[0]
         if self.use_attention:
             teacher_attn, teacher_hooks = get_attn(self.teacher)
-            sudent_attn, student_hooks = get_attn(self.student)
+            student_attn, student_hooks = get_attn(self.student)
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
-            teacher_attn, student_attn = torch.vstack(teacher_attn), torch.vstack(sudent_attn)
+            teacher_attn = torch.vstack(teacher_attn)
+            student_attn = torch.vstack(student_attn)
+            # B * D, H, N, N 
+            teacher_attn = teacher_attn.view(B, -1, teacher_attn.shape[-3], teacher_attn.shape[-2], teacher_attn.shape[-1])
+            student_attn = student_attn.view(B, -1, student_attn.shape[-3], student_attn.shape[-2], student_attn.shape[-1])
+            # B, D, H, N, N
+
+            if teacher_attn.shape[1] != student_attn.shape[1]:
+                # have different depths 
+                assert teacher_attn.shape[1] > student_attn.shape[1], "teacher attention must be deeper or equal to the depth of the than student attention"
+                teacher_attn_idxs = (torch.arange(student_attn.shape[1]) * teacher_attn.shape[1])/student_attn.shape[1].floor().long()
+                teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
+
+            if teacher_attn.shape[2] != student_attn.shape[2]:
+                # have different number of attention heads
+                teacher_attn = teacher_attn.mean(2)
+                student_attn = student_attn.mean(2)
+
+                
+            if teacher_attn.shape[-1] != student_attn.shape[-1]:
+                # have different number of tokens
+                student_attn = F.interpolate(student_attn, size=teacher_attn.shape[-2:], mode='bilinear', align_corners=False)
+            
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
         else:
@@ -315,7 +327,7 @@ class VPRDistill(pl.LightningModule):
         if self.use_attention:
             self.log("attn_loss", attn_loss)
 
-        #print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
+        print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
         return loss
 
     def configure_optimizers(self):
@@ -395,7 +407,7 @@ class VPRDistill(pl.LightningModule):
             dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=False,
+            shuffle=True,
         )
     
     def val_dataloader(self):
@@ -432,27 +444,34 @@ class VPRDistill(pl.LightningModule):
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
-        results_dict = {}
+
+        full_recalls_dict = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
             set_outputs = self.validation_outputs[val_set_name]
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
             recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
-            self.log_dict(
-                recalls_dict,
-                prog_bar=True,
-                logger=True,
-            )
-            results_dict[val_set_name] = recalls_dict
-
-            table = PrettyTable()
-            table.field_names = ["Metric", "Value"]
-            for metric, value in recalls_dict.items():
-                table.add_row([metric, f"{value:.4f}"])
             
-            print(f"\nResults for {val_set_name}:")
-            print(table)
+            for k, v in recalls_dict.items():
+                full_recalls_dict[f"{val_set_name}_{k}"] = v
+
+        self.log_dict(
+            full_recalls_dict,
+            prog_bar=True,
+            logger=True,
+        )
+        table = PrettyTable()
+        table.field_names = ["Metric", "Value"]
+        for metric, value in full_recalls_dict.items():
+            table.add_row([metric, f"{value:.4f}"])
         
-        return results_dict
+        print(f"\nResults for {val_set_name}:")
+        print(table)
+        
+        return full_recalls_dict
+    
+    def state_dict(self):
+        # Override the state_dict method to return only the student model's state dict
+        return self.student.state_dict()
 
