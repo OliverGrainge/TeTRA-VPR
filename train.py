@@ -218,7 +218,8 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, mycheckpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        limit_train_batches=1000 if "distill" in args.training_method else None,
+        #limit_train_batches=10000 if "distill" in args.training_method else None,
+        val_check_interval=0.02 if "distill" in args.training_method else 1.0,
     )
 
     trainer.fit(model_module)

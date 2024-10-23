@@ -327,7 +327,7 @@ class VPRDistill(pl.LightningModule):
         if self.use_attention:
             self.log("attn_loss", attn_loss)
 
-        print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
+        #print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
         return loss
 
     def configure_optimizers(self):
