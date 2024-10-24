@@ -19,10 +19,18 @@ from NeuroPress.models.base import Qmodel
 
 LINEAR_REPR = [layer(12, 12).__repr__() for layer in LINEAR_LAYERS]
 
+print(LINEAR_REPR)
+
 
 def find_best_match(target_string, list_of_strings):
+    target_string = target_string.replace("vit", '')
+    target_string = target_string.replace('small', '')
+    target_string = target_string.replace('base', '')
+    target_string = target_string.replace('large', '')
+    target_string = target_string.replace('_', '')
+
     for s in list_of_strings:
-        if s in target_string:
+        if s == target_string:
             return s  # Return the first match found
     return None
 
@@ -175,6 +183,7 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         return aggregators.MixVPR(features_dim=features_dim, config=config)
 
     elif "salad" in agg_arch.lower():
+        print(features_dim)
         config = {}
         config["num_channels"] = features_dim[1]
         config["token_dim"] = features_dim[0] - 1

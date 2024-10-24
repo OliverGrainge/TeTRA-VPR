@@ -24,6 +24,16 @@ from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from models.helper import get_model, get_transform
 
+import sys
+sys.path.append(
+    os.path.abspath(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        + "/../NeuroCompress"
+    )
+)
+
+from NeuroPress.models.base import Qmodel
+
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
 
@@ -84,6 +94,24 @@ def freeze_model(model):
         param.requires_grad = False
     return model
 
+
+class QLambdaScheduler:
+    def __init__(self, module, max_steps, range=(-6, 8)):
+        self.module = module
+        self.max_steps = max_steps
+        self.lambda_value = torch.ones(1)
+        self.step_count = torch.zeros(1)
+        self.range = range
+    
+    def step(self):
+        self.step_count += 1
+        self.lambda_value = torch.sigmoid((self.step_count/self.max_steps * (self.range[1] - self.range[0]) + self.range[0]))
+        for module in self.module.modules():
+            if hasattr(module, "q_lambda"):
+                module.q_lambda = self.lambda_value
+
+    def get_lambda(self):
+        return self.lambda_value
 
 class TarImageDataset(Dataset):
     def __init__(self, data_directory, transform=None):
@@ -371,29 +399,34 @@ class VPRDistill(pl.LightningModule):
             attn_loss = 1000 * F.mse_loss(teacher_attn, student_attn)
             loss += attn_loss
 
-        if hasattr(self.student, "compute_reg"):
-            reg_loss = self.student.compute_reg()
-            loss += self.reg_scale * reg_loss
-            self.log("reg_loss", reg_loss)
-
         self.log("train_loss", loss, prog_bar=True)
         self.log("mse_loss", mse_loss, prog_bar=True)
         self.log("cosine_loss", cosine_loss, prog_bar=True)
         if self.use_attention:
             self.log("attn_loss", attn_loss, prog_bar=True)
 
-        if hasattr(self.student, "decay_weight"):
-            current_lr = self.lr_schedulers().get_last_lr()[0]  # Get the current learning rate from the scheduler
-            self.student.decay_weight(lr=current_lr, weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale())
-            self.log("weight_decay_scale", self.weight_decay_scheduler.get_last_weight_decay_scale(), on_step=True)
+        if hasattr(self.student.backbone, "decay_weight"):
             self.weight_decay_scheduler.step()
+            current_lr = self.lr_schedulers().get_last_lr()[0]  # Get the current learning rate from the scheduler
+            self.student.backbone.decay_weight(lr=current_lr, weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale())
+            self.log("weight_decay_scale", self.weight_decay_scheduler.get_last_weight_decay_scale(), on_step=True)
+            
 
+        self.q_lambda_scheduler.step()
+        self.log("q_lambda", self.q_lambda_scheduler.get_lambda(), on_step=True)
         return loss
     
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.student.parameters(),
-            lr=self.lr,
-        )
+
+        if isinstance(self.student.backbone, Qmodel):
+            optimizer = optim.AdamW(self.student.parameters(),
+                lr=self.lr,
+                weight_decay=0.0
+            )
+        elif "vit" in self.backbone_arch.lower(): 
+            optimizer = optim.AdamW(self.student.parameters(), weight_decay=0.05)
+        else: 
+            optimizer = optim.AdamW(self.student.parameters(), weight_decay=0.0)
 
         total_steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(0.05 * total_steps) 
@@ -403,6 +436,7 @@ class VPRDistill(pl.LightningModule):
         )
 
         self.weight_decay_scheduler = self._setup_weight_decay_scheduler()
+        self.q_lambda_scheduler = self._setup_q_lambda_scheduler()
         print(type(self.weight_decay_scheduler.step))
         return {
             "optimizer": optimizer,
@@ -412,6 +446,9 @@ class VPRDistill(pl.LightningModule):
                 "frequency": 1,
             },
         }
+    
+    def _setup_q_lambda_scheduler(self):
+        return QLambdaScheduler(self.student.backbone, self.trainer.estimated_stepping_batches)
 
     def _setup_weight_decay_scheduler(self):
         total_steps = self.trainer.estimated_stepping_batches
@@ -431,6 +468,10 @@ class VPRDistill(pl.LightningModule):
         elif self.weight_decay_schedule == "constant":
             def decay_schedule(step, init_weight_decay_scale):
                 return init_weight_decay_scale
+            
+        elif self.weight_decay_schedule == "sigmoid":
+            def decay_schedule(step, init_weight_decay_scale):
+                return init_weight_decay_scale * torch.sigmoid(torch.tensor(step/total_steps * 14 - 4))
             
         elif self.weight_decay_schedule is None:
             def decay_schedule(step, init_weight_decay_scale):

@@ -210,7 +210,7 @@ if __name__ == "__main__":
         strategy="auto",
         devices=1,
         accelerator="auto",
-        default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}",
+        default_root_dir=f"./Logs/PreTraining/{args.training_method.lower()}/{args.backbone_arch.lower()}_{args.agg_arch.lower()}" + args.teacher_preset if args.training_method == "distill" else "",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
