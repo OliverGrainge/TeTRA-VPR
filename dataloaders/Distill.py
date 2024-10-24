@@ -341,7 +341,7 @@ class VPRDistill(pl.LightningModule):
                 decay_params.append(param)
 
         # Use weight decay for ViT models
-        weight_decay = 0.05 if 'vit' in self.backbone_arch.lower() else 0.0
+        weight_decay = 0.05 if 'vit' in self.backbone_arch.lower() and "teranry" not in self.backbone_arch.lower() else 0.0
 
         optimizer = optim.AdamW([
             {'params': decay_params, 'weight_decay': weight_decay},
@@ -350,7 +350,7 @@ class VPRDistill(pl.LightningModule):
 
         # Calculate total steps for warmup and cosine annealing
         total_steps = self.trainer.estimated_stepping_batches
-        warmup_steps = int(0.05 * total_steps)  # 10% of total steps for warmup
+        warmup_steps = int(0.05 * total_steps)  # 5% of total steps for warmup
 
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
