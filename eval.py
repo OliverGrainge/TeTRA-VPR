@@ -3,8 +3,8 @@ import time
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import yaml
 import torchvision.transforms as T
+import yaml
 
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model, get_transform

@@ -10,6 +10,8 @@ from einops.layers.torch import Rearrange
 from transformers import ViTModel
 
 
+
+
 # Model definition (same as before)
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0, layer_type=nn.Linear):
@@ -66,7 +68,7 @@ class Transformer(nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth - 1):
+        for _ in range(depth):
             self.layers.append(
                 nn.ModuleList(
                     [
@@ -83,21 +85,6 @@ class Transformer(nn.Module):
                     ]
                 )
             )
-
-        self.layers.append(
-            nn.ModuleList(
-                [
-                    Attention(
-                        dim,
-                        heads=heads,
-                        dim_head=dim_head,
-                        dropout=dropout,
-                        layer_type=attention_layer_type,
-                    ),
-                    FeedForward(dim, mlp_dim, dropout=dropout, layer_type=nn.Linear),
-                ]
-            )
-        )
 
     def forward(self, x):
         for attn, ff in self.layers:

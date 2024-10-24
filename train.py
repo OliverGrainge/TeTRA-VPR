@@ -5,7 +5,6 @@ import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
-
 torch.set_float32_matmul_precision("medium")
 
 
@@ -14,13 +13,12 @@ import os
 
 import yaml
 
+from dataloaders.Distill import VPRDistill
 from dataloaders.EigenPlaces import EigenPlaces
 from dataloaders.GSVCities import GSVCities
-from dataloaders.Distill import VPRDistill
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model
 from parsers import get_args_parser
-
 
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
 
@@ -116,13 +114,15 @@ if __name__ == "__main__":
             student_agg_arch=args.agg_arch,
             teacher_preset=args.teacher_preset,
             use_attention=args.use_attention,
-            
+            weight_decay_scale=args.weight_decay_scale,
+            weight_decay_schedule=args.weight_decay_schedule,
         )
 
         mycheckpoint_cb = ModelCheckpoint(
             monitor=f"{args.val_set_names[0]}_R1",
             filename=f"{args.backbone_arch.lower()}"
-            + f"_{args.agg_arch.lower()}" + f"_{args.teacher_preset.lower()}"
+            + f"_{args.agg_arch.lower()}"
+            + f"_{args.teacher_preset.lower()}"
             + "_epoch({epoch:02d})_step({step:04d})_loss{train_loss:.4f}]",
             auto_insert_metric_name=False,
             save_weights_only=True,
@@ -205,9 +205,8 @@ if __name__ == "__main__":
 
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
-
     trainer = pl.Trainer(
-        enable_progress_bar=False,
+        enable_progress_bar=args.pbar,
         strategy="auto",
         devices=1,
         accelerator="auto",
@@ -218,7 +217,10 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, mycheckpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        val_check_interval=0.02 if "distill" in args.training_method else 1.0,
+        #val_check_interval=0.02 if "distill" in args.training_method else 1.0,
+
+        limit_train_batches=2000, 
+        log_every_n_steps=1,
     )
 
     trainer.fit(model_module)

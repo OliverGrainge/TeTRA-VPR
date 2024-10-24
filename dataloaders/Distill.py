@@ -1,28 +1,27 @@
+import glob
+import json
+import os
+import random
+import tarfile
+from collections import defaultdict
+from io import BytesIO
+
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+import torch.optim as optim
+from einops import rearrange
+from PIL import Image
 from prettytable import PrettyTable
-import pytorch_lightning as pl
 from pytorch_metric_learning import miners
 from pytorch_metric_learning.distances import CosineSimilarity
-from torch.utils.data import DataLoader
-import torch.optim as optim
-from transformers import get_cosine_schedule_with_warmup
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as T
-from torch.utils.data import Dataset
-from PIL import Image
-import tarfile
-from io import BytesIO
-from einops import rearrange
-import json
-import glob
-import random
-from collections import defaultdict
-from matching.global_cosine_sim import global_cosine_sim
-import os
+from transformers import get_cosine_schedule_with_warmup
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
-
+from matching.global_cosine_sim import global_cosine_sim
 from models.helper import get_model, get_transform
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
@@ -39,7 +38,11 @@ def get_attn(model):
 
     def dinov2_hook_fn(module, input, output):
         B, N, C = input[0].shape
-        qkv = module.qkv(input[0]).reshape(B, N, 3, module.num_heads, C // module.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = (
+            module.qkv(input[0])
+            .reshape(B, N, 3, module.num_heads, C // module.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = qkv[0] * module.scale, qkv[1], qkv[2]
         attn = q @ k.transpose(-2, -1)
         attn = attn.softmax(dim=-1)
@@ -47,17 +50,19 @@ def get_attn(model):
 
     def vit_hook_fn(module, input, output):
         qkv = module.to_qkv(input[0]).chunk(3, dim=-1)
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=module.heads), qkv)
+        q, k, v = map(
+            lambda t: rearrange(t, "b n (h d) -> b h n d", h=module.heads), qkv
+        )
         dots = torch.matmul(q, k.transpose(-1, -2)) * module.scale
         attn = dots.softmax(dim=-1)
         attention_matrices.append(attn)
 
     for name, module in model.named_modules():
-        if hasattr(module, 'qkv'):
+        if hasattr(module, "qkv"):
             # This is likely a DINOv2 attention module
             hook = module.register_forward_hook(dinov2_hook_fn)
             hooks.append(hook)
-        elif hasattr(module, 'to_qkv'):
+        elif hasattr(module, "to_qkv"):
             # This is likely a ViT attention module
             hook = module.register_forward_hook(vit_hook_fn)
             hooks.append(hook)
@@ -127,7 +132,11 @@ class ImageDataset(Dataset):
         print(f"Scanning directory: {data_directory}")
 
         # Check if the directory contains subdirectories
-        subdirs = [d for d in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, d))]
+        subdirs = [
+            d
+            for d in os.listdir(data_directory)
+            if os.path.isdir(os.path.join(data_directory, d))
+        ]
 
         if subdirs:
             print("Found subdirectories. Scanning each:")
@@ -195,19 +204,23 @@ class VPRDistill(pl.LightningModule):
         teacher_preset="EigenPlaces",
         matching_function=global_cosine_sim,
         use_attention=False,
+        weight_decay_scale=0.05,
+        weight_decay_schedule="staged_linear",
     ):
         super().__init__()
         self.config = config
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.image_size = args.image_size
-        self.lr = config["lr"]
+        self.lr = args.distill_lr
         self.data_directory = config["data_directory"]
         self.teacher_preset = teacher_preset
         self.val_set_names = args.val_set_names
         self.backbone_arch = student_backbone_arch
         self.matching_function = matching_function
         self.use_attention = use_attention
+        self.weight_decay_scale = weight_decay_scale
+        self.weight_decay_schedule = weight_decay_schedule
         self.teacher = get_model(preset=args.teacher_preset)
         self.student = get_model(
             backbone_arch=student_backbone_arch,
@@ -218,51 +231,68 @@ class VPRDistill(pl.LightningModule):
         freeze_model(self.teacher)
 
     def setup(self, stage=None):
-            # Setup for 'fit' or 'validate'self
-            if stage == "fit" or stage == "validate":
-                self.val_datasets = []
-                for val_set_name in self.val_set_names:
-                    if "pitts30k" in val_set_name.lower():
-                        from dataloaders.val.PittsburghDataset import PittsburghDataset
+        # Setup for 'fit' or 'validate'self
+        if stage == "fit" or stage == "validate":
+            self.val_datasets = []
+            for val_set_name in self.val_set_names:
+                if "pitts30k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
-                        self.val_datasets.append(
-                            PittsburghDataset(
-                                which_ds=val_set_name, input_transform=self.student_val_transform()
-                            )
+                    self.val_datasets.append(
+                        PittsburghDataset(
+                            which_ds=val_set_name,
+                            input_transform=self.student_val_transform(),
                         )
-                    elif val_set_name.lower() == "msls_val":
-                        from dataloaders.val.MapillaryDataset import MSLS
+                    )
+                elif val_set_name.lower() == "msls_val":
+                    from dataloaders.val.MapillaryDataset import MSLS
 
-                        self.val_datasets.append(MSLS(input_transform=self.student_val_transform()))
-                    elif val_set_name.lower() == "nordland":
-                        from dataloaders.val.NordlandDataset import NordlandDataset
+                    self.val_datasets.append(
+                        MSLS(input_transform=self.student_val_transform())
+                    )
+                elif val_set_name.lower() == "nordland":
+                    from dataloaders.val.NordlandDataset import NordlandDataset
 
-                        self.val_datasets.append(
-                            NordlandDataset(input_transform=self.transform)
-                        )
-                    elif val_set_name.lower() == "sped":
-                        from dataloaders.val.SPEDDataset import SPEDDataset
+                    self.val_datasets.append(
+                        NordlandDataset(input_transform=self.transform)
+                    )
+                elif val_set_name.lower() == "sped":
+                    from dataloaders.val.SPEDDataset import SPEDDataset
 
-                        self.val_datasets.append(
-                            SPEDDataset(input_transform=self.student_val_transform())
-                        )
-                    elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
-                        from dataloaders.val.SF_XL import SF_XL
+                    self.val_datasets.append(
+                        SPEDDataset(input_transform=self.student_val_transform())
+                    )
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "val" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
+                    from dataloaders.val.SF_XL import SF_XL
 
-                        self.val_datasets.append(
-                            SF_XL(which_ds="sf_xl_small_val", input_transform=self.student_val_transform())
+                    self.val_datasets.append(
+                        SF_XL(
+                            which_ds="sf_xl_small_val",
+                            input_transform=self.student_val_transform(),
                         )
-                    elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
-                        from dataloaders.val.SF_XL import SF_XL
+                    )
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "test" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
+                    from dataloaders.val.SF_XL import SF_XL
 
-                        self.val_datasets.append(
-                            SF_XL(which_ds="sf_xl_small_test", input_transform=self.student_val_transform())
+                    self.val_datasets.append(
+                        SF_XL(
+                            which_ds="sf_xl_small_test",
+                            input_transform=self.student_val_transform(),
                         )
-                    else:
-                        raise NotImplementedError(
-                            f"Validation set {val_set_name} not implemented"
-                        )
-        
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Validation set {val_set_name} not implemented"
+                    )
 
     def forward(self, x):
         return self.student(x)
@@ -277,15 +307,31 @@ class VPRDistill(pl.LightningModule):
             student_features = self(student_images)
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
-            # B * D, H, N, N 
-            teacher_attn = teacher_attn.view(B, -1, teacher_attn.shape[-3], teacher_attn.shape[-2], teacher_attn.shape[-1])
-            student_attn = student_attn.view(B, -1, student_attn.shape[-3], student_attn.shape[-2], student_attn.shape[-1])
+            # B * D, H, N, N
+            teacher_attn = teacher_attn.view(
+                B,
+                -1,
+                teacher_attn.shape[-3],
+                teacher_attn.shape[-2],
+                teacher_attn.shape[-1],
+            )
+            student_attn = student_attn.view(
+                B,
+                -1,
+                student_attn.shape[-3],
+                student_attn.shape[-2],
+                student_attn.shape[-1],
+            )
             # B, D, H, N, N
 
             if teacher_attn.shape[1] != student_attn.shape[1]:
-                # have different depths 
-                assert teacher_attn.shape[1] > student_attn.shape[1], "teacher attention must be deeper or equal to the depth of the than student attention"
-                teacher_attn_idxs = (torch.arange(student_attn.shape[1]) * teacher_attn.shape[1])/student_attn.shape[1].floor().long()
+                # have different depths
+                assert (
+                    teacher_attn.shape[1] > student_attn.shape[1]
+                ), "teacher attention must be deeper or equal to the depth of the than student attention"
+                teacher_attn_idxs = (
+                    torch.arange(student_attn.shape[1]) * teacher_attn.shape[1]
+                ) / student_attn.shape[1].floor().long()
                 teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
 
             if teacher_attn.shape[2] != student_attn.shape[2]:
@@ -293,24 +339,28 @@ class VPRDistill(pl.LightningModule):
                 teacher_attn = teacher_attn.mean(2)
                 student_attn = student_attn.mean(2)
 
-                
             if teacher_attn.shape[-1] != student_attn.shape[-1]:
                 # have different number of tokens
-                student_attn = F.interpolate(student_attn, size=teacher_attn.shape[-2:], mode='bilinear', align_corners=False)
-            
+                student_attn = F.interpolate(
+                    student_attn,
+                    size=teacher_attn.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
         else:
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
-        
+
         teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
         student_features = F.normalize(student_features["global_desc"], dim=1)
 
         loss = torch.tensor(0.0, device=self.device)
         # mse loss to align feature spaces
-        mse_loss = F.mse_loss(teacher_features, student_features)
-        loss += 1000 * mse_loss
+        mse_loss = 1000 * F.mse_loss(teacher_features, student_features)
+        loss += mse_loss
         # cosine loss to align feature angles
         cosine_loss = (
             1 - F.cosine_similarity(teacher_features, student_features)
@@ -318,47 +368,97 @@ class VPRDistill(pl.LightningModule):
         loss += cosine_loss
         # attention loss to align attention maps
         if self.use_attention:
-            attn_loss = F.mse_loss(teacher_attn, student_attn)
-            loss += 1000 *attn_loss
+            attn_loss = 1000 * F.mse_loss(teacher_attn, student_attn)
+            loss += attn_loss
 
-        self.log("train_loss", loss)
-        self.log("mse_loss", mse_loss)
-        self.log("cosine_loss", cosine_loss)
+        if hasattr(self.student, "compute_reg"):
+            reg_loss = self.student.compute_reg()
+            loss += self.reg_scale * reg_loss
+            self.log("reg_loss", reg_loss)
+
+        self.log("train_loss", loss, prog_bar=True)
+        self.log("mse_loss", mse_loss, prog_bar=True)
+        self.log("cosine_loss", cosine_loss, prog_bar=True)
         if self.use_attention:
-            self.log("attn_loss", attn_loss)
+            self.log("attn_loss", attn_loss, prog_bar=True)
 
-        #print(f"train_loss: {loss:.4f}, mse_loss: {1000 * mse_loss:.4f}, cosine_loss: {cosine_loss:.4f}, attn_loss: {1000 * attn_loss:.4f}")
+        if hasattr(self.student, "decay_weight"):
+            current_lr = self.lr_schedulers().get_last_lr()[0]  # Get the current learning rate from the scheduler
+            self.student.decay_weight(lr=current_lr, weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale())
+            self.log("weight_decay_scale", self.weight_decay_scheduler.get_last_weight_decay_scale(), on_step=True)
+            self.weight_decay_scheduler.step()
+
         return loss
-
+    
     def configure_optimizers(self):
-        # Apply weight decay only to weight parameters, not biases or normalization layers
-        decay_params = []
-        no_decay_params = []
-        for name, param in self.student.named_parameters():
-            if 'bias' in name or 'norm' in name or 'ln' in name:
-                no_decay_params.append(param)
-            else:
-                decay_params.append(param)
-
-        # Use weight decay for ViT models
-        weight_decay = 0.05 if 'vit' in self.backbone_arch.lower() and "teranry" not in self.backbone_arch.lower() else 0.0
-
-        optimizer = optim.AdamW([
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': no_decay_params, 'weight_decay': 0.0}
-        ], lr=self.lr)
-
-        # Calculate total steps for warmup and cosine annealing
-        total_steps = self.trainer.estimated_stepping_batches
-        warmup_steps = int(0.05 * total_steps)  # 5% of total steps for warmup
-
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=warmup_steps,
-            num_training_steps=total_steps
+        optimizer = optim.AdamW(self.student.parameters(),
+            lr=self.lr,
         )
 
-        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
+        total_steps = self.trainer.estimated_stepping_batches
+        warmup_steps = int(0.05 * total_steps) 
+        
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
+        )
+
+        self.weight_decay_scheduler = self._setup_weight_decay_scheduler()
+        print(type(self.weight_decay_scheduler.step))
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "step",
+                "frequency": 1,
+            },
+        }
+
+    def _setup_weight_decay_scheduler(self):
+        total_steps = self.trainer.estimated_stepping_batches
+        
+        # Custom scheduler for reg_scale
+        if self.weight_decay_schedule == "staged_linear":
+            def decay_schedule(step, init_weight_decay_scale):
+                start_step = 0.1 * total_steps
+                end_step = 0.9 * total_steps
+                if step < start_step:
+                    return init_weight_decay_scale
+                elif step > end_step:
+                    return 0.0
+                else:
+                    return init_weight_decay_scale * (1 - (step - start_step) / (end_step - start_step))
+                
+        elif self.weight_decay_schedule == "constant":
+            def decay_schedule(step, init_weight_decay_scale):
+                return init_weight_decay_scale
+            
+        elif self.weight_decay_schedule is None:
+            def decay_schedule(step, init_weight_decay_scale):
+                return 0.0
+            
+        else:
+            raise NotImplementedError(
+                f"Weight decay schedule {self.weight_decay_schedule} not implemented"
+            )
+
+        class WeightDecayScheduler:
+            def __init__(self, init_weight_decay_scale, decay_schedule):
+                self.init_weight_decay_scale = init_weight_decay_scale
+                self.weight_decay_scale = init_weight_decay_scale
+                self.decay_schedule = decay_schedule
+                self.step_count = 0
+
+            def step(self):
+                self.step_count += 1
+                self.weight_decay_scale = self.decay_schedule(self.step_count, self.init_weight_decay_scale)
+
+            def get_last_weight_decay_scale(self):
+                return self.weight_decay_scale
+
+        weight_decay_scheduler = WeightDecayScheduler(self.weight_decay_scale, decay_schedule)
+        return weight_decay_scheduler
+
+
 
     def student_train_transform(self):
         return T.Compose(
@@ -370,7 +470,7 @@ class VPRDistill(pl.LightningModule):
                 ),
             ]
         )
-    
+
     def student_val_transform(self):
         return T.Compose(
             [
@@ -384,7 +484,7 @@ class VPRDistill(pl.LightningModule):
 
     def teacher_train_transform(self):
         return get_transform(self.teacher_preset)
-    
+
     def teacher_val_transform(self):
         return get_transform(self.teacher_preset)
 
@@ -409,7 +509,7 @@ class VPRDistill(pl.LightningModule):
             num_workers=self.num_workers,
             shuffle=True,
         )
-    
+
     def val_dataloader(self):
         val_dataloaders = []
         for val_dataset in self.val_datasets:
@@ -422,7 +522,6 @@ class VPRDistill(pl.LightningModule):
                 )
             )
         return val_dataloaders
-    
 
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
@@ -438,21 +537,26 @@ class VPRDistill(pl.LightningModule):
         descriptors = self(places)
         # store the outputs
         for key, value in descriptors.items():
-            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
+                value.detach().cpu()
+            )
         return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
-
         full_recalls_dict = {}
-        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
-            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
-            
+            recalls_dict, _ = self.matching_function(
+                **set_outputs,
+                num_references=val_dataset.num_references,
+                ground_truth=val_dataset.ground_truth,
+            )
+
             for k, v in recalls_dict.items():
                 full_recalls_dict[f"{val_set_name}_{k}"] = v
 
@@ -465,13 +569,15 @@ class VPRDistill(pl.LightningModule):
         table.field_names = ["Metric", "Value"]
         for metric, value in full_recalls_dict.items():
             table.add_row([metric, f"{value:.4f}"])
-        
+
         print(f"\nResults for {val_set_name}:")
         print(table)
-        
+
         return full_recalls_dict
-    
+
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
         return self.student.state_dict()
+
+
 

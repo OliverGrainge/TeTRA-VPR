@@ -1,8 +1,6 @@
-import torch 
-import numpy as np 
-import faiss 
-
-
+import faiss
+import numpy as np
+import torch
 
 
 def global_cosine_sim(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):

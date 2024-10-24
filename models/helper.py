@@ -15,6 +15,7 @@ sys.path.insert(
 )
 
 from NeuroPress.layers import LINEAR_LAYERS
+from NeuroPress.models.base import Qmodel
 
 LINEAR_REPR = [layer(12, 12).__repr__() for layer in LINEAR_LAYERS]
 
@@ -113,26 +114,25 @@ def get_backbone(backbone_arch, image_size):
             return backbones.ResNet(model_name="ResNet50")
 
     elif "vit" in backbone_arch.lower():
-
         match_layer_str = find_best_match(backbone_arch, LINEAR_REPR)
         if match_layer_str is None:
             if "small" in backbone_arch.lower():
-                return backbones.ViT_Small(image_size=image_size, layer_type=nn.Linear)
+                return backbones.ViT_Small(image_size=image_size)
             elif "base" in backbone_arch.lower():
-                return backbones.ViT_Base(image_size=image_size, layer_type=nn.Linear)
+                return backbones.ViT_Base(image_size=image_size)
             elif "large" in backbone_arch.lower():
-                return backbones.ViT_Large(image_size=image_size, layer_type=nn.Linear)
+                return backbones.ViT_Large(image_size=image_size)
             else:
                 raise Exception("must choose small/medium/large")
         else:
             module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
             layer_type = getattr(module, match_layer_str)
             if "small" in backbone_arch.lower():
-                return backbones.ViT_Small(image_size=image_size, layer_type=layer_type)
+                return backbones.QViT_Small(image_size=image_size, layer_type=layer_type)
             elif "base" in backbone_arch.lower():
-                return backbones.ViT_Base(image_size=image_size, layer_type=layer_type)
+                return backbones.QViT_Base(image_size=image_size, layer_type=layer_type)
             elif "large" in backbone_arch.lower():
-                return backbones.ViT_Large(image_size=image_size, layer_type=layer_type)
+                return backbones.QViT_Large(image_size=image_size, layer_type=layer_type)
             else:
                 raise Exception("must choose small/medium/large")
     else:
@@ -183,16 +183,13 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         scale_factor = out_dim / (8448 - features_dim[1])
         config["num_clusters"] = 64 * int(scale_factor**0.5)
         config["cluster_dim"] = 128 * int(scale_factor**0.5)
-        print("--------------------------------")
-        print(config)
-        print("--------------------------------")
         return aggregators.SALAD(**config)
 
     elif "cls" in agg_arch.lower():
         return aggregators.CLS(features_dim, out_dim)
 
 
-class VPRModel(nn.Module):
+class VPRModel(Qmodel):
     def __init__(self, backbone, aggregation, normalize=True):
         super().__init__()
         self.backbone = backbone
@@ -225,14 +222,13 @@ def get_model(
     if preset is not None:
         module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
-        #print(model())
         return model()
+
     image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
     device = "cuda" if torch.cuda.is_available() else "cpu"
     backbone = get_backbone(backbone_arch, image_size=image_size)
     backbone = backbone.to(device)
-   
-    
+
     image = torch.randn(3, *(image_size)).to(device)
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
@@ -240,7 +236,7 @@ def get_model(
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation, normalize=normalize_output)
     desc = aggregation(features)
-    #(model)
+    # (model)
     if type(desc) == tuple:
         model.descriptor_dim = desc[0].shape[0]
     else:

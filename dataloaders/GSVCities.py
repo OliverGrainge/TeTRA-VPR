@@ -1,14 +1,15 @@
+from collections import defaultdict
+
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
 from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-from collections import defaultdict
-from matching.global_cosine_sim import global_cosine_sim
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
+from matching.global_cosine_sim import global_cosine_sim
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
@@ -110,7 +111,8 @@ class GSVCities(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -133,17 +135,29 @@ class GSVCities(pl.LightningModule):
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.valid_transform)
                     )
-                elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "val" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
                     from dataloaders.val.SF_XL import SF_XL
 
                     self.val_datasets.append(
-                        SF_XL(which_ds="sf_xl_small_val", input_transform=self.transform)
+                        SF_XL(
+                            which_ds="sf_xl_small_val", input_transform=self.transform
+                        )
                     )
-                elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "test" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
                     from dataloaders.val.SF_XL import SF_XL
 
                     self.val_datasets.append(
-                        SF_XL(which_ds="sf_xl_small_test", input_transform=self.transform)
+                        SF_XL(
+                            which_ds="sf_xl_small_test", input_transform=self.transform
+                        )
                     )
                 else:
                     raise NotImplementedError(
@@ -231,7 +245,6 @@ class GSVCities(pl.LightningModule):
         self.log("loss", loss)
         return {"loss": loss}
 
-
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
         self.validation_outputs = {}
@@ -246,19 +259,25 @@ class GSVCities(pl.LightningModule):
         descriptors = self(places)
         # store the outputs
         for key, value in descriptors.items():
-            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
+                value.detach().cpu()
+            )
         return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
         results_dict = {}
-        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
-            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+            recalls_dict, _ = self.matching_function(
+                **set_outputs,
+                num_references=val_dataset.num_references,
+                ground_truth=val_dataset.ground_truth,
+            )
             self.log_dict(
                 recalls_dict,
                 prog_bar=False,

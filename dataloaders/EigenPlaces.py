@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import defaultdict
 
 import pytorch_lightning as pl
 import torch
@@ -9,12 +10,11 @@ from prettytable import PrettyTable
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
-from dataloaders.train.EigenPlacesDataset import EigenPlacesDataset
-from dataloaders.train.Utils import augmentations
-from collections import defaultdict
-from matching.global_cosine_sim import global_cosine_sim
 
 import utils
+from dataloaders.train.EigenPlacesDataset import EigenPlacesDataset
+from dataloaders.train.Utils import augmentations
+from matching.global_cosine_sim import global_cosine_sim
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
@@ -132,16 +132,18 @@ class EigenPlaces(pl.LightningModule):
         # Train and valid transforms
         self.train_transform = T.Compose(
             [
-                #augmentations.DeviceAgnosticColorJitter(
+                # augmentations.DeviceAgnosticColorJitter(
                 #    brightness=self.brightness,
                 #    contrast=self.contrast,
                 #    saturation=self.saturation,
                 #    hue=self.hue,
-                #),
-                #augmentations.DeviceAgnosticRandomResizedCrop(
+                # ),
+                # augmentations.DeviceAgnosticRandomResizedCrop(
                 #    self.image_size, scale=[1 - self.random_resized_crop, 1]
-                #),
-                T.Resize(size=self.image_size[0], interpolation=T.InterpolationMode.BILINEAR),
+                # ),
+                T.Resize(
+                    size=self.image_size[0], interpolation=T.InterpolationMode.BILINEAR
+                ),
                 T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
             ]
         )
@@ -208,7 +210,8 @@ class EigenPlaces(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -231,17 +234,31 @@ class EigenPlaces(pl.LightningModule):
                     self.val_datasets.append(
                         SPEDDataset(input_transform=self.valid_transform)
                     )
-                elif "sf_xl" in val_set_name.lower() and "val" in val_set_name.lower() and "small" in val_set_name.lower():
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "val" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
                     from dataloaders.val.SF_XL import SF_XL
 
                     self.val_datasets.append(
-                        SF_XL(which_ds="sf_xl_small_val", input_transform=self.valid_transform)
+                        SF_XL(
+                            which_ds="sf_xl_small_val",
+                            input_transform=self.valid_transform,
+                        )
                     )
-                elif "sf_xl" in val_set_name.lower() and "test" in val_set_name.lower() and "small" in val_set_name.lower():
+                elif (
+                    "sf_xl" in val_set_name.lower()
+                    and "test" in val_set_name.lower()
+                    and "small" in val_set_name.lower()
+                ):
                     from dataloaders.val.SF_XL import SF_XL
 
                     self.val_datasets.append(
-                        SF_XL(which_ds="sf_xl_small_test", input_transform=self.valid_transform)
+                        SF_XL(
+                            which_ds="sf_xl_small_test",
+                            input_transform=self.valid_transform,
+                        )
                     )
                 else:
                     raise NotImplementedError(
@@ -279,17 +296,17 @@ class EigenPlaces(pl.LightningModule):
             current_dataset_num, i = dataset_key
             images, targets, _ = b
 
-            #import matplotlib.pyplot as plt
-            #plt.figure()
-            #plt.imshow(images[0].permute(1, 2, 0).detach().cpu().numpy())
-            #plt.savefig(f'sample_image_epoch_{self.current_epoch}_batch_{batch_idx}.png')
-            #plt.close()
-            #self.mystep += 1
-            #if self.mystep > 10: 
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # plt.imshow(images[0].permute(1, 2, 0).detach().cpu().numpy())
+            # plt.savefig(f'sample_image_epoch_{self.current_epoch}_batch_{batch_idx}.png')
+            # plt.close()
+            # self.mystep += 1
+            # if self.mystep > 10:
             #    raise Exception("Stopping here")
-            
+
             images = self.train_transform(images)
-            
+
             # Option 1: Remove visualization code
             # Delete or comment out the following lines:
             # import matplotlib.pyplot as plt
@@ -297,8 +314,6 @@ class EigenPlaces(pl.LightningModule):
             # plt.show()
 
             # Option 2: Save image to file instead of displaying
-
-
 
             # Option 3: Use a non-interactive backend (add this at the top of your file)
             # import matplotlib
@@ -310,8 +325,8 @@ class EigenPlaces(pl.LightningModule):
             # plt.close()
 
             descriptors = self(images)
-            #print(descriptors["global_desc"].shape)
-            #print(descriptors["global_desc"][0].norm())
+            # print(descriptors["global_desc"].shape)
+            # print(descriptors["global_desc"][0].norm())
             classifier_opts[current_dataset_num + i].zero_grad()
             output = self.classifiers[current_dataset_num + i](
                 descriptors["global_desc"], targets
@@ -368,19 +383,25 @@ class EigenPlaces(pl.LightningModule):
         descriptors = self(places)
         # store the outputs
         for key, value in descriptors.items():
-            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(value.detach().cpu())
+            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
+                value.detach().cpu()
+            )
         return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
         results_dict = {}
-        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets): 
+        for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
-            recalls_dict, _ = self.matching_function(**set_outputs, num_references=val_dataset.num_references, ground_truth=val_dataset.ground_truth)
+            recalls_dict, _ = self.matching_function(
+                **set_outputs,
+                num_references=val_dataset.num_references,
+                ground_truth=val_dataset.ground_truth,
+            )
             self.log_dict(
                 recalls_dict,
                 prog_bar=True,
@@ -392,8 +413,8 @@ class EigenPlaces(pl.LightningModule):
             table.field_names = ["Metric", "Value"]
             for metric, value in recalls_dict.items():
                 table.add_row([metric, f"{value:.4f}"])
-            
+
             print(f"\nResults for {val_set_name}:")
             print(table)
-        
+
         return results_dict

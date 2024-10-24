@@ -14,7 +14,7 @@ def DinoV2_BoQ():
 
     def new_forward(x):
         desc, attn = original_forward(x)
-        return {"global_desc": desc,"attention": attn}
+        return {"global_desc": desc, "attention": attn}
 
     model.forward = new_forward
 

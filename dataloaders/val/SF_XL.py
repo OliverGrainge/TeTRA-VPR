@@ -19,7 +19,9 @@ with open(config_path, "r") as config_file:
     config = yaml.safe_load(config_file)
 
 DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"], "sf_xl/")
-GT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "datasets/"))
+GT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "datasets/")
+)
 print(GT_ROOT)
 print(GT_ROOT)
 print(GT_ROOT)
@@ -32,7 +34,6 @@ if not path_obj.exists():
     raise Exception(
         f"Please make sure the path {DATASET_ROOT} to Nordland dataset is correct"
     )
-
 
 
 class SF_XL(Dataset):
@@ -56,7 +57,7 @@ class SF_XL(Dataset):
         required_files = [
             f"{which_ds}_dbImages.npy",
             f"{which_ds}_qImages.npy",
-            f"{which_ds}_gt.npy"
+            f"{which_ds}_gt.npy",
         ]
 
         for file in required_files:
@@ -65,8 +66,12 @@ class SF_XL(Dataset):
                 raise FileNotFoundError(f"Required file not found: {file_path}")
 
         try:
-            self.dbImages = np.load(os.path.join(GT_ROOT, "SF_XL", f"{which_ds}_dbImages.npy"))
-            self.qImages = np.load(os.path.join(GT_ROOT, "SF_XL", f"{which_ds}_qImages.npy"))
+            self.dbImages = np.load(
+                os.path.join(GT_ROOT, "SF_XL", f"{which_ds}_dbImages.npy")
+            )
+            self.qImages = np.load(
+                os.path.join(GT_ROOT, "SF_XL", f"{which_ds}_qImages.npy")
+            )
             self.ground_truth = np.load(
                 os.path.join(GT_ROOT, "SF_XL", f"{which_ds}_gt.npy"), allow_pickle=True
             )

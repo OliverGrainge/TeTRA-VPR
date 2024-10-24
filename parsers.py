@@ -164,6 +164,34 @@ def training_arguments(parser=None):
         default=config["Training"]["Distill"]["use_attention"],
         help="Use attention",
     )
+
+    parser.add_argument(
+        "--pbar",
+        type=bool,
+        default=config["Training"]["pbar"],
+        help="Use progress bar",
+    )
+
+    parser.add_argument(
+        "--distill_lr",
+        type=float,
+        default=config["Training"]["Distill"]["distill_lr"],
+        help="Learning rate for distillation",
+    )
+
+    parser.add_argument(
+        "--weight_decay_scale",
+        type=float,
+        default=config["Training"]["Distill"]["weight_decay_scale"],
+        help="Weight decay scale",
+    )
+
+    parser.add_argument(
+        "--weight_decay_schedule",
+        type=str,
+        default=config["Training"]["Distill"]["weight_decay_schedule"],
+        help="Weight decay schedule",
+    )
     return parser
 
 

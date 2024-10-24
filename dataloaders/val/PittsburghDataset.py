@@ -25,7 +25,7 @@ GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), "../../datasets/
 path_obj = Path(DATASET_ROOT)
 if not path_obj.exists():
     raise Exception(
-        f"Please make sure the path {DATASET_ROOT} to Nordland dataset is correct"
+        f"Please make sure the path {DATASET_ROOT} to Pittsburgh dataset is correct"
     )
 
 if not path_obj.joinpath("ref") or not path_obj.joinpath("query"):
