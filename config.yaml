@@ -1,8 +1,8 @@
 
 Datasets:
-  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
   #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
-  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
 Training:
@@ -96,5 +96,5 @@ Training:
     use_attention: False
     #data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/small/train'
-    #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
-    data_directory: '/home/oliver/Documents/github/Datasets/Pittsburgh-Query'
+    data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
+    #data_directory: '/home/oliver/Documents/github/Datasets/Pittsburgh-Query'

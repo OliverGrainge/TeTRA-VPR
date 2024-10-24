@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,
+        enable_progress_bar=False,
         strategy="auto",
         devices=1,
         accelerator="auto",
@@ -218,7 +218,6 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, mycheckpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        #limit_train_batches=10000 if "distill" in args.training_method else None,
         val_check_interval=0.02 if "distill" in args.training_method else 1.0,
     )
 
