@@ -1,8 +1,8 @@
 
 Datasets:
-  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
   #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
-  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
 Training:
@@ -92,12 +92,13 @@ Training:
     random_resized_crop: 0.5
 
   Distill: 
-    distill_lr: 0.00007
+    #distill_lr: 0.00007
+    distill_lr: 0.0001
     teacher_preset: 'EigenPlaces'
     use_attention: False
     weight_decay_scale: 0.05
     weight_decay_schedule: 'staged_linear'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/small/train'
-    data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
-    #data_directory: '/home/oliver/Documents/github/Datasets/Pittsburgh-Query'
+    #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
+    data_directory: '/home/oliver/Documents/github/Datasets/Pittsburgh-Query'

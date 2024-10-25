@@ -160,7 +160,7 @@ class ViT(Qmodel):
 def QViT_Small(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
-        patch_size=16,  # More patches for better granularity
+        patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
         depth=12,  # Fewer transformer layers
         heads=6,  # Fewer attention heads
@@ -196,7 +196,7 @@ def QViT_Base(image_size=[224, 224], layer_type=nn.Linear):
 def QViT_Large(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
-        patch_size=16,
+        patch_size=14,
         dim=1024,
         depth=24,
         heads=16,

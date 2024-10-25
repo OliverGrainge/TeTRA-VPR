@@ -356,6 +356,7 @@ class VPRDistill(pl.LightningModule):
             student_features["global_desc"] = self.adapter(student_features["global_desc"])
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
+
             # B * D, H, N, N
             teacher_attn = teacher_attn.view(
                 B,
@@ -383,6 +384,7 @@ class VPRDistill(pl.LightningModule):
                 ) / student_attn.shape[1].floor().long()
                 teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
 
+
             if teacher_attn.shape[2] != student_attn.shape[2]:
                 # have different number of attention heads
                 teacher_attn = teacher_attn.mean(2)
@@ -390,12 +392,13 @@ class VPRDistill(pl.LightningModule):
 
             if teacher_attn.shape[-1] != student_attn.shape[-1]:
                 # have different number of tokens
+                B, D, H, _, _ = student_attn.shape
                 student_attn = F.interpolate(
-                    student_attn,
+                    student_attn.view(B * D * H, 1, student_attn.shape[-2], student_attn.shape[-1]),
                     size=teacher_attn.shape[-2:],
                     mode="bilinear",
                     align_corners=False,
-                )
+                ).view(B, D, H, teacher_attn.shape[-2], teacher_attn.shape[-1])
 
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
@@ -636,12 +639,12 @@ class VPRDistill(pl.LightningModule):
 
         print(f"\nResults for {val_set_name}:")
         print(table)
-
         return full_recalls_dict
 
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
         return self.student.state_dict()
+
 
 
 

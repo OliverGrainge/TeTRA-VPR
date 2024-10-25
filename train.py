@@ -228,7 +228,7 @@ if __name__ == "__main__":
     
 
     trainer = pl.Trainer(
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         strategy="auto",
         devices=1,
         accelerator="auto",
@@ -239,10 +239,10 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        val_check_interval=0.05 if "distill" in args.training_method else 1.0,
+        #val_check_interval=0.05 if "distill" in args.training_method else 1.0,
 
-        #limit_train_batches=2000, 
-        #log_every_n_steps=1,
+        limit_train_batches=1600, 
+        log_every_n_steps=20,
         logger=wandb_logger  # Add the wandb logger here
     )
 

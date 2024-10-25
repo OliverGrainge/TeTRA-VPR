@@ -90,8 +90,8 @@ def eval_vpr(args):
             out_dim=args.out_dim,
             normalize_output=False,
         )
-
-        model.load_state_dict(torch.load(args.load_checkpoint))
+        model.eval()
+        model.load_state_dict(torch.load(args.load_checkpoint, map_location=next(model.parameters()).device)["state_dict"])
         transform = T.Compose(
             [
                 T.Resize(args.image_size),
