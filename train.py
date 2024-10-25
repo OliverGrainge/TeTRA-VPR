@@ -125,11 +125,12 @@ if __name__ == "__main__":
             val_set_names=args.val_set_names,
         )
 
-        mycheckpoint_cb = ModelCheckpoint(
+        checkpoint_cb = ModelCheckpoint(
             monitor=f"{args.val_set_names[0]}_R1",
             dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
             filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]"
             + "_epoch({epoch:02d})_step({step:04d})_loss({train_loss:.4f})",
+            save_on_train_epoch_end=False,
             auto_insert_metric_name=False,
             save_weights_only=True,
             save_top_k=1,
@@ -138,7 +139,7 @@ if __name__ == "__main__":
 
         wandb_logger = WandbLogger(
             project=args.training_method.lower(),  # Replace with your project name
-            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]]_teacher[{args.teacher_preset.lower()}]",
+            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
         )
 
 
@@ -227,7 +228,7 @@ if __name__ == "__main__":
     
 
     trainer = pl.Trainer(
-        enable_progress_bar=args.pbar,
+        enable_progress_bar=False,
         strategy="auto",
         devices=1,
         accelerator="auto",
@@ -235,13 +236,13 @@ if __name__ == "__main__":
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[lr_monitor, mycheckpoint_cb],
+        callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        #val_check_interval=0.02 if "distill" in args.training_method else 1.0,
+        val_check_interval=0.05 if "distill" in args.training_method else 1.0,
 
-        limit_train_batches=2000, 
-        log_every_n_steps=1,
+        #limit_train_batches=2000, 
+        #log_every_n_steps=1,
         logger=wandb_logger  # Add the wandb logger here
     )
 

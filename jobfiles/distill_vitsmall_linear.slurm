@@ -9,7 +9,7 @@
 #SBATCH --mem=128G
 #SBATCH --output=jobfiles/logs/Linear_vitsmall.log
 #SBATCH --error=jobfiles/logs/Linear_vitsmall.err
-#SBATCH --partition=swarm_a100
+#SBATCH --partition=a100
 
 source activate venv
-python train.py --training_method distill --backbone_arch vit_small --agg_arch Salad --teacher_preset DinoV2_BoQ --batch_size 128 --num_workers 16 --max_epochs 4 --use_attention True --weight_decay_schedule None --pbar False --weight_decay_scale 0.05
+python train.py --training_method distill --backbone_arch vit_small --agg_arch Salad --teacher_preset DinoV2_BoQ --batch_size 128 --num_workers 16 --max_epochs 2 --use_attention True --weight_decay_schedule constant --weight_decay_scale 0.05
