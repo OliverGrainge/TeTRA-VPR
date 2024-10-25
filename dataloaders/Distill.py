@@ -18,7 +18,7 @@ from pytorch_metric_learning.distances import CosineSimilarity
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
-
+import torch.nn as nn
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
@@ -79,6 +79,9 @@ def get_attn(model):
 
     return attention_matrices, hooks
 
+class L2Norm(nn.Module):
+    def forward(self, x):
+        return F.normalize(x, p=2, dim=1)
 
 def get_feature_dim(model, transform):
     x = torch.randint(0, 255, size=(3, 512, 512), dtype=torch.uint8)
@@ -88,6 +91,16 @@ def get_feature_dim(model, transform):
     features = model(x_transformed[None, :].to(next(model.parameters()).device))
     return features["global_desc"].shape[1]
 
+def adapt_descriptors_dim(teacher_model, teacher_transform, student_model, student_transform):
+    teacher_dim = get_feature_dim(teacher_model, teacher_transform)
+    student_dim = get_feature_dim(student_model, student_transform)
+    if teacher_dim == student_dim:
+        return nn.Identity()
+    else:
+        print(f"Teacher and student have different descriptor dimensions: {teacher_dim} and {student_dim}. Adapting student model.")
+        fc = nn.Linear(student_dim, teacher_dim)
+        mlp = nn.Sequential(fc, L2Norm())
+        return mlp
 
 def freeze_model(model):
     for param in model.parameters():
@@ -140,7 +153,7 @@ class TarImageDataset(Dataset):
             image = image.convert("RGB")  # Convert to RGB if necessary
 
         width, height = image.size
-        if width > height:
+        if width > height and width > 1024:
             height, height = 512, 512
             left = random.randint(0, width - height)
             right = left + height
@@ -193,7 +206,7 @@ class ImageDataset(Dataset):
         image = image.convert("RGB")
 
         width, height = image.size
-        if width > height:
+        if width > height and width > 1024:
             height, height = 512, 512
             left = random.randint(0, width - height)
             right = left + height
@@ -225,8 +238,7 @@ class DistillDataset(Dataset):
 class VPRDistill(pl.LightningModule):
     def __init__(
         self,
-        config,
-        args,
+        data_directory,
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
@@ -234,29 +246,36 @@ class VPRDistill(pl.LightningModule):
         use_attention=False,
         weight_decay_scale=0.05,
         weight_decay_schedule="staged_linear",
+        batch_size=32,
+        num_workers=4,
+        image_size=224,
+        lr=1e-3,
+        val_set_names=["pitts30k_val"],
     ):
         super().__init__()
-        self.config = config
-        self.batch_size = args.batch_size
-        self.num_workers = args.num_workers
-        self.image_size = args.image_size
-        self.lr = args.distill_lr
-        self.data_directory = config["data_directory"]
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.image_size = image_size
+        self.lr = lr
+        self.data_directory = data_directory
         self.teacher_preset = teacher_preset
-        self.val_set_names = args.val_set_names
+        self.val_set_names = val_set_names
         self.backbone_arch = student_backbone_arch
         self.matching_function = matching_function
         self.use_attention = use_attention
         self.weight_decay_scale = weight_decay_scale
         self.weight_decay_schedule = weight_decay_schedule
-        self.teacher = get_model(preset=args.teacher_preset)
+        self.teacher = get_model(preset=teacher_preset)
         self.student = get_model(
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
             out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()),
         )
+        self.adapter = adapt_descriptors_dim(self.teacher, self.teacher_train_transform(), self.student, self.student_train_transform())
 
         freeze_model(self.teacher)
+
+        self.save_hyperparameters()
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
@@ -327,12 +346,14 @@ class VPRDistill(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
+
         B = student_images.shape[0]
         if self.use_attention:
             teacher_attn, teacher_hooks = get_attn(self.teacher)
             student_attn, student_hooks = get_attn(self.student)
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
+            student_features["global_desc"] = self.adapter(student_features["global_desc"])
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
             # B * D, H, N, N
@@ -381,6 +402,7 @@ class VPRDistill(pl.LightningModule):
         else:
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
+            student_features["global_desc"] = self.adapter(student_features["global_desc"])
 
         teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
         student_features = F.normalize(student_features["global_desc"], dim=1)
@@ -424,9 +446,9 @@ class VPRDistill(pl.LightningModule):
                 weight_decay=0.0
             )
         elif "vit" in self.backbone_arch.lower(): 
-            optimizer = optim.AdamW(self.student.parameters(), weight_decay=0.05)
+            optimizer = optim.AdamW(self.student.parameters(), lr=self.lr, weight_decay=0.05)
         else: 
-            optimizer = optim.AdamW(self.student.parameters(), weight_decay=0.0)
+            optimizer = optim.AdamW(self.student.parameters(), lr=self.lr, weight_decay=0.0)
 
         total_steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(0.05 * total_steps) 
@@ -500,11 +522,12 @@ class VPRDistill(pl.LightningModule):
         return weight_decay_scheduler
 
 
-
     def student_train_transform(self):
         return T.Compose(
             [
-                T.Resize(self.image_size),
+                T.RandomResizedCrop(self.image_size, scale=(0.8, 1.0)),  # Randomly crop and resize the image
+                T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),  # Randomly change brightness, contrast, etc.
+                #T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 0.5)),  # Apply Gaussian blur
                 T.ToTensor(),
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]

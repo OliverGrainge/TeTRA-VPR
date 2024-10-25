@@ -92,7 +92,7 @@ Training:
     random_resized_crop: 0.5
 
   Distill: 
-    distill_lr: 0.0001
+    distill_lr: 0.00003
     teacher_preset: 'EigenPlaces'
     use_attention: False
     weight_decay_scale: 0.05
