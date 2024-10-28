@@ -250,6 +250,7 @@ class VPRDistill(pl.LightningModule):
         num_workers=4,
         image_size=224,
         lr=1e-3,
+        mse_loss_scale=1000,
         val_set_names=["pitts30k_val"],
     ):
         super().__init__()
@@ -265,6 +266,7 @@ class VPRDistill(pl.LightningModule):
         self.use_attention = use_attention
         self.weight_decay_scale = weight_decay_scale
         self.weight_decay_schedule = weight_decay_schedule
+        self.mse_loss_scale = mse_loss_scale
         self.teacher = get_model(preset=teacher_preset)
         self.student = get_model(
             backbone_arch=student_backbone_arch,
@@ -274,7 +276,7 @@ class VPRDistill(pl.LightningModule):
         self.adapter = adapt_descriptors_dim(self.teacher, self.teacher_train_transform(), self.student, self.student_train_transform())
 
         freeze_model(self.teacher)
-
+        print(self.student)
         self.save_hyperparameters()
 
     def setup(self, stage=None):
@@ -412,16 +414,16 @@ class VPRDistill(pl.LightningModule):
 
         loss = torch.tensor(0.0, device=self.device)
         # mse loss to align feature spaces
-        mse_loss = 1000 * F.mse_loss(teacher_features, student_features)
+        mse_loss = self.mse_loss_scale * F.mse_loss(teacher_features, student_features)
         loss += mse_loss
-        # cosine loss to align feature angles
+        # cosine loss to align feature anglesßs
         cosine_loss = (
             1 - F.cosine_similarity(teacher_features, student_features)
         ).mean()
         loss += cosine_loss
         # attention loss to align attention maps
         if self.use_attention:
-            attn_loss = 1000 * F.mse_loss(teacher_attn, student_attn)
+            attn_loss = self.mse_loss_scale * F.mse_loss(teacher_attn, student_attn)
             loss += attn_loss
 
         self.log("train_loss", loss, prog_bar=True)

@@ -121,6 +121,7 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             num_workers=args.num_workers,
             image_size=args.image_size,
+            mse_loss_scale=args.mse_loss_scale,
             lr=args.distill_lr,
             val_set_names=args.val_set_names,
         )
@@ -129,7 +130,7 @@ if __name__ == "__main__":
             monitor=f"{args.val_set_names[0]}_R1",
             dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
             filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]"
-            + "_epoch({epoch:02d})_step({step:04d})_loss({train_loss:.4f})",
+            + "_epoch({epoch:02d})_step({step:04d})_R1({pitts30k_val_R1:.4f})",
             save_on_train_epoch_end=False,
             auto_insert_metric_name=False,
             save_weights_only=True,
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,
+        enable_progress_bar=False,
         strategy="auto",
         devices=1,
         accelerator="auto",
@@ -239,10 +240,9 @@ if __name__ == "__main__":
         callbacks=[lr_monitor, checkpoint_cb],
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
-        #val_check_interval=0.05 if "distill" in args.training_method else 1.0,
-
-        limit_train_batches=1600, 
-        log_every_n_steps=20,
+        val_check_interval=0.05 if "distill" in args.training_method else 1.0,
+        #limit_train_batches=1600, 
+        #log_every_n_steps=20,
         logger=wandb_logger  # Add the wandb logger here
     )
 

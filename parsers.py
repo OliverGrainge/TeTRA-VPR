@@ -192,7 +192,16 @@ def training_arguments(parser=None):
         default=config["Training"]["Distill"]["weight_decay_schedule"],
         help="Weight decay schedule",
     )
+
+    parser.add_argument(
+        "--mse_loss_scale",
+        type=float,
+        default=config["Training"]["Distill"]["mse_loss_scale"],
+        help="MSE loss scale",
+    )
     return parser
+
+    
 
 
 def get_args_parser():
