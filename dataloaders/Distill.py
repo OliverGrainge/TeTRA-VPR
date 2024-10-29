@@ -405,7 +405,6 @@ class VPRDistill(pl.LightningModule):
                 student_attn.shape[-1],
             )
             # B, D, H, N, N
-
             if teacher_attn.shape[1] != student_attn.shape[1]:
                 # have different depths
                 assert (
