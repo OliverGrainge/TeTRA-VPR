@@ -201,8 +201,6 @@ def training_arguments(parser=None):
     )
     return parser
 
-    
-
 
 def get_args_parser():
     parser = argparse.ArgumentParser(description="Model and Training arguments")

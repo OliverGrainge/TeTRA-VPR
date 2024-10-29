@@ -10,8 +10,6 @@ from einops.layers.torch import Rearrange
 from transformers import ViTModel
 
 
-
-
 # Model definition (same as before)
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0, layer_type=nn.Linear):

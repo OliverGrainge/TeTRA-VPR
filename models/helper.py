@@ -20,13 +20,12 @@ from NeuroPress.models.base import Qmodel
 LINEAR_REPR = [layer(12, 12).__repr__() for layer in LINEAR_LAYERS]
 
 
-
 def find_best_match(target_string, list_of_strings):
-    target_string = target_string.replace("vit", '')
-    target_string = target_string.replace('small', '')
-    target_string = target_string.replace('base', '')
-    target_string = target_string.replace('large', '')
-    target_string = target_string.replace('_', '')
+    target_string = target_string.replace("vit", "")
+    target_string = target_string.replace("small", "")
+    target_string = target_string.replace("base", "")
+    target_string = target_string.replace("large", "")
+    target_string = target_string.replace("_", "")
 
     for s in list_of_strings:
         if s == target_string:
@@ -64,7 +63,7 @@ def get_transform(preset):
             [
                 T.ToTensor(),
                 T.Resize(
-                    (224, 224),
+                    (322, 322),
                     interpolation=T.InterpolationMode.BICUBIC,
                     antialias=True,
                 ),
@@ -135,11 +134,15 @@ def get_backbone(backbone_arch, image_size):
             module = importlib.import_module(f"NeuroPress.layers.{match_layer_str}")
             layer_type = getattr(module, match_layer_str)
             if "small" in backbone_arch.lower():
-                return backbones.QViT_Small(image_size=image_size, layer_type=layer_type)
+                return backbones.QViT_Small(
+                    image_size=image_size, layer_type=layer_type
+                )
             elif "base" in backbone_arch.lower():
                 return backbones.QViT_Base(image_size=image_size, layer_type=layer_type)
             elif "large" in backbone_arch.lower():
-                return backbones.QViT_Large(image_size=image_size, layer_type=layer_type)
+                return backbones.QViT_Large(
+                    image_size=image_size, layer_type=layer_type
+                )
             else:
                 raise Exception("must choose small/medium/large")
     else:

@@ -90,8 +90,13 @@ def eval_vpr(args):
             out_dim=args.out_dim,
             normalize_output=False,
         )
+
         model.eval()
-        model.load_state_dict(torch.load(args.load_checkpoint, map_location=next(model.parameters()).device)["state_dict"])
+        model.load_state_dict(
+            torch.load(
+                args.load_checkpoint, map_location=next(model.parameters()).device
+            )["state_dict"]
+        )
         transform = T.Compose(
             [
                 T.Resize(args.image_size),
@@ -99,6 +104,8 @@ def eval_vpr(args):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
+        print("======================== FREEZING MODE ============================")
+        model.freeze()
 
     module = VPREval(
         model,
