@@ -207,9 +207,13 @@ class QuART(pl.LightningModule):
             },
         }
 
-    def loss_function(self, descriptors, labels):
+    def loss_function(self, descriptors, labels, binary_mine=False):
         if self.miner is not None:
-            miner_outputs = self.miner(descriptors, labels)
+            if binary_mine: 
+                miner_desc = torch.nn.functional.normalize(symmetric_binarize(descriptors), p=2, dim=1)
+            else:
+                miner_desc = descriptors
+            miner_outputs = self.miner(miner_desc, labels)
             loss = self.loss_fn(descriptors, labels, miner_outputs)
             nb_samples = descriptors.shape[0]
             nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
@@ -245,7 +249,7 @@ class QuART(pl.LightningModule):
         descriptors = self(images)
         
         # Main loss
-        main_loss = self.loss_function(descriptors["global_desc"], labels)
+        main_loss = self.loss_function(descriptors["global_desc"], labels, binary_mine=False)
         
         # Regularization loss with sine scheduled weight
         reg_loss = self.reg_function(descriptors)

@@ -91,6 +91,7 @@ def get_feature_dim(model, transform):
     x_np = x.numpy()
     x_img = Image.fromarray(x_np.transpose(1, 2, 0))
     x_transformed = transform(x_img)
+    print(x_transformed.shape)
     features = model(x_transformed[None, :].to(next(model.parameters()).device))
     return features["global_desc"].shape[1]
 
@@ -294,6 +295,7 @@ class VPRDistill(pl.LightningModule):
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
             out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()),
+            image_size=image_size,
         )
         self.adapter = adapt_descriptors_dim(
             self.teacher,
@@ -375,7 +377,6 @@ class VPRDistill(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
-
         B = student_images.shape[0]
         if self.use_attention:
             teacher_attn, teacher_hooks = get_attn(self.teacher)
@@ -457,7 +458,6 @@ class VPRDistill(pl.LightningModule):
         loss += mse_loss
         # cosine loss to align feature anglesßs
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) ** 2
-        print(cosine_loss.mean().item())
         cosine_loss = cosine_loss.mean()
         loss += cosine_loss
         # attention loss to align attention maps
