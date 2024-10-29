@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
         wandb_logger = WandbLogger(
             project=args.training_method.lower(),  # Replace with your project name
-            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
+            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_Res[{args.image_size[0]}x{args.image_size[1]}]",
         )
 
     elif "eigenplaces" == args.training_method.lower():
@@ -294,7 +294,7 @@ if __name__ == "__main__":
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=0.05 if "distill" in args.training_method else 1.0,
-        accumulate_grad_batches=4,
+        accumulate_grad_batches=16,
         #limit_train_batches=200,
         # log_every_n_steps=20,
         logger=wandb_logger,  # Add the wandb logger here
