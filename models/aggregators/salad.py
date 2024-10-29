@@ -72,8 +72,6 @@ class SALAD(nn.Module):
         cluster_dim=128,
         token_dim=256,
         dropout=0.3,
-        height=224,
-        width=224,
     ) -> None:
         super().__init__()
 
@@ -81,9 +79,6 @@ class SALAD(nn.Module):
         self.num_clusters = num_clusters
         self.cluster_dim = cluster_dim
         self.token_dim = token_dim
-
-        self.height = height
-        self.width = width
 
         if dropout > 0:
             dropout = nn.Dropout(dropout)
