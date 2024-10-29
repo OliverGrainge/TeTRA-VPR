@@ -35,7 +35,7 @@ if not path_obj.joinpath("ref") or not path_obj.joinpath("query"):
 
 
 class PittsburghDataset(Dataset):
-    def __init__(self, which_ds="pitts30k_test", input_transform=None):
+    def __init__(self, which_ds="pitts30k_val", input_transform=None):
 
         assert which_ds.lower() in ["pitts30k_val", "pitts30k_test", "pitts250k_test"]
 
