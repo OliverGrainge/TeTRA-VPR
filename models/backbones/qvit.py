@@ -196,7 +196,7 @@ def QViT_Base(image_size=[224, 224], layer_type=nn.Linear):
 def QViT_Large(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
-        patch_size=14,
+        patch_size=16,
         dim=1024,
         depth=24,
         heads=16,

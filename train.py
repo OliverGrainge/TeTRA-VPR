@@ -282,7 +282,7 @@ if __name__ == "__main__":
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         strategy="auto",
         devices=1,
         accelerator="auto",

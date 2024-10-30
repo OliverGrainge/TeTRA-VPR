@@ -313,7 +313,7 @@ class VPRDistill(pl.LightningModule):
         if stage == "fit" or stage == "validate":
             self.val_datasets = []
             for val_set_name in self.val_set_names:
-                if "pitts30k" in val_set_name.lower():
+                if "pitts" in val_set_name.lower():
                     from dataloaders.val.PittsburghDataset import \
                         PittsburghDataset
 
@@ -469,24 +469,24 @@ class VPRDistill(pl.LightningModule):
         self.log("cosine_loss", cosine_loss, prog_bar=True)
         if self.use_attention:
             self.log("attn_loss", attn_loss, prog_bar=True)
-
+        
+            # Only step the scheduler when we actually perform an optimization step
         if hasattr(self.student.backbone, "decay_weight"):
-            self.weight_decay_scheduler.step()
-            current_lr = self.lr_schedulers().get_last_lr()[
-                0
-            ]  # Get the current learning rate from the scheduler
-            self.student.backbone.decay_weight(
-                lr=current_lr,
-                weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale(),
-            )
-            self.log(
-                "weight_decay_scale",
-                self.weight_decay_scheduler.get_last_weight_decay_scale(),
-                on_step=True,
-            )
+            if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
+                self.weight_decay_scheduler.step()
+                current_lr = self.lr_schedulers().get_last_lr()[0]
+                self.student.backbone.decay_weight(
+                    lr=current_lr,
+                    weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale(),
+                )
+                self.log(
+                    "weight_decay_scale",
+                    self.weight_decay_scheduler.get_last_weight_decay_scale(),
+                    on_step=True,
+                )
 
-        self.q_lambda_scheduler.step()
-        self.log("q_lambda", self.q_lambda_scheduler.get_lambda(), on_step=True)
+                self.q_lambda_scheduler.step()
+                self.log("q_lambda", self.q_lambda_scheduler.get_lambda(), on_step=True)
         return loss
 
     def configure_optimizers(self):
@@ -505,8 +505,8 @@ class VPRDistill(pl.LightningModule):
             )
 
         total_steps = self.trainer.estimated_stepping_batches
-        # warmup_steps = int(0.05 * total_steps)
-        warmup_steps = 0
+        warmup_steps = int(0.05 * total_steps)
+        #warmup_steps = 0
 
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps

@@ -100,7 +100,7 @@ def training_arguments(parser=None):
         "--val_set_names",
         type=str,
         nargs="+",
-        default=["pitts250k_test", "pitts30k_val"],
+        default=["pitts30k_val"],
         help="Validation set names",
     )
     parser.add_argument(
