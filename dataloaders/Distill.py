@@ -377,6 +377,20 @@ class VPRDistill(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
+        # Save first student image from first 10 batches
+        if batch_idx < 25:
+            # Convert tensor back to image
+            img_tensor = student_images[0].cpu()  # Get first image
+            # Denormalize
+            mean = torch.tensor(IMAGENET_MEAN_STD["mean"]).view(3, 1, 1)
+            std = torch.tensor(IMAGENET_MEAN_STD["std"]).view(3, 1, 1)
+            img_tensor = img_tensor * std + mean
+            img_tensor = torch.clamp(img_tensor, 0, 1)
+            
+            # Convert to PIL Image and save
+            img = T.ToPILImage()(img_tensor)
+            os.makedirs("student_images", exist_ok=True)
+            img.save(f"student_images/batch_{batch_idx}.jpg")
         B = student_images.shape[0]
         if self.use_attention:
             teacher_attn, teacher_hooks = get_attn(self.teacher)
@@ -592,18 +606,22 @@ class VPRDistill(pl.LightningModule):
 
     def student_train_transform(self):
         return T.Compose(
-            [
+            [   
                 T.RandomResizedCrop(
                     self.image_size, scale=(0.8, 1.0)
                 ),  # Randomly crop and resize the image
                 T.ColorJitter(
                     brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
                 ),  # Randomly change brightness, contrast, etc.
-                # T.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 0.5)),  # Apply Gaussian blur
-                T.ToTensor(),
+                T.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 0.5)),  # Apply Gaussian blur
+                T.RandomGrayscale(p=0.1),
+                T.ToTensor(),  # Convert image to tensor
+                T.RandomErasing(p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value='random'),  # Cut out random parts
+                
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
                 ),
+                
             ]
         )
 
