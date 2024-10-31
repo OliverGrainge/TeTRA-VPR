@@ -121,9 +121,13 @@ if __name__ == "__main__":
 
         sd = torch.load(args.load_checkpoint)["state_dict"]
         # Filter state_dict to only include backbone parameters
-        backbone_sd = {k.replace("backbone.", ""): v for k, v in sd.items() if k.startswith("backbone.")}
+        backbone_sd = {
+            k.replace("backbone.", ""): v
+            for k, v in sd.items()
+            if k.startswith("backbone.")
+        }
         model.backbone.load_state_dict(backbone_sd, strict=False)
-        #model.load_state_dict(sd, strict=False)
+        # model.load_state_dict(sd, strict=False)
 
         for param in model.backbone.parameters():
             param.requires_grad = False
@@ -295,7 +299,7 @@ if __name__ == "__main__":
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=0.05 if "distill" in args.training_method else 1.0,
         accumulate_grad_batches=16,
-        #limit_train_batches=200,
+        # limit_train_batches=200,
         # log_every_n_steps=20,
         logger=wandb_logger,  # Add the wandb logger here
     )

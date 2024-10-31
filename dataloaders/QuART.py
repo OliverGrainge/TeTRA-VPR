@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
@@ -7,17 +8,19 @@ from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
-import numpy as np
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from matching.global_hamming_sim import global_hamming_sim
+
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
 
+
 def symmetric_binarize(x):
     return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
+
 
 class QuART(pl.LightningModule):
     def __init__(
@@ -187,9 +190,7 @@ class QuART(pl.LightningModule):
         return x
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.lr
-        )
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
 
         total_steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
@@ -209,8 +210,10 @@ class QuART(pl.LightningModule):
 
     def loss_function(self, descriptors, labels, binary_mine=False):
         if self.miner is not None:
-            if binary_mine: 
-                miner_desc = torch.nn.functional.normalize(symmetric_binarize(descriptors), p=2, dim=1)
+            if binary_mine:
+                miner_desc = torch.nn.functional.normalize(
+                    symmetric_binarize(descriptors), p=2, dim=1
+                )
             else:
                 miner_desc = descriptors
             miner_outputs = self.miner(miner_desc, labels)
@@ -231,12 +234,14 @@ class QuART(pl.LightningModule):
             logger=True,
         )
         return loss
-    
+
     def reg_function(self, descriptors):
         desc = descriptors["global_desc"]
         qdesc = symmetric_binarize(desc)
         # Cosine similarity ranges from -1 to 1 since both desc and qdesc are normalized
-        cos_sim = torch.nn.functional.cosine_similarity(desc, qdesc, dim=1)  # Range: [-1, 1]
+        cos_sim = torch.nn.functional.cosine_similarity(
+            desc, qdesc, dim=1
+        )  # Range: [-1, 1]
         cos_dist = 1 - cos_sim
         reg_loss = cos_dist.mean()
         return reg_loss
@@ -247,27 +252,37 @@ class QuART(pl.LightningModule):
         images = places.view(BS * N, ch, h, w)
         labels = labels.view(-1)
         descriptors = self(images)
-        
+
         # Main loss
-        main_loss = self.loss_function(descriptors["global_desc"], labels, binary_mine=False)
-        
+        main_loss = self.loss_function(
+            descriptors["global_desc"], labels, binary_mine=False
+        )
+
         # Regularization loss with sine scheduled weight
         reg_loss = self.reg_function(descriptors)
-        
+
         # Calculate sine schedule weight between 0 and 0.2
         total_steps = self.trainer.estimated_stepping_batches
         current_step = self.global_step
-        
-        reg_weight = 0.5 * ((1 + torch.sin(torch.tensor((current_step - total_steps/2) * np.pi / total_steps)))/2)
-        
+
+        reg_weight = 0.5 * (
+            (
+                1
+                + torch.sin(
+                    torch.tensor((current_step - total_steps / 2) * np.pi / total_steps)
+                )
+            )
+            / 2
+        )
+
         # Combined loss with scheduled reg weight
         loss = main_loss + reg_weight * reg_loss
         # Log losses and weight
         self.log("main_loss", main_loss)
-        self.log("reg_loss", reg_loss) 
+        self.log("reg_loss", reg_loss)
         self.log("reg_weight", reg_weight)
         self.log("loss", loss)
-        
+
         return {"loss": loss}
 
     def on_validation_epoch_start(self):
@@ -306,8 +321,12 @@ class QuART(pl.LightningModule):
                 )
 
                 for k, v in recalls_dict.items():
-                    full_recalls_dict[f"matching_function[{matching_function.__name__}]_{val_set_name}_{k}"] = v
-                full_recalls_dict[f"matching_function[{matching_function.__name__}]_{val_set_name}_search_time"] = search_time
+                    full_recalls_dict[
+                        f"matching_function[{matching_function.__name__}]_{val_set_name}_{k}"
+                    ] = v
+                full_recalls_dict[
+                    f"matching_function[{matching_function.__name__}]_{val_set_name}_search_time"
+                ] = search_time
         self.log_dict(
             full_recalls_dict,
             logger=True,

@@ -386,7 +386,7 @@ class VPRDistill(pl.LightningModule):
             std = torch.tensor(IMAGENET_MEAN_STD["std"]).view(3, 1, 1)
             img_tensor = img_tensor * std + mean
             img_tensor = torch.clamp(img_tensor, 0, 1)
-            
+
             # Convert to PIL Image and save
             img = T.ToPILImage()(img_tensor)
             os.makedirs("student_images", exist_ok=True)
@@ -483,7 +483,7 @@ class VPRDistill(pl.LightningModule):
         self.log("cosine_loss", cosine_loss, prog_bar=True)
         if self.use_attention:
             self.log("attn_loss", attn_loss, prog_bar=True)
-        
+
             # Only step the scheduler when we actually perform an optimization step
         if hasattr(self.student.backbone, "decay_weight"):
             if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
@@ -520,7 +520,7 @@ class VPRDistill(pl.LightningModule):
 
         total_steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(0.05 * total_steps)
-        #warmup_steps = 0
+        # warmup_steps = 0
 
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
@@ -606,22 +606,24 @@ class VPRDistill(pl.LightningModule):
 
     def student_train_transform(self):
         return T.Compose(
-            [   
+            [
                 T.RandomResizedCrop(
                     self.image_size, scale=(0.8, 1.0)
                 ),  # Randomly crop and resize the image
                 T.ColorJitter(
                     brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
                 ),  # Randomly change brightness, contrast, etc.
-                T.GaussianBlur(kernel_size=(3, 7), sigma=(0.1, 0.5)),  # Apply Gaussian blur
+                T.GaussianBlur(
+                    kernel_size=(3, 7), sigma=(0.1, 0.5)
+                ),  # Apply Gaussian blur
                 T.RandomGrayscale(p=0.1),
                 T.ToTensor(),  # Convert image to tensor
-                T.RandomErasing(p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value='random'),  # Cut out random parts
-                
+                T.RandomErasing(
+                    p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
+                ),  # Cut out random parts
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
                 ),
-                
             ]
         )
 

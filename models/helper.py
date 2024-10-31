@@ -187,7 +187,7 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
     elif "salad" in agg_arch.lower():
         config = {}
         config["num_channels"] = features_dim[1]
-        config["token_dim"] = 256 
+        config["token_dim"] = 256
         config["num_clusters"] = 64
         config["cluster_dim"] = 128
         return aggregators.SALAD(**config)
