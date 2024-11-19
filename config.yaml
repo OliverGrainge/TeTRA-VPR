@@ -1,7 +1,7 @@
 
 Datasets:
-  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
-  #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
+  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
   #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
@@ -12,22 +12,18 @@ Training:
   agg_arch: 'cls'
   out_dim: 512
   training_method: gsvcities
-  monitor: 'pitts30k_val/R1'
-  accelerator: 'gpu'
   precision: bf16-mixed
   batch_size: 256 #416 for pretraining
   max_epochs: 1000
   search_precision: 'float32'
-  fast_dev_run: False
-  freeze_n_blocks: 8
   num_workers: 12
   image_size: [224, 224]
+  lr: 0.0001
 
 
-  GSVCities: 
+  TeTRA: 
     shuffle_all: True
     optimizer: 'adamw' #adam
-    lr: 0.0002
     weight_decay: 0.0
     momentum: 0.9
     warmup_steps: 100 # 600
@@ -69,30 +65,9 @@ Training:
      - Melbourne
      #- Osaka
      #- PRS # refers t
-    
 
-  EigenPlaces: 
-    weight_decay: 0.01
-    lr: 0.001 # 0.00001 for large dataset
-    classifiers_lr: 0.01
-    lambda_lat: 1.
-    lambda_front: 1.
-    iterations_per_epoch: 800
-    M: 15 
-    N: 3
-    s: 100
-    m: 0.4
-    focal_dist: 10
-    min_images_per_class: 5
-    visualize_classes: 0
-    brightness: 0.7
-    contrast: 0.7
-    saturation: 0.7 
-    hue: 0.5
-    random_resized_crop: 0.5
 
   Distill: 
-    distill_lr: 0.0003
     teacher_preset: 'DinoSalad'
     use_attention: True
     weight_decay_init: 0.05
@@ -102,4 +77,5 @@ Training:
     #data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/small/train'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
-    data_directory: '/home/oliver/datasets_drive/vpr_datasets/Pittsburgh-Query/query'
+    #data_directory: '/home/oliver/datasets_drive/vpr_datasets/Pittsburgh-Query/query'
+    data_directory: '/Users/olivergrainge/Documents/github/Datasets/Pittsburgh-Query/query'

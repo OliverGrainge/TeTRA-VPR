@@ -23,6 +23,13 @@ def training_arguments(parser=None):
     )
 
     parser.add_argument(
+        "--lr",
+        type=float,
+        default=config["Training"]["lr"],
+        help="Learning rate",
+    )
+
+    parser.add_argument(
         "--out_dim",
         type=int,
         default=config["Training"]["out_dim"],
@@ -51,19 +58,6 @@ def training_arguments(parser=None):
         help="Type of training gsvcities or eigenplaces",
     )
 
-    # Adding Training configuration arguments
-    parser.add_argument(
-        "--accelerator",
-        type=str,
-        default=config["Training"]["accelerator"],
-        help="Type of accelerator to use (e.g., gpu, cpu)",
-    )
-    parser.add_argument(
-        "--monitor",
-        type=str,
-        default=config["Training"]["monitor"],
-        help="Metric to monitor during training",
-    )
     parser.add_argument(
         "--precision",
         type=str,
@@ -89,12 +83,6 @@ def training_arguments(parser=None):
         help="precision for vector search",
     )
 
-    parser.add_argument(
-        "--fast_dev_run",
-        type=bool,
-        default=config["Training"]["fast_dev_run"],
-        help="Run a quick development run",
-    )
 
     parser.add_argument(
         "--val_set_names",
@@ -115,12 +103,6 @@ def training_arguments(parser=None):
         nargs=2,
         default=config["Training"]["image_size"],
         help="Size of the images (width, height)",
-    )
-    parser.add_argument(
-        "--freeze_n_blocks",
-        type=int,
-        default=config["Training"]["freeze_n_blocks"],
-        help="number of blocks to freeze weights",
     )
 
     parser.add_argument(
@@ -144,39 +126,17 @@ def training_arguments(parser=None):
         help="choose the teacher preset",
     )
 
-    parser.add_argument(
-        "--preset",
-        type=str,
-        default=None,
-        help="Choose a pre-trained benchmark model",
-    )
-
-    parser.add_argument(
-        "--eval_method",
-        type=str,
-        default="vpr",
-        help="Evaluation method",
-    )
 
     parser.add_argument(
         "--use_attention",
-        type=bool,
-        default=config["Training"]["Distill"]["use_attention"],
-        help="Use attention",
+        action="store_true",
+        help="Use Attention",
     )
 
     parser.add_argument(
         "--pbar",
-        type=bool,
-        default=config["Training"]["pbar"],
+        action="store_true",
         help="Use progress bar",
-    )
-
-    parser.add_argument(
-        "--distill_lr",
-        type=float,
-        default=config["Training"]["Distill"]["distill_lr"],
-        help="Learning rate for distillation",
     )
 
     parser.add_argument(
@@ -206,6 +166,15 @@ def training_arguments(parser=None):
         default=config["Training"]["Distill"]["augment_level"],
         help="Augmentation level",
     )
+
+    parser.add_argument(
+        "--cities",
+        type=str,
+        nargs="+",
+        default=config["Training"]["TeTRA"]["cities"],
+        help="Cities to train on",
+    )
+
     return parser
 
 

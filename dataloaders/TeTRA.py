@@ -7,29 +7,26 @@ from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
+from utils.transforms import get_augmentation
 
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from matching.global_hamming_sim import global_hamming_sim
 
-IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
-VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
 
 
 def symmetric_binarize(x):
     return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
 
 
-class QuART(pl.LightningModule):
+class TeTRA(pl.LightningModule):
     def __init__(
         self,
         model,
         batch_size=32,
-        image_size=(480, 640),
+        image_size=[224, 224],
         num_workers=4,
-        show_data_stats=True,
-        mean_std=IMAGENET_MEAN_STD,
         val_set_names=["pitts30k_val", "msls_val"],
         loss_name="MultiSimilarityLoss",
         miner_name="MultiSimilarityMiner",
@@ -60,31 +57,14 @@ class QuART(pl.LightningModule):
         self.batch_size = batch_size
         self.image_size = image_size
         self.num_workers = num_workers
-        self.mean_dataset = mean_std["mean"]
-        self.std_dataset = mean_std["std"]
         self.val_set_names = val_set_names
         self.random_sample_from_each_place = True
         self.train_dataset = None
         self.val_datasets = []
-        self.show_data_stats = show_data_stats
 
         # Train and valid transforms
-        self.train_transform = T.Compose(
-            [
-                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-                T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
-                T.ToTensor(),
-                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
-            ]
-        )
-
-        self.valid_transform = T.Compose(
-            [
-                T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-                T.ToTensor(),
-                T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
-            ]
-        )
+        self.train_transform = get_augmentation(augment_type="LightAugment", image_size=image_size)
+        self.valid_transform = get_augmentation(augment_type="NoAugment", image_size=image_size)
 
         # Dataloader configs
         self.train_loader_config = {

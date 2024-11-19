@@ -55,7 +55,7 @@ def adapt_descriptors_dim(
 
 
 
-class VPRDistill(pl.LightningModule):
+class Distill(pl.LightningModule):
     def __init__(
         self,
         data_directory,

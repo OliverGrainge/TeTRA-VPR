@@ -13,8 +13,8 @@ import os
 
 import yaml
 
-from dataloaders.Distill import VPRDistill
-from dataloaders.QuART import QuART
+from dataloaders.Distill import Distill
+from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 from parsers import get_args_parser
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
 
-    if "quart" == args.training_method.lower():
+    if "tetra" == args.training_method.lower():
         model = get_model(
             args.image_size,
             args.backbone_arch,
@@ -37,34 +37,36 @@ if __name__ == "__main__":
             normalize_output=False,
         )
 
-        sd = torch.load(args.load_checkpoint)["state_dict"]
-        # Filter state_dict to only include backbone parameters
-        backbone_sd = {
+        if os.path.exists(args.load_checkpoint):
+            sd = torch.load(args.load_checkpoint)["state_dict"]
+
+            backbone_sd = {
             k.replace("backbone.", ""): v
-            for k, v in sd.items()
-            if k.startswith("backbone.")
-        }
-        model.backbone.load_state_dict(backbone_sd, strict=False)
-        # model.load_state_dict(sd, strict=False)
+                for k, v in sd.items()
+                if k.startswith("backbone.")
+            }
+            model.backbone.load_state_dict(backbone_sd, strict=False)
+        else: 
+            pass 
+            #raise ValueError(f"Checkpoint {args.load_checkpoint} does not exist")
+        
 
         for param in model.backbone.parameters():
             param.requires_grad = False
 
         model.freeze()
 
-        model_module = QuART(
+        model_module = TeTRA(
             model,
             batch_size=args.batch_size,
             image_size=args.image_size,
             num_workers=args.num_workers,
-            val_set_names=["pitts30k_test"],
+            val_set_names=args.val_set_names,
             loss_name=args.loss_name,
             miner_name=args.miner_name,
             miner_margin=0.1,
-            cities=config["Training"]["GSVCities"]["cities"],
-            lr=0.0001,
-            img_per_place=config["Training"]["GSVCities"]["img_per_place"],
-            min_img_per_place=config["Training"]["GSVCities"]["min_img_per_place"],
+            cities=args.cities,
+            lr=args.lr,
         )
 
         checkpoint_cb = ModelCheckpoint(
@@ -86,7 +88,7 @@ if __name__ == "__main__":
         )
 
     if "distill" in args.training_method.lower():
-        model_module = VPRDistill(
+        model_module = Distill(
             data_directory=config["Training"]["Distill"]["data_directory"],
             student_backbone_arch=args.backbone_arch,
             student_agg_arch=args.agg_arch,
@@ -99,7 +101,7 @@ if __name__ == "__main__":
             num_workers=args.num_workers,
             image_size=args.image_size,
             mse_loss_mult=args.mse_loss_mult,
-            lr=args.distill_lr,
+            lr=args.lr,
             val_set_names=args.val_set_names,
         )
 
@@ -123,14 +125,12 @@ if __name__ == "__main__":
     trainer = pl.Trainer(
         enable_progress_bar=True,
         strategy="auto",
-        devices=1,
         accelerator="auto",
         #default_root_dir=f"./Logs/TrainingLogs",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb],
-        fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
         #val_check_interval=0.05 if "distill" in args.training_method else 1.0,
         accumulate_grad_batches=20,

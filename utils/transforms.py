@@ -14,20 +14,46 @@ def get_augmentation(augment_type: str, image_size: Union[tuple, int]):
         return T.Compose(
             [   
                 T.RandomResizedCrop(
-                    image_size, scale=(0.7, 0.9)
+                    image_size, scale=(0.85, 1.0)
                 ),  # Randomly crop and resize the image
                 
                 T.ColorJitter(
-                    brightness=0.5, contrast=0.1, saturation=0.9, hue=0.05
+                    brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
                 ),  # Randomly change brightness, contrast, etc.
                 T.GaussianBlur(
-                    kernel_size=(3, 7), sigma=(0.5, 2.0)
+                    kernel_size=(3, 7), sigma=(0.1, 1.0)
                 ),  # Apply Gaussian blur
-                T.RandomGrayscale(p=0.2),
                 T.ToTensor(),  # Convert image to tensor
                 T.RandomErasing(
-                    p=0.2, scale=(0.05, 0.1), ratio=(0.3, 1.7), value="random"
-                ),  # Cut out random parts
+                    p=0.2,           # Increased probability for more occlusion robustness
+                    scale=(0.02, 0.15),  # Smaller regions (like pedestrians/cars)
+                    ratio=(0.3, 2.0),    # More varied aspect ratios
+                    value='random'    # Random values to simulate different occlusions
+                ),
+                T.Normalize(
+                    mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
+                ),
+            ]
+        )
+    elif augment_type == "ModerateAugment": 
+        return T.Compose(
+            [
+                T.RandomResizedCrop(
+                    image_size, scale=(0.9, 1.0)
+                ),  # Randomly crop and resize the image
+                T.ColorJitter(
+                    brightness=0.2, contrast=0.2, saturation=0.1, hue=0.05
+                ),  # Randomly change brightness, contrast, etc.
+                T.GaussianBlur(
+                    kernel_size=(3, 7), sigma=(0.1, 0.5)
+                ),  # Apply Gaussian blur
+                T.ToTensor(),  # Convert image to tensor
+                T.RandomErasing(
+                    p=0.2,           # Moderate probability
+                    scale=(0.02, 0.10),  # Slightly smaller regions
+                    ratio=(0.3, 2.0),
+                    value='random'
+                ),
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
                 ),
@@ -36,25 +62,17 @@ def get_augmentation(augment_type: str, image_size: Union[tuple, int]):
     elif augment_type == "LightAugment": 
         return T.Compose(
             [
-                T.RandomResizedCrop(
-                    image_size, scale=(0.8, 1.0)
-                ),  # Randomly crop and resize the image
+                T.Resize(image_size),
                 T.ColorJitter(
-                    brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
+                    brightness=0.3, contrast=0.1, saturation=0.1, hue=0.05
                 ),  # Randomly change brightness, contrast, etc.
-                T.GaussianBlur(
-                    kernel_size=(3, 7), sigma=(0.1, 0.5)
-                ),  # Apply Gaussian blur
-                T.RandomGrayscale(p=0.1),
                 T.ToTensor(),  # Convert image to tensor
-                T.RandomErasing(
-                    p=0.2, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
-                ),
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
                 ),
             ]
         )
+
     elif augment_type == "NoAugment": 
         return T.Compose(
             [
@@ -73,9 +91,11 @@ if __name__ == "__main__":
     from PIL import Image
     import matplotlib.pyplot as plt
     import torch
+    import os 
     
+    img_path = os.path.join(os.path.dirname(__file__), "assets/example_image.jpg")
     # Load image
-    img = Image.open("/home/oliver/Documents/github/QuantPlaceFinder/utils/assets/example_image.jpg")
+    img = Image.open(img_path)
     
     # Get all three augmentation transforms
     light_aug = get_augmentation("LightAugment", (384, 384))
