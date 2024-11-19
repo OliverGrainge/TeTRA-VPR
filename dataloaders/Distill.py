@@ -25,6 +25,7 @@ import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from models.helper import get_model, get_transform
+from dataloaders.train.DistillDataset import DistillDataset, TarImageDataset, JPGDataset
 
 sys.path.append(
     os.path.abspath(
@@ -149,115 +150,6 @@ class QLambdaScheduler:
         return self.lambda_value
 
 
-class TarImageDataset(Dataset):
-    def __init__(self, data_directory, transform=None):
-        tar_paths = glob.glob(os.path.join(data_directory, "*.tar"))
-        self.tar_paths = tar_paths
-        self.transform = transform
-        self.image_paths = []
-
-        # Store tar file info and image paths for later access
-        self.tar_info = []
-        for tar_path in tar_paths:
-            with tarfile.open(tar_path, "r") as tar:
-                members = tar.getmembers()
-                self.tar_info.extend(
-                    [(tar_path, member) for member in members if member.isfile()]
-                )
-
-    def __len__(self):
-        return len(self.tar_info)
-
-    def __getitem__(self, idx):
-        tar_path, member = self.tar_info[idx]
-        with tarfile.open(tar_path, "r") as tar:
-            file = tar.extractfile(member)
-            image = Image.open(BytesIO(file.read()))
-            image = image.convert("RGB")  # Convert to RGB if necessary
-
-        width, height = image.size
-        if width > height and width > 1024:
-            height, height = 512, 512
-            left = random.randint(0, width - height)
-            right = left + height
-            bottom = height
-            image = image.crop((left, 0, right, bottom))
-
-        if self.transform:
-            image = self.transform(image)
-
-        return image
-
-
-class ImageDataset(Dataset):
-    def __init__(self, data_directory, transform=None):
-        self.image_paths = []
-        total_images = 0
-        print(f"Scanning directory: {data_directory}")
-
-        # Check if the directory contains subdirectories
-        subdirs = [
-            d
-            for d in os.listdir(data_directory)
-            if os.path.isdir(os.path.join(data_directory, d))
-        ]
-
-        if subdirs:
-            print("Found subdirectories. Scanning each:")
-            for subdir in subdirs:
-                subdir_path = os.path.join(data_directory, subdir)
-                subdir_images = glob.glob(os.path.join(subdir_path, "*.jpg"))
-                num_images = len(subdir_images)
-                self.image_paths.extend(subdir_images)
-                total_images += num_images
-                print(f"  {subdir}: {num_images} images")
-        else:
-            print("No subdirectories found. Scanning for images in the main directory.")
-            self.image_paths = glob.glob(os.path.join(data_directory, "*.jpg"))
-            total_images = len(self.image_paths)
-            print(f"  Main directory: {total_images} images")
-
-        print(f"Total images found: {total_images}")
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        image = Image.open(image_path)
-        image = image.convert("RGB")
-
-        width, height = image.size
-        if width > height and width > 2 * height:
-            height, height = 512, 512
-            left = random.randint(0, width - height)
-            right = left + height
-            bottom = height
-            image = image.crop((left, 0, right, bottom))
-
-        if self.transform:
-            image = self.transform(image)
-
-        return image
-
-
-class DistillDataset(Dataset):
-    def __init__(self, dataset, student_transform, teacher_transform):
-        self.dataset = dataset
-        self.student_transform = student_transform
-        self.teacher_transform = teacher_transform
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        image = self.dataset[idx]
-        student_image = self.student_transform(image)
-        teacher_image = self.teacher_transform(image)
-        return student_image, teacher_image
-
-
 class VPRDistill(pl.LightningModule):
     def __init__(
         self,
@@ -314,8 +206,7 @@ class VPRDistill(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -652,7 +543,7 @@ class VPRDistill(pl.LightningModule):
         if "*tar" in paths[0]:
             train_dataset = TarImageDataset(self.data_directory)
         else:
-            train_dataset = ImageDataset(self.data_directory)
+            train_dataset = JPGDataset(self.data_directory)
 
         dataset = DistillDataset(
             train_dataset,

@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 # the folders named ref and query should reside in DATASET_ROOT path
 # I hardcoded the image names and ground truth for faster evaluation
 # performance is exactly the same as if you use VPR-Bench.
+
 config_path = os.path.join(os.path.dirname(__file__), "../../config.yaml")
 # Load the YAML configuration
 with open(config_path, "r") as config_file:

@@ -54,8 +54,7 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(

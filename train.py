@@ -27,88 +27,9 @@ with open(config_path, "r") as config_file:
     config = yaml.safe_load(config_file)
 
 
-IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
-VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
-
-
-def freeze_blocks(model, blocks=None):
-    """
-    Freezes specific blocks of the transformer layers in the model.
-
-    Args:
-        model: The model containing transformer blocks.
-        block_indices: List of block indices to freeze. If None, freezes all blocks.
-    """
-    # Freeze specific transformer blocks
-    for idx, block in enumerate(model.backbone.transformer.layers):
-        if blocks is None or idx < blocks:
-            for param in block.parameters():
-                param.requires_grad = False
-            print(f"Block {idx} frozen.")
-        else:
-            print(f"Block {idx} left unfrozen.")
-
-
 if __name__ == "__main__":
     parser = get_args_parser()
     args = parser.parse_args()
-
-    if (
-        "vit" in args.backbone_arch
-        or "cct" in args.backbone_arch
-        or "dino" in args.backbone_arch
-    ):
-        MEAN_STD = VIT_MEAN_STD
-    else:
-        MEAN_STD = IMAGENET_MEAN_STD
-
-    if "gsvcities" == args.training_method.lower():
-        model = get_model(
-            args.image_size,
-            args.backbone_arch,
-            args.agg_arch,
-            out_dim=args.out_dim,
-            normalize_output=False,
-        )
-        if args.load_checkpoint != "":
-            sd = torch.load(args.load_checkpoint)
-            sd = sd["state_dict"]
-            new_sd = {}
-            for key, value in sd.items():
-                if key != "fc.weight" and key != "fc.bias":
-                    new_sd[key.replace("model.", "")] = value
-            model.load_state_dict(new_sd, strict=False)
-
-            freeze_blocks(model, args.freeze_n_blocks)
-
-        model_module = GSVCities(
-            config["Training"]["GSVCities"],
-            model,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            num_workers=args.num_workers,
-            mean_std=MEAN_STD,
-            val_set_names=args.val_set_names,
-            loss_name=args.loss_name,
-            miner_name=args.miner_name,
-        )
-
-        checkpoint_cb = ModelCheckpoint(
-            monitor="pitts30k_val/binary_R1",
-            dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]",
-            filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]"
-            + f"_loss_name[{args.loss_name}]_miner_name[{args.miner_name}]"
-            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
-            auto_insert_metric_name=False,
-            save_weights_only=True,
-            save_top_k=1,
-            mode="max",
-        )
-
-        wandb_logger = WandbLogger(
-            project=args.training_method.lower(),  # Replace with your project name
-            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]_lossname[{args.loss_name}]_minername[{args.miner_name}]",
-        )
 
     if "quart" == args.training_method.lower():
         model = get_model(
@@ -186,7 +107,7 @@ if __name__ == "__main__":
 
         checkpoint_cb = ModelCheckpoint(
             monitor=f"{args.val_set_names[0]}_R1",
-            dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
+            dirpath=f"./Logs/checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
             filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]"
             + "_epoch({epoch:02d})_step({step:04d})_R1({pitts30k_val_R1:.4f})",
             save_on_train_epoch_end=False,
@@ -201,88 +122,6 @@ if __name__ == "__main__":
             name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_Res[{args.image_size[0]}x{args.image_size[1]}]",
         )
 
-    elif "eigenplaces" == args.training_method.lower():
-        model = get_model(
-            args.image_size,
-            args.backbone_arch,
-            args.agg_arch,
-            preset=args.preset,
-            out_dim=args.out_dim,
-            normalize_output=True,
-        )
-
-        model_module = EigenPlaces(
-            config["Training"]["EigenPlaces"],
-            model,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            num_workers=args.num_workers,
-            mean_std=MEAN_STD,
-            val_set_names=args.val_set_names,
-        )
-
-        checkpoint_cb = ModelCheckpoint(
-            monitor="R5",
-            dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]",
-            filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]"
-            + "_epoch({epoch:02d})_step({step:04d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]",
-            auto_insert_metric_name=False,
-            save_weights_only=True,
-            save_top_k=1,
-            mode="max",
-        )
-
-        wandb_logger = WandbLogger(
-            project=args.training_method.lower(),  # Replace with your project name
-            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]",
-        )
-
-    elif "imagenet" in args.training_method.lower():
-        model = get_model(
-            args.image_size,
-            args.backbone_arch,
-            args.agg_arch,
-            out_dim=args.out_dim,
-            normalize_output=False,
-        )
-
-        if "ternary" in args.backbone_arch.lower():
-            opt_type = "bitnet"
-            if "base" in args.backbone_arch.lower():
-                lr = 5e-4
-            else:
-                lr = 1e-3
-        else:
-            opt_type = "float"
-            lr = 3e-4
-
-        model_module = ImageNet(
-            model=model,
-            batch_size=args.batch_size,
-            workers=args.num_workers,
-            lr=lr,
-            max_epochs=args.max_epochs,
-            opt_type=opt_type,
-            warmup_epochs=5,
-        )
-
-        checkpoint_cb = ModelCheckpoint(
-            monitor="val_acc5",
-            dirpath=f"./checkpoints/{args.training_method.lower()}/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]",
-            filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]"
-            + "_epoch({epoch:02d})_step({step:04d})_A1[{val_acc1:.4f}]_A5[{val_acc5:.4f}]",
-            auto_insert_metric_name=False,
-            save_weights_only=True,
-            save_top_k=1,
-            mode="max",
-        )
-
-        wandb_logger = WandbLogger(
-            project=args.training_method.lower(),  # Replace with your project name
-            name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]",
-            offline=True,
-        )
-
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     trainer = pl.Trainer(
@@ -290,7 +129,7 @@ if __name__ == "__main__":
         strategy="auto",
         devices=1,
         accelerator="auto",
-        default_root_dir=f"./Logs",
+        default_root_dir=f"./Logs/TrainingLogs",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
