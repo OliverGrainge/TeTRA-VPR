@@ -1,8 +1,8 @@
 
 Datasets:
-  #datasets_dir: "/mnt/datasets_drive/vpr_datasets"
+  datasets_dir: "/mnt/datasets_drive/vpr_datasets"
   #datasets_dir: "/Users/olivergrainge/Documents/github/Datasets"
-  datasets_dir: "/scratch/oeg1n18/datasets/vpr"
+  #datasets_dir: "/scratch/oeg1n18/datasets/vpr"
 
   
 Training:
@@ -95,10 +95,11 @@ Training:
     distill_lr: 0.0003
     teacher_preset: 'DinoSalad'
     use_attention: True
-    weight_decay_scale: 0.05
-    mse_loss_scale: 1000
-    weight_decay_schedule: 'staged_linear'
+    weight_decay_init: 0.05
+    mse_loss_mult: 1000
+    weight_decay_schedule: 'staged_linear_decreasing'
+    augment_level: 'LightAugment'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/gsvcities/Images/London'
     #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/small/train'
-    data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
-    #data_directory: '/home/oliver/Documents/github/Datasets/Pittsburgh-Query'
+    #data_directory: '/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas'
+    data_directory: '/home/oliver/datasets_drive/vpr_datasets/Pittsburgh-Query/query'

@@ -1,33 +1,24 @@
-import glob
-import json
+
 import os
-import random
 import sys
-import tarfile
 from collections import defaultdict
-from io import BytesIO
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from einops import rearrange
-from PIL import Image
 from prettytable import PrettyTable
-from pytorch_metric_learning import miners
-from pytorch_metric_learning.distances import CosineSimilarity
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
+from torch.utils.data.dataloader import DataLoader
 
-import utils
-from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from models.helper import get_model, get_preset_transform
 from dataloaders.train.DistillDataset import DistillDataset, TarImageDataset, JPGDataset
-from utils.transforms import get_val_transform, get_train_transform
-from dataloaders.utils.Distill import get_attn, remove_hooks, get_feature_dim, L2Norm, freeze_model
+from utils.transforms import get_augmentation
+from dataloaders.utils.Distill.schedulers import WeightDecayScheduler, QuantScheduler
+from dataloaders.utils.Distill.attention import get_attn, remove_hooks
+from dataloaders.utils.Distill.funcs import get_feature_dim, L2Norm, freeze_model
 
 sys.path.append(
     os.path.abspath(
@@ -46,46 +37,22 @@ def adapt_descriptors_dim(
     teacher_dim = get_feature_dim(teacher_model, teacher_transform)
     student_dim = get_feature_dim(student_model, student_transform)
     if teacher_dim == student_dim:
-        print("=" * 100)
+        print("=" * 1000)
         print(
             "Teacher and student have the same descriptor dimension. No adaptation needed."
         )
-        print("=" * 100)
+        print("=" * 1000)
         return nn.Identity()
     else:
-        print("=" * 100)
+        print("=" * 1000)
         print(
             f"Teacher and student have different descriptor dimensions. Adapting student descriptor dimension to match teacher descriptor dimension: {student_dim} -> {teacher_dim}."
         )
-        print("=" * 100)
+        print("=" * 1000)
         fc = nn.Linear(student_dim, teacher_dim, bias=False)
         mlp = nn.Sequential(fc, L2Norm())
         return mlp
 
-
-
-class QLambdaScheduler:
-    def __init__(self, module, max_steps, range=(-6, 8)):
-        self.module = module
-        self.max_steps = max_steps
-        self.lambda_value = torch.ones(1)
-        self.step_count = torch.zeros(1)
-        self.range = range
-
-    def step(self):
-        self.step_count += 1
-        self.lambda_value = torch.sigmoid(
-            (
-                self.step_count / self.max_steps * (self.range[1] - self.range[0])
-                + self.range[0]
-            )
-        )
-        for module in self.module.modules():
-            if hasattr(module, "q_lambda"):
-                module.q_lambda = self.lambda_value
-
-    def get_lambda(self):
-        return self.lambda_value
 
 
 class VPRDistill(pl.LightningModule):
@@ -95,16 +62,16 @@ class VPRDistill(pl.LightningModule):
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
-        augment_type="LightAugment", 
+        augment_level="LightAugment", 
         matching_function=global_cosine_sim,
         use_attention=False,
-        weight_decay_scale=0.05,
+        weight_decay_init=0.05,
         weight_decay_schedule="staged_linear",
         batch_size=32,
         num_workers=4,
         image_size=224,
         lr=1e-3,
-        mse_loss_scale=1000,
+        mse_loss_mult=1000,
         val_set_names=["pitts30k_val"],
     ):
         super().__init__()
@@ -118,11 +85,11 @@ class VPRDistill(pl.LightningModule):
         self.backbone_arch = student_backbone_arch
         self.matching_function = matching_function
         self.use_attention = use_attention
-        self.weight_decay_scale = weight_decay_scale
+        self.weight_decay_init = weight_decay_init
         self.weight_decay_schedule = weight_decay_schedule
-        self.mse_loss_scale = mse_loss_scale
+        self.mse_loss_mult = mse_loss_mult
         self.teacher = get_model(preset=teacher_preset)
-        self.augment_type = augment_type
+        self.augment_level = augment_level
         self.student = get_model(
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
@@ -133,7 +100,7 @@ class VPRDistill(pl.LightningModule):
             self.teacher,
             get_preset_transform(self.teacher_preset),
             self.student,
-            get_train_transform(self.augment_type, self.image_size),
+            get_augmentation(self.augment_level, self.image_size),
         )
 
         freeze_model(self.teacher)
@@ -151,14 +118,14 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name,
-                            input_transform=get_val_transform(self.image_size),
+                            input_transform=get_augmentation("NoAugment", self.image_size),
                         )
                     )
                 elif val_set_name.lower() == "msls_val":
                     from dataloaders.val.MapillaryDataset import MSLS
 
                     self.val_datasets.append(
-                        MSLS(input_transform=get_val_transform(self.image_size))
+                        MSLS(input_transform=get_augmentation("NoAugment", self.image_size))
                     )
                 elif val_set_name.lower() == "nordland":
                     from dataloaders.val.NordlandDataset import NordlandDataset
@@ -170,7 +137,7 @@ class VPRDistill(pl.LightningModule):
                     from dataloaders.val.SPEDDataset import SPEDDataset
 
                     self.val_datasets.append(
-                        SPEDDataset(input_transform=get_val_transform(self.image_size))
+                        SPEDDataset(input_transform=get_augmentation("NoAugment", self.image_size))
                     )
                 elif (
                     "sf_xl" in val_set_name.lower()
@@ -182,7 +149,7 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_val",
-                            input_transform=get_val_transform(self.image_size),
+                            input_transform=get_augmentation("NoAugment", self.image_size),
                         )
                     )
                 elif (
@@ -195,7 +162,7 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_test",
-                            input_transform=get_val_transform(self.image_size),
+                            input_transform=get_augmentation("NoAugment", self.image_size),
                         )
                     )
                 else:
@@ -205,10 +172,40 @@ class VPRDistill(pl.LightningModule):
 
     def forward(self, x):
         return self.student(x)
+    
+    def _setup_schedulers(self, optimizer): 
+        total_steps = self.trainer.estimated_stepping_batches
+        warmup_steps = int(0.05 * total_steps)
+        lr_scheduler = get_cosine_schedule_with_warmup(
+            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
+        )
+        weight_decay_scheduler = WeightDecayScheduler(self.weight_decay_init, total_steps, schedule_type=self.weight_decay_schedule)
+        quant_scheduler = QuantScheduler(total_steps)
+        return {"lr": lr_scheduler, "weight_decay": weight_decay_scheduler,"quant": quant_scheduler}
+    
+    def _step_schedulers(self, batch_idx): 
+        if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
+            for param_name, schd in self.schedulers.items(): 
+                schd.step()
+                self.log(param_name, schd.get_last_lr()[0], on_step=True)
 
-    def _compute_features(self, student_images, teacher_images, use_attn):
+    def configure_optimizers(self):
+        if isinstance(self.student.backbone, Qmodel):
+            optimizer = optim.AdamW(
+                self.student.parameters(), lr=self.lr, weight_decay=0.0
+            ) # The custom schedulers handle weight decay in this case
+        else:
+            optimizer = optim.AdamW(
+                self.student.parameters(), lr=self.lr, weight_decay=0.05
+            ) 
+
+        self.schedulers = self._setup_schedulers(optimizer)
+        return optimizer
+
+
+    def _compute_features(self, student_images, teacher_images, use_attention):
         B = student_images.shape[0]
-        if use_attn: 
+        if use_attention: 
             teacher_attn, teacher_hooks = get_attn(self.teacher)
             student_attn, student_hooks = get_attn(self.student)
             teacher_features = self.teacher(teacher_images)
@@ -234,8 +231,7 @@ class VPRDistill(pl.LightningModule):
 
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
-
-            return student_features, teacher_features, student_attn, teacher_attn
+            return student_features["global_desc"], teacher_features["global_desc"], student_attn, teacher_attn
         else:
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
@@ -245,9 +241,9 @@ class VPRDistill(pl.LightningModule):
             student_attn = None 
             teacher_attn = None 
 
-            return student_features, teacher_features, None, None
+            return student_features["global_desc"], teacher_features["global_desc"], None, None
     
-
+    @staticmethod
     def _compute_attn_loss(student_attn, teacher_attn):
         # B, D, H, N, N
         if teacher_attn.shape[1] != student_attn.shape[1]:
@@ -286,15 +282,15 @@ class VPRDistill(pl.LightningModule):
                 )
         return F.mse_loss(teacher_attn, student_attn)
 
-
+    @staticmethod
     def _compute_cosine_loss(student_features, teacher_features): 
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) ** 2
         return cosine_loss.mean()
 
+    @staticmethod
     def _compute_euclidian_loss(student_features, teacher_features): 
         return F.mse_loss(teacher_features, student_features)
     
-
     def _weight_decay(self, batch_idx):
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
             if hasattr(self.student.backbone, "decay_weight"):
@@ -307,134 +303,33 @@ class VPRDistill(pl.LightningModule):
 
     def _progressive_quant(self, batch_idx): 
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
-            if hasattr(self.student.backbone, "q_lambda"):
-                for module in self.module.modules():
-                    if hasattr(module, "q_lambda"):
-                        module.q_lambda = self.lambda_value
-                
-        
-
-
-    def _setup_schedulers(self, optimizer): 
-        total_steps = self.trainer.estimated_stepping_batches
-        warmup_steps = int(0.05 * total_steps)
-        lr_scheduler = get_cosine_schedule_with_warmup(
-            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
-        )
-        weight_decay_scheduler = self._setup_weight_decay_scheduler()
-        quant_scheduler = self._setup_q_lambda_scheduler()
-        self.schedulers = {"lr": lr_scheduler, "weight_decay": weight_decay_scheduler,"quant": quant_scheduler}
-    
-    def _step_schedulers(self): 
-        for param_name, schd in self.schedulers.items(): 
-            schd.step()
-            self.log(param_name, schd.get_last_lr()[0])
+            q_lambda_val = self.schedulers["quant"].get_last_lr()[0]
+            for module in self.student.modules():
+                if hasattr(module, "q_lambda"):
+                    module.q_lambda = q_lambda_val
 
 
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
-        student_features, teacher_features, student_attn, teacher_attn = self._compute_features(student_images, teacher_images)
-        euc_loss = self.mse_loss_scale * self._compute_euclidian_loss(teacher_features, student_features)
+        student_features, teacher_features, student_attn, teacher_attn = self._compute_features(student_images, teacher_images, self.use_attention)
+        euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(teacher_features, student_features)
         cos_loss = self._compute_cosine_loss(teacher_features, student_features)
 
         attn_loss = torch.tensor(0.0, device=cos_loss.device) 
         if self.use_attention: 
-            attn_loss = self.mse_loss_scale * self._compute_attn_loss(teacher_attn, student_attn)
+            attn_loss = self.mse_loss_mult * self._compute_attn_loss(teacher_attn, student_attn)
         total_loss = euc_loss + cos_loss + attn_loss
 
         self._weight_decay(batch_idx)
-        self._schedulers_step(batch_idx)
+        self._progressive_quant(batch_idx)
+        self._step_schedulers(batch_idx)
 
         self.log("Cosine Loss", cos_loss)
         self.log("Euclidian Loss", euc_loss)
         self.log("Attention Loss", attn_loss)
         self.log("Total Loss", total_loss, prog_bar=True)
         return total_loss
-            
 
-
-    def configure_optimizers(self):
-
-        if isinstance(self.student.backbone, Qmodel):
-            optimizer = optim.AdamW(
-                self.student.parameters(), lr=self.lr, weight_decay=0.0
-            )
-        elif "vit" in self.backbone_arch.lower():
-            optimizer = optim.AdamW(
-                self.student.parameters(), lr=self.lr, weight_decay=0.05
-            )
-        else:
-            optimizer = optim.AdamW(
-                self.student.parameters(), lr=self.lr, weight_decay=0.0
-            )
-
-        return optimizer
-    
-    def _setup_quant_scheduler(self):
-        return QLambdaScheduler(
-            self.student.backbone, self.trainer.estimated_stepping_batches
-        )
-
-    def _setup_weight_decay_scheduler(self):
-        total_steps = self.trainer.estimated_stepping_batches
-
-        # Custom scheduler for reg_scale
-        if self.weight_decay_schedule == "staged_linear":
-
-            def decay_schedule(step, init_weight_decay_scale):
-                start_step = 0.1 * total_steps
-                end_step = 0.9 * total_steps
-                if step < start_step:
-                    return init_weight_decay_scale
-                elif step > end_step:
-                    return 0.0
-                else:
-                    return init_weight_decay_scale * (
-                        1 - (step - start_step) / (end_step - start_step)
-                    )
-
-        elif self.weight_decay_schedule == "constant":
-
-            def decay_schedule(step, init_weight_decay_scale):
-                return init_weight_decay_scale
-
-        elif self.weight_decay_schedule == "sigmoid":
-
-            def decay_schedule(step, init_weight_decay_scale):
-                return init_weight_decay_scale * torch.sigmoid(
-                    torch.tensor(step / total_steps * 14 - 4)
-                )
-
-        elif self.weight_decay_schedule is None:
-
-            def decay_schedule(step, init_weight_decay_scale):
-                return 0.0
-
-        else:
-            raise NotImplementedError(
-                f"Weight decay schedule {self.weight_decay_schedule} not implemented"
-            )
-
-        class WeightDecayScheduler:
-            def __init__(self, init_weight_decay_scale, decay_schedule):
-                self.init_weight_decay_scale = init_weight_decay_scale
-                self.weight_decay_scale = init_weight_decay_scale
-                self.decay_schedule = decay_schedule
-                self.step_count = 0
-
-            def step(self):
-                self.step_count += 1
-                self.weight_decay_scale = self.decay_schedule(
-                    self.step_count, self.init_weight_decay_scale
-                )
-
-            def get_last_weight_decay_scale(self):
-                return self.weight_decay_scale
-
-        weight_decay_scheduler = WeightDecayScheduler(
-            self.weight_decay_scale, decay_schedule
-        )
-        return weight_decay_scheduler
 
 
     def train_dataloader(self):
@@ -449,7 +344,7 @@ class VPRDistill(pl.LightningModule):
 
         dataset = DistillDataset(
             train_dataset,
-            get_train_transform(self.augment_type, self.image_size),
+            get_augmentation(self.augment_level, self.image_size),
             get_preset_transform(self.teacher_preset),
         )
         return DataLoader(
@@ -478,8 +373,7 @@ class VPRDistill(pl.LightningModule):
         for name in self.val_set_names:
             self.validation_outputs[name] = defaultdict(list)
 
-    # For validation, we will also iterate step by step over the validation set
-    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         # calculate descriptors
@@ -493,8 +387,6 @@ class VPRDistill(pl.LightningModule):
         return descriptors["global_desc"].detach().cpu()
 
     def on_validation_epoch_end(self):
-        """Process the validation outputs stored in self.validation_outputs_global."""
-
         full_recalls_dict = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]

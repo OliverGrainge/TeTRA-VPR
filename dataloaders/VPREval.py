@@ -4,13 +4,9 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from PIL import Image
-from prettytable import PrettyTable
-from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 
-import utils
-from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}

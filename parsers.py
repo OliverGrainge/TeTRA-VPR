@@ -180,9 +180,9 @@ def training_arguments(parser=None):
     )
 
     parser.add_argument(
-        "--weight_decay_scale",
+        "--weight_decay_init",
         type=float,
-        default=config["Training"]["Distill"]["weight_decay_scale"],
+        default=config["Training"]["Distill"]["weight_decay_init"],
         help="Weight decay scale",
     )
 
@@ -194,10 +194,17 @@ def training_arguments(parser=None):
     )
 
     parser.add_argument(
-        "--mse_loss_scale",
+        "--mse_loss_mult",
         type=float,
-        default=config["Training"]["Distill"]["mse_loss_scale"],
+        default=config["Training"]["Distill"]["mse_loss_mult"],
         help="MSE loss scale",
+    )
+
+    parser.add_argument(
+        "--augment_level",
+        type=str,
+        default=config["Training"]["Distill"]["augment_level"],
+        help="Augmentation level",
     )
     return parser
 

@@ -4,7 +4,6 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
-from torch.optim import lr_scheduler
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup

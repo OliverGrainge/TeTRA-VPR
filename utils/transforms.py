@@ -1,29 +1,32 @@
 import torchvision.transforms as T 
-
-
+from typing import Union
 
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
 
 
-def get_train_transform(augment_type: str, image_size: tuple): 
+def get_augmentation(augment_type: str, image_size: Union[tuple, int]): 
+    if isinstance(image_size, int): 
+        image_size = (image_size, image_size)
+
     if augment_type == "SevereAugment": 
         return T.Compose(
-            [
+            [   
                 T.RandomResizedCrop(
-                    image_size, scale=(0.8, 1.0)
+                    image_size, scale=(0.7, 0.9)
                 ),  # Randomly crop and resize the image
+                
                 T.ColorJitter(
-                    brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
+                    brightness=0.5, contrast=0.1, saturation=0.9, hue=0.05
                 ),  # Randomly change brightness, contrast, etc.
                 T.GaussianBlur(
-                    kernel_size=(3, 7), sigma=(0.1, 0.5)
+                    kernel_size=(3, 7), sigma=(0.5, 2.0)
                 ),  # Apply Gaussian blur
-                T.RandomGrayscale(p=0.1),
+                T.RandomGrayscale(p=0.2),
                 T.ToTensor(),  # Convert image to tensor
                 T.RandomErasing(
-                    p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
+                    p=0.2, scale=(0.05, 0.1), ratio=(0.3, 1.7), value="random"
                 ),  # Cut out random parts
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
@@ -45,7 +48,7 @@ def get_train_transform(augment_type: str, image_size: tuple):
                 T.RandomGrayscale(p=0.1),
                 T.ToTensor(),  # Convert image to tensor
                 T.RandomErasing(
-                    p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
+                    p=0.2, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
                 ),
                 T.Normalize(
                     mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
@@ -62,17 +65,66 @@ def get_train_transform(augment_type: str, image_size: tuple):
                 ),
             ]
         )
+    else: 
+        raise Exception(f"Augmentation type {augment_type} not found")
 
 
-
-
-def get_val_transform(image_size: tuple): 
-    return T.Compose(
-        [
-            T.Resize(image_size),
-            T.ToTensor(),
-            T.Normalize(
-                mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
-            ),
-        ]
-    )
+if __name__ == "__main__":
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    import torch
+    
+    # Load image
+    img = Image.open("/home/oliver/Documents/github/QuantPlaceFinder/utils/assets/example_image.jpg")
+    
+    # Get all three augmentation transforms
+    light_aug = get_augmentation("LightAugment", (384, 384))
+    severe_aug = get_augmentation("SevereAugment", (384, 384))
+    no_aug = get_augmentation("NoAugment", (384, 384))
+    
+    # Number of examples per augmentation type
+    n_examples = 10
+    
+    # Apply multiple augmentations
+    augmented_light = [light_aug(img) for _ in range(n_examples)]
+    augmented_severe = [severe_aug(img) for _ in range(n_examples)]
+    augmented_none = [no_aug(img) for _ in range(n_examples)]
+    
+    # Convert tensors back to images for display
+    def tensor_to_display(tensor):
+        mean = torch.tensor(IMAGENET_MEAN_STD["mean"]).view(3, 1, 1)
+        std = torch.tensor(IMAGENET_MEAN_STD["std"]).view(3, 1, 1)
+        img = tensor * std + mean
+        img = torch.clamp(img, 0, 1)
+        img = img.permute(1, 2, 0)
+        return img.numpy()
+    
+    # Convert all augmented images
+    augmented_light = [tensor_to_display(x) for x in augmented_light]
+    augmented_severe = [tensor_to_display(x) for x in augmented_severe]
+    augmented_none = [tensor_to_display(x) for x in augmented_none]
+    
+    plt.figure(figsize=(3*n_examples, 8))
+    
+    # Create a 3xN grid (3 rows, N columns where N is n_examples)
+    for i in range(n_examples):
+        # No augmentation row
+        plt.subplot(3, n_examples, i + 1)
+        plt.imshow(augmented_none[i])
+        plt.title(f'No Augment {i+1}' if i == 0 else str(i+1))
+        plt.axis('off')
+        
+        # Light augmentation row
+        plt.subplot(3, n_examples, n_examples + i + 1)
+        plt.imshow(augmented_light[i])
+        plt.title(f'Light Augment {i+1}' if i == 0 else str(i+1))
+        plt.axis('off')
+        
+        # Severe augmentation row
+        plt.subplot(3, n_examples, 2*n_examples + i + 1)
+        plt.imshow(augmented_severe[i])
+        plt.title(f'Severe Augment {i+1}' if i == 0 else str(i+1))
+        plt.axis('off')
+    
+    plt.tight_layout()
+    plt.show()
