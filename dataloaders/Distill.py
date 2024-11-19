@@ -308,6 +308,9 @@ class VPRDistill(pl.LightningModule):
     def _progressive_quant(self, batch_idx): 
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
             if hasattr(self.student.backbone, "q_lambda"):
+                for module in self.module.modules():
+                    if hasattr(module, "q_lambda"):
+                        module.q_lambda = self.lambda_value
                 
         
 
