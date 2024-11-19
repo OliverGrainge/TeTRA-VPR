@@ -33,7 +33,7 @@ def find_best_match(target_string, list_of_strings):
     return None
 
 
-def get_transform(preset):
+def get_preset_transform(preset):
     if preset.lower() == "dinov2_boq":
         transform = T.Compose(
             [

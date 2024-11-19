@@ -24,8 +24,10 @@ from transformers import get_cosine_schedule_with_warmup
 import utils
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
-from models.helper import get_model, get_transform
+from models.helper import get_model, get_preset_transform
 from dataloaders.train.DistillDataset import DistillDataset, TarImageDataset, JPGDataset
+from utils.transforms import get_val_transform, get_train_transform
+from dataloaders.utils.Distill import get_attn, remove_hooks, get_feature_dim, L2Norm, freeze_model
 
 sys.path.append(
     os.path.abspath(
@@ -36,65 +38,6 @@ sys.path.append(
 
 from NeuroPress.models.base import Qmodel
 
-IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
-
-
-def remove_hooks(hooks):
-    for hook in hooks:
-        hook.remove()
-
-
-def get_attn(model):
-    attention_matrices = []
-    hooks = []
-
-    def dinov2_hook_fn(module, input, output):
-        B, N, C = input[0].shape
-        qkv = (
-            module.qkv(input[0])
-            .reshape(B, N, 3, module.num_heads, C // module.num_heads)
-            .permute(2, 0, 3, 1, 4)
-        )
-        q, k, v = qkv[0] * module.scale, qkv[1], qkv[2]
-        attn = q @ k.transpose(-2, -1)
-        attn = attn.softmax(dim=-1)
-        attention_matrices.append(attn)
-
-    def vit_hook_fn(module, input, output):
-        qkv = module.to_qkv(input[0]).chunk(3, dim=-1)
-        q, k, v = map(
-            lambda t: rearrange(t, "b n (h d) -> b h n d", h=module.heads), qkv
-        )
-        dots = torch.matmul(q, k.transpose(-1, -2)) * module.scale
-        attn = dots.softmax(dim=-1)
-        attention_matrices.append(attn)
-
-    for name, module in model.named_modules():
-        if hasattr(module, "qkv"):
-            # This is likely a DINOv2 attention module
-            hook = module.register_forward_hook(dinov2_hook_fn)
-            hooks.append(hook)
-        elif hasattr(module, "to_qkv"):
-            # This is likely a ViT attention module
-            hook = module.register_forward_hook(vit_hook_fn)
-            hooks.append(hook)
-
-    return attention_matrices, hooks
-
-
-class L2Norm(nn.Module):
-    def forward(self, x):
-        return F.normalize(x, p=2, dim=1)
-
-
-def get_feature_dim(model, transform):
-    x = torch.randint(0, 255, size=(3, 512, 512), dtype=torch.uint8)
-    x_np = x.numpy()
-    x_img = Image.fromarray(x_np.transpose(1, 2, 0))
-    x_transformed = transform(x_img)
-    print(x_transformed.shape)
-    features = model(x_transformed[None, :].to(next(model.parameters()).device))
-    return features["global_desc"].shape[1]
 
 
 def adapt_descriptors_dim(
@@ -119,11 +62,6 @@ def adapt_descriptors_dim(
         mlp = nn.Sequential(fc, L2Norm())
         return mlp
 
-
-def freeze_model(model):
-    for param in model.parameters():
-        param.requires_grad = False
-    return model
 
 
 class QLambdaScheduler:
@@ -157,6 +95,7 @@ class VPRDistill(pl.LightningModule):
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
+        augment_type="LightAugment", 
         matching_function=global_cosine_sim,
         use_attention=False,
         weight_decay_scale=0.05,
@@ -183,17 +122,18 @@ class VPRDistill(pl.LightningModule):
         self.weight_decay_schedule = weight_decay_schedule
         self.mse_loss_scale = mse_loss_scale
         self.teacher = get_model(preset=teacher_preset)
+        self.augment_type = augment_type
         self.student = get_model(
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
-            out_dim=get_feature_dim(self.teacher, self.teacher_train_transform()),
+            out_dim=get_feature_dim(self.teacher, get_preset_transform(self.teacher_preset)),
             image_size=image_size,
         )
         self.adapter = adapt_descriptors_dim(
             self.teacher,
-            self.teacher_train_transform(),
+            get_preset_transform(self.teacher_preset),
             self.student,
-            self.student_train_transform(),
+            get_train_transform(self.augment_type, self.image_size),
         )
 
         freeze_model(self.teacher)
@@ -211,14 +151,14 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name,
-                            input_transform=self.student_val_transform(),
+                            input_transform=get_val_transform(self.image_size),
                         )
                     )
                 elif val_set_name.lower() == "msls_val":
                     from dataloaders.val.MapillaryDataset import MSLS
 
                     self.val_datasets.append(
-                        MSLS(input_transform=self.student_val_transform())
+                        MSLS(input_transform=get_val_transform(self.image_size))
                     )
                 elif val_set_name.lower() == "nordland":
                     from dataloaders.val.NordlandDataset import NordlandDataset
@@ -230,7 +170,7 @@ class VPRDistill(pl.LightningModule):
                     from dataloaders.val.SPEDDataset import SPEDDataset
 
                     self.val_datasets.append(
-                        SPEDDataset(input_transform=self.student_val_transform())
+                        SPEDDataset(input_transform=get_val_transform(self.image_size))
                     )
                 elif (
                     "sf_xl" in val_set_name.lower()
@@ -242,7 +182,7 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_val",
-                            input_transform=self.student_val_transform(),
+                            input_transform=get_val_transform(self.image_size),
                         )
                     )
                 elif (
@@ -255,7 +195,7 @@ class VPRDistill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_test",
-                            input_transform=self.student_val_transform(),
+                            input_transform=get_val_transform(self.image_size),
                         )
                     )
                 else:
@@ -266,31 +206,13 @@ class VPRDistill(pl.LightningModule):
     def forward(self, x):
         return self.student(x)
 
-    def training_step(self, batch, batch_idx):
-        student_images, teacher_images = batch
-        # Save first student image from first 10 batches
-        if batch_idx < 25:
-            # Convert tensor back to image
-            img_tensor = student_images[0].cpu()  # Get first image
-            # Denormalize
-            mean = torch.tensor(IMAGENET_MEAN_STD["mean"]).view(3, 1, 1)
-            std = torch.tensor(IMAGENET_MEAN_STD["std"]).view(3, 1, 1)
-            img_tensor = img_tensor * std + mean
-            img_tensor = torch.clamp(img_tensor, 0, 1)
-
-            # Convert to PIL Image and save
-            img = T.ToPILImage()(img_tensor)
-            os.makedirs("student_images", exist_ok=True)
-            img.save(f"student_images/batch_{batch_idx}.jpg")
+    def _compute_features(self, student_images, teacher_images, use_attn):
         B = student_images.shape[0]
-        if self.use_attention:
+        if use_attn: 
             teacher_attn, teacher_hooks = get_attn(self.teacher)
             student_attn, student_hooks = get_attn(self.student)
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
-            student_features["global_desc"] = self.adapter(
-                student_features["global_desc"]
-            )
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
 
@@ -309,90 +231,124 @@ class VPRDistill(pl.LightningModule):
                 student_attn.shape[-2],
                 student_attn.shape[-1],
             )
-            # B, D, H, N, N
-            if teacher_attn.shape[1] != student_attn.shape[1]:
-                # have different depths
-                assert (
-                    teacher_attn.shape[1] > student_attn.shape[1]
-                ), "teacher attention must be deeper or equal to the depth of the than student attention"
-                teacher_attn_idxs = (
-                    torch.arange(student_attn.shape[1]) * teacher_attn.shape[1]
-                ) / student_attn.shape[1].floor().long()
-                teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
 
-            if teacher_attn.shape[2] != student_attn.shape[2]:
-                # have different number of attention heads
-                teacher_attn = teacher_attn.mean(2)
-                student_attn = student_attn.mean(2)
-
-            if teacher_attn.shape[-1] != student_attn.shape[-1]:
-                # have different number of tokens
-                B, D, H = student_attn.shape[:3]
-                if len(student_attn.shape) == 5:
-                    student_attn = F.interpolate(
-                        student_attn.view(
-                            B * D * H, 1, student_attn.shape[-2], student_attn.shape[-1]
-                        ),
-                        size=teacher_attn.shape[-2:],
-                        mode="bilinear",
-                        align_corners=False,
-                    ).view(B, D, H, teacher_attn.shape[-2], teacher_attn.shape[-1])
-                else:
-                    student_attn = F.interpolate(
-                        student_attn,
-                        size=teacher_attn.shape[-2:],
-                        mode="bilinear",
-                        align_corners=False,
-                    )
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
+
+            return student_features, teacher_features, student_attn, teacher_attn
         else:
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
             student_features["global_desc"] = self.adapter(
                 student_features["global_desc"]
             )
+            student_attn = None 
+            teacher_attn = None 
 
-        teacher_features = F.normalize(teacher_features["global_desc"], dim=1)
-        student_features = F.normalize(student_features["global_desc"], dim=1)
+            return student_features, teacher_features, None, None
+    
 
-        loss = torch.tensor(0.0, device=self.device)
-        # mse loss to align feature spaces
-        mse_loss = self.mse_loss_scale * F.mse_loss(teacher_features, student_features)
-        loss += mse_loss
-        # cosine loss to align feature anglesßs
+    def _compute_attn_loss(student_attn, teacher_attn):
+        # B, D, H, N, N
+        if teacher_attn.shape[1] != student_attn.shape[1]:
+            # have different depths
+            assert (
+                teacher_attn.shape[1] > student_attn.shape[1]
+            ), "teacher attention must be deeper or equal to the depth of the than student attention"
+            teacher_attn_idxs = (
+                torch.arange(student_attn.shape[1]) * teacher_attn.shape[1]
+            ) / student_attn.shape[1].floor().long()
+            teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
+
+        if teacher_attn.shape[2] != student_attn.shape[2]:
+            # have different number of attention heads
+            teacher_attn = teacher_attn.mean(2)
+            student_attn = student_attn.mean(2)
+
+        if teacher_attn.shape[-1] != student_attn.shape[-1]:
+            # have different number of tokens
+            B, D, H = student_attn.shape[:3]
+            if len(student_attn.shape) == 5:
+                student_attn = F.interpolate(
+                    student_attn.view(
+                        B * D * H, 1, student_attn.shape[-2], student_attn.shape[-1]
+                    ),
+                    size=teacher_attn.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                ).view(B, D, H, teacher_attn.shape[-2], teacher_attn.shape[-1])
+            else:
+                student_attn = F.interpolate(
+                    student_attn,
+                    size=teacher_attn.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+        return F.mse_loss(teacher_attn, student_attn)
+
+
+    def _compute_cosine_loss(student_features, teacher_features): 
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) ** 2
-        cosine_loss = cosine_loss.mean()
-        loss += cosine_loss
-        # attention loss to align attention maps
-        if self.use_attention:
-            attn_loss = self.mse_loss_scale * F.mse_loss(teacher_attn, student_attn)
-            loss += attn_loss
+        return cosine_loss.mean()
 
-        self.log("train_loss", loss, prog_bar=True)
-        self.log("mse_loss", mse_loss, prog_bar=True)
-        self.log("cosine_loss", cosine_loss, prog_bar=True)
-        if self.use_attention:
-            self.log("attn_loss", attn_loss, prog_bar=True)
+    def _compute_euclidian_loss(student_features, teacher_features): 
+        return F.mse_loss(teacher_features, student_features)
+    
 
-            # Only step the scheduler when we actually perform an optimization step
-        if hasattr(self.student.backbone, "decay_weight"):
-            if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
-                self.weight_decay_scheduler.step()
-                current_lr = self.lr_schedulers().get_last_lr()[0]
+    def _weight_decay(self, batch_idx):
+        if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
+            if hasattr(self.student.backbone, "decay_weight"):
+                decay_scale = self.schedulers["weight_decay"].get_last_lr()[0]
+                lr = self.schedulers["lr"].get_last_lr()[0]
                 self.student.backbone.decay_weight(
-                    lr=current_lr,
-                    weight_decay_scale=self.weight_decay_scheduler.get_last_weight_decay_scale(),
-                )
-                self.log(
-                    "weight_decay_scale",
-                    self.weight_decay_scheduler.get_last_weight_decay_scale(),
-                    on_step=True,
+                    lr=lr,
+                    weight_decay_scale=decay_scale,
                 )
 
-                self.q_lambda_scheduler.step()
-                self.log("q_lambda", self.q_lambda_scheduler.get_lambda(), on_step=True)
-        return loss
+    def _progressive_quant(self, batch_idx): 
+        if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
+            if hasattr(self.student.backbone, "q_lambda"):
+                
+        
+
+
+    def _setup_schedulers(self, optimizer): 
+        total_steps = self.trainer.estimated_stepping_batches
+        warmup_steps = int(0.05 * total_steps)
+        lr_scheduler = get_cosine_schedule_with_warmup(
+            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
+        )
+        weight_decay_scheduler = self._setup_weight_decay_scheduler()
+        quant_scheduler = self._setup_q_lambda_scheduler()
+        self.schedulers = {"lr": lr_scheduler, "weight_decay": weight_decay_scheduler,"quant": quant_scheduler}
+    
+    def _step_schedulers(self): 
+        for param_name, schd in self.schedulers.items(): 
+            schd.step()
+            self.log(param_name, schd.get_last_lr()[0])
+
+
+    def training_step(self, batch, batch_idx):
+        student_images, teacher_images = batch
+        student_features, teacher_features, student_attn, teacher_attn = self._compute_features(student_images, teacher_images)
+        euc_loss = self.mse_loss_scale * self._compute_euclidian_loss(teacher_features, student_features)
+        cos_loss = self._compute_cosine_loss(teacher_features, student_features)
+
+        attn_loss = torch.tensor(0.0, device=cos_loss.device) 
+        if self.use_attention: 
+            attn_loss = self.mse_loss_scale * self._compute_attn_loss(teacher_attn, student_attn)
+        total_loss = euc_loss + cos_loss + attn_loss
+
+        self._weight_decay(batch_idx)
+        self._schedulers_step(batch_idx)
+
+        self.log("Cosine Loss", cos_loss)
+        self.log("Euclidian Loss", euc_loss)
+        self.log("Attention Loss", attn_loss)
+        self.log("Total Loss", total_loss, prog_bar=True)
+        return total_loss
+            
+
 
     def configure_optimizers(self):
 
@@ -409,27 +365,9 @@ class VPRDistill(pl.LightningModule):
                 self.student.parameters(), lr=self.lr, weight_decay=0.0
             )
 
-        total_steps = self.trainer.estimated_stepping_batches
-        warmup_steps = int(0.05 * total_steps)
-        # warmup_steps = 0
-
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
-        )
-
-        self.weight_decay_scheduler = self._setup_weight_decay_scheduler()
-        self.q_lambda_scheduler = self._setup_q_lambda_scheduler()
-        print(type(self.weight_decay_scheduler.step))
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",
-                "frequency": 1,
-            },
-        }
-
-    def _setup_q_lambda_scheduler(self):
+        return optimizer
+    
+    def _setup_quant_scheduler(self):
         return QLambdaScheduler(
             self.student.backbone, self.trainer.estimated_stepping_batches
         )
@@ -495,45 +433,6 @@ class VPRDistill(pl.LightningModule):
         )
         return weight_decay_scheduler
 
-    def student_train_transform(self):
-        return T.Compose(
-            [
-                T.RandomResizedCrop(
-                    self.image_size, scale=(0.8, 1.0)
-                ),  # Randomly crop and resize the image
-                T.ColorJitter(
-                    brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05
-                ),  # Randomly change brightness, contrast, etc.
-                T.GaussianBlur(
-                    kernel_size=(3, 7), sigma=(0.1, 0.5)
-                ),  # Apply Gaussian blur
-                T.RandomGrayscale(p=0.1),
-                T.ToTensor(),  # Convert image to tensor
-                T.RandomErasing(
-                    p=0.1, scale=(0.02, 0.05), ratio=(0.3, 1.7), value="random"
-                ),  # Cut out random parts
-                T.Normalize(
-                    mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
-                ),
-            ]
-        )
-
-    def student_val_transform(self):
-        return T.Compose(
-            [
-                T.Resize(self.image_size),
-                T.ToTensor(),
-                T.Normalize(
-                    mean=IMAGENET_MEAN_STD["mean"], std=IMAGENET_MEAN_STD["std"]
-                ),
-            ]
-        )
-
-    def teacher_train_transform(self):
-        return get_transform(self.teacher_preset)
-
-    def teacher_val_transform(self):
-        return get_transform(self.teacher_preset)
 
     def train_dataloader(self):
         paths = os.listdir(self.data_directory)
@@ -547,8 +446,8 @@ class VPRDistill(pl.LightningModule):
 
         dataset = DistillDataset(
             train_dataset,
-            self.student_train_transform(),
-            self.teacher_train_transform(),
+            get_train_transform(self.augment_type, self.image_size),
+            get_preset_transform(self.teacher_preset),
         )
         return DataLoader(
             dataset,
