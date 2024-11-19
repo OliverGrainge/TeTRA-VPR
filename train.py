@@ -133,7 +133,7 @@ if __name__ == "__main__":
         fast_dev_run=args.fast_dev_run,
         reload_dataloaders_every_n_epochs=1,
         #val_check_interval=0.05 if "distill" in args.training_method else 1.0,
-        #accumulate_grad_batches=16,
+        accumulate_grad_batches=20,
         # limit_train_batches=200,
         log_every_n_steps=1,
         logger=wandb_logger,  # Add the wandb logger here
