@@ -13,7 +13,7 @@ def float_to_binary_desc(desc):
     return packed
 
 
-def global_hamming_sim(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):
+def match_hamming(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):
     global_desc = global_desc.cpu().numpy()
     # Convert to packed binary descriptors
     global_desc = float_to_binary_desc(global_desc)

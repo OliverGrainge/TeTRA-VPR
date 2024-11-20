@@ -1,9 +1,10 @@
 import glob
-import random
-from io import BytesIO
-from PIL import Image
-import tarfile
 import os
+import random
+import tarfile
+from io import BytesIO
+
+from PIL import Image
 from torch.utils.data import Dataset
 
 

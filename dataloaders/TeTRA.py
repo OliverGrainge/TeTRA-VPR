@@ -7,13 +7,12 @@ from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
-from dataloaders.utils.transforms import get_augmentation
 
-from dataloaders.utils.TeTRA.losses import get_loss, get_miner
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
-from matching.global_cosine_sim import global_cosine_sim
-from matching.global_hamming_sim import global_hamming_sim
-
+from dataloaders.utils.TeTRA.losses import get_loss, get_miner
+from dataloaders.utils.transforms import get_augmentation
+from matching.match_cosine import match_cosine
+from matching.match_hamming import match_hamming
 
 
 def symmetric_binarize(x):
@@ -30,7 +29,7 @@ class TeTRA(pl.LightningModule):
         val_set_names=["pitts30k_val", "msls_val"],
         loss_name="MultiSimilarityLoss",
         miner_name="MultiSimilarityMiner",
-        matching_functions=[global_cosine_sim, global_hamming_sim],
+        matching_functions=[match_cosine, match_hamming],
         miner_margin=0.1,
         cities=["London", "Melbourne", "Boston"],
         lr=0.0001,
@@ -63,8 +62,12 @@ class TeTRA(pl.LightningModule):
         self.val_datasets = []
 
         # Train and valid transforms
-        self.train_transform = get_augmentation(augment_type="LightAugment", image_size=image_size)
-        self.valid_transform = get_augmentation(augment_type="NoAugment", image_size=image_size)
+        self.train_transform = get_augmentation(
+            augment_type="LightAugment", image_size=image_size
+        )
+        self.valid_transform = get_augmentation(
+            augment_type="NoAugment", image_size=image_size
+        )
 
         # Dataloader configs
         self.train_loader_config = {
@@ -90,7 +93,8 @@ class TeTRA(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
@@ -300,10 +304,10 @@ class TeTRA(pl.LightningModule):
 
                 for k, v in recalls_dict.items():
                     full_recalls_dict[
-                        f"matching_function[{matching_function.__name__}]_{val_set_name}_{k}"
+                        f"{matching_function.__name__}]_{val_set_name}_R{k}"
                     ] = v
                 full_recalls_dict[
-                    f"matching_function[{matching_function.__name__}]_{val_set_name}_search_time"
+                    f"{matching_function.__name__}]_{val_set_name}_search_time"
                 ] = search_time
         self.log_dict(
             full_recalls_dict,

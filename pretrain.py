@@ -1,8 +1,6 @@
-import time
-
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 torch.set_float32_matmul_precision("medium")
@@ -13,25 +11,12 @@ import os
 
 import yaml
 
+from config import DataConfig, DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
-from dataloaders.TeTRA import TeTRA
-from models.helper import get_model
-from config import DataConfig, ModelConfig, DistillConfig, TeTRAConfig
-
-config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-
-with open(config_path, "r") as config_file:
-    config = yaml.safe_load(config_file)
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser = DataConfig.add_argparse_args(parser)
-    parser = ModelConfig.add_argparse_args(parser)
-    parser = DistillConfig.add_argparse_args(parser)
-    args = parser.parse_args()
 
-    
+def setup_training(args):
     model_module = Distill(
         data_directory=args.train_dataset_dir,
         student_backbone_arch=args.backbone_arch,
@@ -51,19 +36,17 @@ if __name__ == "__main__":
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
-        dirpath=f"./checkpoints/Distill/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]",
-        filename=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
-        + "_epoch({epoch:02d})_step({step:04d})_R1({pitts30k_val_R1:.4f})",
+        dirpath=_get_checkpoint_dir(args),
         save_on_train_epoch_end=False,
-        auto_insert_metric_name=False,
+        auto_insert_metric_name=True,
         save_weights_only=True,
         save_top_k=1,
         mode="max",
     )
 
     wandb_logger = WandbLogger(
-        project=args.training_method.lower(),  # Replace with your project name
-        name=f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_Res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]",
+        project="Distill",
+        name=_get_wandb_run_name(args),
     )
 
     trainer = pl.Trainer(
@@ -76,7 +59,30 @@ if __name__ == "__main__":
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=0.05,
-        logger=wandb_logger,  # Add the wandb logger here
+        logger=wandb_logger,
     )
 
+    return trainer, model_module
+
+
+def _get_checkpoint_dir(args):
+    return f"./checkpoints/Distill/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
+
+
+def _get_wandb_run_name(args):
+    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
+
+
+if __name__ == "__main__":
+    # Set precision for float32 matrix multiplication
+    torch.set_float32_matmul_precision("medium")
+
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    for config in [DataConfig, ModelConfig, DistillConfig]:
+        parser = config.add_argparse_args(parser)
+    args = parser.parse_args()
+
+    # Setup and run training
+    trainer, model_module = setup_training(args)
     trainer.fit(model_module)

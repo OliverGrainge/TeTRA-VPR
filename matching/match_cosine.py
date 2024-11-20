@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 
-def global_cosine_sim(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):
+def match_cosine(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):
     global_desc = global_desc.cpu().numpy()
     reference_desc = global_desc[:num_references]
     query_desc = global_desc[num_references:]

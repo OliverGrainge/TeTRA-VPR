@@ -7,7 +7,7 @@ from PIL import Image
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 
-from matching.global_cosine_sim import global_cosine_sim
+from matching.match_cosine import match_cosine
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
@@ -32,7 +32,7 @@ class VPREval(pl.LightningModule):
         search_precision="float32",
         batch_size=32,
         num_workers=4,
-        matching_function=global_cosine_sim,
+        matching_function=match_cosine,
     ):
         super().__init__()
         self.model = model
@@ -50,7 +50,8 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(

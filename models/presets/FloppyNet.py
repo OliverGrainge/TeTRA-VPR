@@ -9,7 +9,6 @@ import time
 import zipfile
 from datetime import datetime
 
-import config
 import larq as lq
 import numpy as np
 import tensorflow as tf
@@ -18,12 +17,13 @@ import torch
 from PIL import Image
 from prettytable import PrettyTable
 from tensorflow.keras.callbacks import TensorBoard
+from utils.results import display_history
 
+import config
 import models.abstract
 import utils
 from models.extra.Kste import KSteSign
 from utils import clear_dir, mkdirs
-from utils.results import display_history
 
 """
     Base class to handle checkpoint filenames

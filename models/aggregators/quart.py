@@ -2,9 +2,9 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange
 from einops.layers.torch import Rearrange
-import torch.nn.functional as F
 
 
 # Code adapted from OpenGlue, MIT license

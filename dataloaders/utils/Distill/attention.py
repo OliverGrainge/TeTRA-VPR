@@ -1,5 +1,6 @@
-import torch 
+import torch
 from einops import rearrange
+
 
 def remove_hooks(hooks):
     for hook in hooks:
@@ -42,4 +43,3 @@ def get_attn(model):
             hooks.append(hook)
 
     return attention_matrices, hooks
-

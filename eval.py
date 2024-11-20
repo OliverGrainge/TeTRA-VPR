@@ -5,10 +5,10 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 import yaml
+from parsers import get_args_parser
 
 from dataloaders.ImageNet import ImageNet
 from models.helper import get_model, get_transform
-from parsers import get_args_parser
 
 
 def measure_latency(model, input_tensor, num_runs=100, warmup_runs=10, verbose=True):

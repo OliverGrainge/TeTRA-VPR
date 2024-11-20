@@ -1,4 +1,3 @@
-
 import os
 import sys
 from collections import defaultdict
@@ -9,16 +8,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from prettytable import PrettyTable
-from transformers import get_cosine_schedule_with_warmup
 from torch.utils.data.dataloader import DataLoader
+from transformers import get_cosine_schedule_with_warmup
 
-from matching.global_cosine_sim import global_cosine_sim
-from models.helper import get_model, get_preset_transform
-from dataloaders.train.DistillDataset import DistillDataset, TarImageDataset, JPGDataset
-from dataloaders.utils.transforms import get_augmentation
-from dataloaders.utils.Distill.schedulers import WeightDecayScheduler, QuantScheduler
+from dataloaders.train.DistillDataset import (DistillDataset, JPGDataset,
+                                              TarImageDataset)
 from dataloaders.utils.Distill.attention import get_attn, remove_hooks
-from dataloaders.utils.Distill.funcs import get_feature_dim, L2Norm, freeze_model
+from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
+                                             get_feature_dim)
+from dataloaders.utils.Distill.schedulers import (QuantScheduler,
+                                                  WeightDecayScheduler)
+from dataloaders.utils.transforms import get_augmentation
+from matching.match_cosine import match_cosine
+from models.helper import get_model, get_preset_transform
 
 sys.path.append(
     os.path.abspath(
@@ -28,7 +30,6 @@ sys.path.append(
 )
 
 from NeuroPress.models.base import Qmodel
-
 
 
 def adapt_descriptors_dim(
@@ -54,7 +55,6 @@ def adapt_descriptors_dim(
         return mlp
 
 
-
 class Distill(pl.LightningModule):
     def __init__(
         self,
@@ -62,8 +62,8 @@ class Distill(pl.LightningModule):
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
-        augment_level="LightAugment", 
-        matching_function=global_cosine_sim,
+        augment_level="LightAugment",
+        matching_function=match_cosine,
         use_attention=False,
         weight_decay_init=0.05,
         weight_decay_schedule="staged_linear",
@@ -93,7 +93,9 @@ class Distill(pl.LightningModule):
         self.student = get_model(
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
-            out_dim=get_feature_dim(self.teacher, get_preset_transform(self.teacher_preset)),
+            out_dim=get_feature_dim(
+                self.teacher, get_preset_transform(self.teacher_preset)
+            ),
             image_size=image_size,
         )
         self.adapter = adapt_descriptors_dim(
@@ -113,19 +115,26 @@ class Distill(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset
 
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name,
-                            input_transform=get_augmentation("NoAugment", self.image_size),
+                            input_transform=get_augmentation(
+                                "NoAugment", self.image_size
+                            ),
                         )
                     )
                 elif val_set_name.lower() == "msls_val":
                     from dataloaders.val.MapillaryDataset import MSLS
 
                     self.val_datasets.append(
-                        MSLS(input_transform=get_augmentation("NoAugment", self.image_size))
+                        MSLS(
+                            input_transform=get_augmentation(
+                                "NoAugment", self.image_size
+                            )
+                        )
                     )
                 elif val_set_name.lower() == "nordland":
                     from dataloaders.val.NordlandDataset import NordlandDataset
@@ -137,7 +146,11 @@ class Distill(pl.LightningModule):
                     from dataloaders.val.SPEDDataset import SPEDDataset
 
                     self.val_datasets.append(
-                        SPEDDataset(input_transform=get_augmentation("NoAugment", self.image_size))
+                        SPEDDataset(
+                            input_transform=get_augmentation(
+                                "NoAugment", self.image_size
+                            )
+                        )
                     )
                 elif (
                     "sf_xl" in val_set_name.lower()
@@ -149,7 +162,9 @@ class Distill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_val",
-                            input_transform=get_augmentation("NoAugment", self.image_size),
+                            input_transform=get_augmentation(
+                                "NoAugment", self.image_size
+                            ),
                         )
                     )
                 elif (
@@ -162,7 +177,9 @@ class Distill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_test",
-                            input_transform=get_augmentation("NoAugment", self.image_size),
+                            input_transform=get_augmentation(
+                                "NoAugment", self.image_size
+                            ),
                         )
                     )
                 else:
@@ -172,20 +189,28 @@ class Distill(pl.LightningModule):
 
     def forward(self, x):
         return self.student(x)
-    
-    def _setup_schedulers(self, optimizer): 
+
+    def _setup_schedulers(self, optimizer):
         total_steps = self.trainer.estimated_stepping_batches
         warmup_steps = int(0.05 * total_steps)
         lr_scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
-        weight_decay_scheduler = WeightDecayScheduler(self.weight_decay_init, total_steps, schedule_type=self.weight_decay_schedule)
+        weight_decay_scheduler = WeightDecayScheduler(
+            self.weight_decay_init,
+            total_steps,
+            schedule_type=self.weight_decay_schedule,
+        )
         quant_scheduler = QuantScheduler(total_steps)
-        return {"lr": lr_scheduler, "weight_decay": weight_decay_scheduler,"quant": quant_scheduler}
-    
-    def _step_schedulers(self, batch_idx): 
+        return {
+            "lr": lr_scheduler,
+            "weight_decay": weight_decay_scheduler,
+            "quant": quant_scheduler,
+        }
+
+    def _step_schedulers(self, batch_idx):
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
-            for param_name, schd in self.schedulers.items(): 
+            for param_name, schd in self.schedulers.items():
                 schd.step()
                 self.log(param_name, schd.get_last_lr()[0], on_step=True)
 
@@ -193,19 +218,18 @@ class Distill(pl.LightningModule):
         if isinstance(self.student.backbone, Qmodel):
             optimizer = optim.AdamW(
                 self.student.parameters(), lr=self.lr, weight_decay=0.0
-            ) # The custom schedulers handle weight decay in this case
+            )  # The custom schedulers handle weight decay in this case
         else:
             optimizer = optim.AdamW(
                 self.student.parameters(), lr=self.lr, weight_decay=0.05
-            ) 
+            )
 
         self.schedulers = self._setup_schedulers(optimizer)
         return optimizer
 
-
     def _compute_features(self, student_images, teacher_images, use_attention):
         B = student_images.shape[0]
-        if use_attention: 
+        if use_attention:
             teacher_attn, teacher_hooks = get_attn(self.teacher)
             student_attn, student_hooks = get_attn(self.student)
             teacher_features = self.teacher(teacher_images)
@@ -231,18 +255,28 @@ class Distill(pl.LightningModule):
 
             remove_hooks(teacher_hooks)
             remove_hooks(student_hooks)
-            return student_features["global_desc"], teacher_features["global_desc"], student_attn, teacher_attn
+            return (
+                student_features["global_desc"],
+                teacher_features["global_desc"],
+                student_attn,
+                teacher_attn,
+            )
         else:
             teacher_features = self.teacher(teacher_images)
             student_features = self(student_images)
             student_features["global_desc"] = self.adapter(
                 student_features["global_desc"]
             )
-            student_attn = None 
-            teacher_attn = None 
+            student_attn = None
+            teacher_attn = None
 
-            return student_features["global_desc"], teacher_features["global_desc"], None, None
-    
+            return (
+                student_features["global_desc"],
+                teacher_features["global_desc"],
+                None,
+                None,
+            )
+
     @staticmethod
     def _compute_attn_loss(student_attn, teacher_attn):
         # B, D, H, N, N
@@ -283,14 +317,14 @@ class Distill(pl.LightningModule):
         return F.mse_loss(teacher_attn, student_attn)
 
     @staticmethod
-    def _compute_cosine_loss(student_features, teacher_features): 
+    def _compute_cosine_loss(student_features, teacher_features):
         cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) ** 2
         return cosine_loss.mean()
 
     @staticmethod
-    def _compute_euclidian_loss(student_features, teacher_features): 
+    def _compute_euclidian_loss(student_features, teacher_features):
         return F.mse_loss(teacher_features, student_features)
-    
+
     def _weight_decay(self, batch_idx):
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
             if hasattr(self.student.backbone, "decay_weight"):
@@ -301,23 +335,28 @@ class Distill(pl.LightningModule):
                     weight_decay_scale=decay_scale,
                 )
 
-    def _progressive_quant(self, batch_idx): 
+    def _progressive_quant(self, batch_idx):
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
             q_lambda_val = self.schedulers["quant"].get_last_lr()[0]
             for module in self.student.modules():
                 if hasattr(module, "q_lambda"):
                     module.q_lambda = q_lambda_val
 
-
     def training_step(self, batch, batch_idx):
         student_images, teacher_images = batch
-        student_features, teacher_features, student_attn, teacher_attn = self._compute_features(student_images, teacher_images, self.use_attention)
-        euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(teacher_features, student_features)
+        student_features, teacher_features, student_attn, teacher_attn = (
+            self._compute_features(student_images, teacher_images, self.use_attention)
+        )
+        euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(
+            teacher_features, student_features
+        )
         cos_loss = self._compute_cosine_loss(teacher_features, student_features)
 
-        attn_loss = torch.tensor(0.0, device=cos_loss.device) 
-        if self.use_attention: 
-            attn_loss = self.mse_loss_mult * self._compute_attn_loss(teacher_attn, student_attn)
+        attn_loss = torch.tensor(0.0, device=cos_loss.device)
+        if self.use_attention:
+            attn_loss = self.mse_loss_mult * self._compute_attn_loss(
+                teacher_attn, student_attn
+            )
         total_loss = euc_loss + cos_loss + attn_loss
 
         self._weight_decay(batch_idx)
@@ -329,8 +368,6 @@ class Distill(pl.LightningModule):
         self.log("Attention Loss", attn_loss)
         self.log("Total Loss", total_loss, prog_bar=True)
         return total_loss
-
-
 
     def train_dataloader(self):
         paths = os.listdir(self.data_directory)
@@ -373,7 +410,6 @@ class Distill(pl.LightningModule):
         for name in self.val_set_names:
             self.validation_outputs[name] = defaultdict(list)
 
-    
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         # calculate descriptors

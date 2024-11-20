@@ -1,7 +1,7 @@
-import torch.nn as nn 
-import torch.nn.functional as F 
-import torch 
-from PIL import Image 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from PIL import Image
 
 
 class L2Norm(nn.Module):
@@ -17,7 +17,6 @@ def get_feature_dim(model, transform):
     print(x_transformed.shape)
     features = model(x_transformed[None, :].to(next(model.parameters()).device))
     return features["global_desc"].shape[1]
-
 
 
 def freeze_model(model):
