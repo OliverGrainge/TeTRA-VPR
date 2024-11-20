@@ -7,9 +7,9 @@ from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
-from utils.transforms import get_augmentation
+from dataloaders.utils.transforms import get_augmentation
 
-import utils
+from dataloaders.utils.TeTRA.losses import get_loss, get_miner
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from matching.global_cosine_sim import global_cosine_sim
 from matching.global_hamming_sim import global_hamming_sim
@@ -48,8 +48,8 @@ class TeTRA(pl.LightningModule):
         self.cities = cities
         self.matching_functions = matching_functions
         self.batch_acc = []
-        self.loss_fn = utils.get_loss(self.loss_name)
-        self.miner = utils.get_miner(self.miner_name, self.miner_margin)
+        self.loss_fn = get_loss(self.loss_name)
+        self.miner = get_miner(self.miner_name, self.miner_margin)
 
         self.model = model
 

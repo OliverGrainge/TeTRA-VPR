@@ -3,9 +3,7 @@ import math
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from torch.optim import lr_scheduler, optimizer
 
-import utils
 from models import helper
 
 DINOV2_ARCHS = {
@@ -237,55 +235,8 @@ class VPRModel(pl.LightningModule):
         # ---- Aggregator
         agg_arch="ConvAP",
         agg_config={},
-        # ---- Train hyperparameters
-        lr=0.03,
-        optimizer="sgd",
-        weight_decay=1e-3,
-        momentum=0.9,
-        lr_sched="linear",
-        lr_sched_args={
-            "start_factor": 1,
-            "end_factor": 0.2,
-            "total_iters": 4000,
-        },
-        # ----- Loss
-        loss_name="MultiSimilarityLoss",
-        miner_name="MultiSimilarityMiner",
-        miner_margin=0.1,
-        faiss_gpu=False,
     ):
         super().__init__()
-
-        # Backbone
-        self.encoder_arch = backbone_arch
-        self.backbone_config = backbone_config
-
-        # Aggregator
-        self.agg_arch = agg_arch
-        self.agg_config = agg_config
-
-        # Train hyperparametersge
-        self.lr = lr
-        self.optimizer = optimizer
-        self.weight_decay = weight_decay
-        self.momentum = momentum
-        self.lr_sched = lr_sched
-        self.lr_sched_args = lr_sched_args
-
-        # Loss
-        self.loss_name = loss_name
-        self.miner_name = miner_name
-        self.miner_margin = miner_margin
-
-        self.save_hyperparameters()  # write hyperparams into a file
-
-        self.loss_fn = utils.get_loss(loss_name)
-        self.miner = utils.get_miner(miner_name, miner_margin)
-        self.batch_acc = (
-            []
-        )  # we will keep track of the % of trivial pairs/triplets at the loss level
-
-        self.faiss_gpu = faiss_gpu
 
         # ----------------------------------
         # get the backbone and the aggregator

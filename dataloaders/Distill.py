@@ -15,7 +15,7 @@ from torch.utils.data.dataloader import DataLoader
 from matching.global_cosine_sim import global_cosine_sim
 from models.helper import get_model, get_preset_transform
 from dataloaders.train.DistillDataset import DistillDataset, TarImageDataset, JPGDataset
-from utils.transforms import get_augmentation
+from dataloaders.utils.transforms import get_augmentation
 from dataloaders.utils.Distill.schedulers import WeightDecayScheduler, QuantScheduler
 from dataloaders.utils.Distill.attention import get_attn, remove_hooks
 from dataloaders.utils.Distill.funcs import get_feature_dim, L2Norm, freeze_model
