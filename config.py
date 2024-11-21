@@ -87,6 +87,7 @@ class DistillConfig:
     # Training hyperparameters
     lr: float = 0.003
     batch_size: int = 128
+    accumulate_grad_batches: int = 2
     max_epochs: int = 3
 
     # Loss and regularization
@@ -114,6 +115,7 @@ class DistillConfig:
         )
         group.add_argument("--lr", type=float, default=DistillConfig.lr)
         group.add_argument("--batch_size", type=int, default=DistillConfig.batch_size)
+        group.add_argument("--accumulate_grad_batches", type=int, default=DistillConfig.accumulate_grad_batches)
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
         group.add_argument(
             "--mse_loss_mult", type=float, default=DistillConfig.mse_loss_mult

@@ -343,10 +343,10 @@ class Distill(pl.LightningModule):
         self._progressive_quant(batch_idx)
         self._step_schedulers(batch_idx)
 
-        self.log("Cosine Loss", cos_loss)
-        self.log("Euclidian Loss", euc_loss)
-        self.log("Attention Loss", attn_loss)
-        self.log("Total Loss", total_loss, prog_bar=True)
+        self.log("Cosine Loss", cos_loss, on_step=True)
+        self.log("Euclidian Loss", euc_loss, on_step=True)
+        self.log("Attention Loss", attn_loss, on_step=True)
+        self.log("Total Loss", total_loss, on_step=True, prog_bar=True)
         return total_loss
 
     def train_dataloader(self):

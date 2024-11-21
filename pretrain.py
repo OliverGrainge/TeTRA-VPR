@@ -62,6 +62,8 @@ def setup_training(args):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=0.05,
+        log_every_n_steps=1,
+        accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
     )
 
