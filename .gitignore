@@ -8,7 +8,8 @@ cache/
 *experiments.sh
 */logs/*
 */wandb/*
-
+/checkpoints/
+scratch.py
 
 # Ignore everything in jobfiles/logs
 jobfiles/logs/*
