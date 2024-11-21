@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 
 
 class PittsburghDataset30k(Dataset):
-    def __init__(self, val_dataset_dir=None, which_set="val",input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
 
         assert which_set.lower() in ["val", "test"]
 
@@ -22,14 +22,14 @@ class PittsburghDataset30k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
+        self.dbImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
+        self.qImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            "image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
+            f"dataloaders/val/image_paths/pitts30k_{which_set}_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -51,22 +51,22 @@ class PittsburghDataset30k(Dataset):
 
 
 class PittsburghDataset250k(Dataset):
-    def __init__(self, val_dataset_dir=None, which_set="test",input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
 
-        assert which_set.lower() in ["test"]
+        assert which_set == "test", "PittsburghDataset250k only supports test set"
 
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
+        self.dbImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
+        self.qImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            "image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
+            f"image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
         )
 
         # reference images then query images

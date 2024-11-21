@@ -8,19 +8,19 @@ from torch.utils.data import Dataset
 
 
 class Tokyo247(Dataset):
-    def __init__(self, val_dataset_dir=None, input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, "Tokyo247")
-
+        assert which_ds == "test", "SPEDDataset only supports test set"
         # reference images names
-        self.dbImages = np.load("image_paths/tokyo247_dbImages.npy")
+        self.dbImages = np.load("dataloaders/val/image_paths/tokyo247_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/tokyo247_qImages.npy")
+        self.qImages = np.load("dataloaders/val/image_paths/tokyo247_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            "image_paths/tokyo247_gt.npy", 
+            "dataloaders/val/image_paths/tokyo247_gt.npy", 
             allow_pickle=True
         )
 

@@ -146,11 +146,11 @@ def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
     
 
 
-def get_transform(augmentation_level: str, image_size: Union[tuple, int], preset: Union[str, None] = None): 
+def get_transform(augmentation_level: Union[str, None] = "None", image_size: Union[tuple, int] = (224, 224), preset: Union[str, None] = None): 
     if preset is not None: 
-        return _get_preset_transform(preset)
+        return _get_preset_transform(preset=preset)
     else: 
-        return _get_augmentation(augmentation_level, image_size)
+        return _get_augmentation(augmentation_level=augmentation_level, image_size=image_size)
 
 
 if __name__ == "__main__":

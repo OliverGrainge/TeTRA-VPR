@@ -14,14 +14,14 @@ class SanFranciscoSmall(Dataset):
 
         assert which_set in ["val", "test"]
         # reference images names
-        self.dbImages = np.load(f"image_paths/sf_xl_small_{which_set}_dbImages.npy")
+        self.dbImages = np.load(f"dataloaders/val/image_paths/sf_xl_small_{which_set}_dbImages.npy")
 
         # query images names
-        self.qImages = np.load(f"image_paths/sf_xl_small_{which_set}_qImages.npy")
+        self.qImages = np.load(f"dataloaders/val/image_paths/sf_xl_small_{which_set}_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            f"image_paths/sf_xl_small_{which_set}_gt.npy", 
+            f"dataloaders/val/image_paths/sf_xl_small_{which_set}_gt.npy", 
             allow_pickle=True
         )
 

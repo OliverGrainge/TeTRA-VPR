@@ -56,20 +56,25 @@ class VPREval(pl.LightningModule):
                     self.val_datasets.append(
                         PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
-                elif val_set_name.lower() == "msls":
+                elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
                     self.val_datasets.append(
                         MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
-                elif val_set_name.lower() == "nordland":
+                elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
                     self.val_datasets.append(
                         NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
-                elif val_set_name.lower() == "sped":
+                elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
                     self.val_datasets.append(
                         SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test"))
+                elif "essex" in val_set_name.lower():
+                    from dataloaders.val.EssexDataset import EssexDataset
+                    self.val_datasets.append(
+                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                    )
                 elif "sanfrancicscosmall" in val_set_name.lower():
                     from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
                     self.val_datasets.append(

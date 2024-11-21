@@ -6,19 +6,20 @@ import torch
 import torchvision.transforms as T
 import yaml
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import  Dataset
 
 
 
 class MSLS(Dataset):
-    def __init__(self, val_dataset_dir=None, input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
 
         self.input_transform = input_transform
+        assert which_set == "val", "MSLS only supports val set"
         self.dataset_root = os.path.join(val_dataset_dir, "msls_val")
-        self.dbImages = np.load("image_paths/msls_val_dbImages.npy")
-        self.qImages = np.load("image_paths/msls_val_qImages.npy")
+        self.dbImages = np.load("dataloaders/val/image_paths/msls_val_dbImages.npy")
+        self.qImages = np.load("dataloaders/val/image_paths/msls_val_qImages.npy")
         self.ground_truth = np.load(
-            "image_paths/msls_val_gt.npy", allow_pickle=True
+            "dataloaders/val/image_paths/msls_val_gt.npy", allow_pickle=True
         )
 
         # reference images then query images

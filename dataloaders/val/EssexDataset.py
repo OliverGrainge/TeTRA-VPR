@@ -14,19 +14,20 @@ from torch.utils.data import Dataset
 
 
 class EssexDataset(Dataset):
-    def __init__(self,val_dataset_dir=None, input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
 
+        assert which_set == "test", "EssexDataset only supports test set"
         self.input_transform = input_transform
-        self.dataset_root = os.path.join(val_dataset_dir, "ESSEX")
+        self.dataset_root = os.path.join(val_dataset_dir, "ESSEX3IN1_dataset")
 
         # reference images names
-        self.dbImages = np.load("image_paths/ESSEX_dbImages.npy")
+        self.dbImages = np.load("dataloaders/val/image_paths/ESSEX_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/ESSEX_qImages.npy")
+        self.qImages = np.load("dataloaders/val/image_paths/ESSEX_qImages.npy")
 
         # ground truth
-        self.ground_truth = np.load("image_paths/ESSEX_gt.npy", allow_pickle=True)
+        self.ground_truth = np.load("dataloaders/val/image_paths/ESSEX_gt.npy", allow_pickle=True)
 
         # reference images then query images
         self.images = np.concatenate((self.dbImages, self.qImages))

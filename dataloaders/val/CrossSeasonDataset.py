@@ -14,19 +14,20 @@ from torch.utils.data import Dataset
 
 
 class CrossSeasonDataset(Dataset):
-    def __init__(self, root=None, input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
 
+        assert which_set == "test", "CrossSeasonDataset only supports test set"
         self.input_transform = input_transform
-        self.dataset_root = os.path.join(root, "CrossSeason_CoHOG_Dataset")
+        self.dataset_root = os.path.join(val_dataset_dir, "CrossSeason_CoHOG_Dataset")
         # reference images names
-        self.dbImages = np.load("image_paths/CrossSeason_dbImages.npy")
+        self.dbImages = np.load("dataloaders/val/image_paths/CrossSeason_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/CrossSeason_qImages.npy")
+        self.qImages = np.load("dataloaders/val/image_paths/CrossSeason_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            "image_paths//CrossSeason_gt.npy", allow_pickle=True
+            "dataloaders/val/image_paths//CrossSeason_gt.npy", allow_pickle=True
         )
 
         # reference images then query images

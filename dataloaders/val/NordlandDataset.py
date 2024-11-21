@@ -15,19 +15,19 @@ from torch.utils.data import Dataset
 
 
 class NordlandDataset(Dataset):
-    def __init__(self, val_dataset_dir=None, which_ds="nordland_test", input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, "Nordland")
         
         # reference images names
-        self.dbImages = np.load(f"image_paths/Nordland/{which_ds}_dbImages.npy")
+        self.dbImages = np.load(f"dataloaders/val/image_paths/Nordland/nordland_{which_set}_dbImages.npy")
         
         # query images names
-        self.qImages = np.load(f"image_paths/Nordland/{which_ds}_qImages.npy")
+        self.qImages = np.load(f"dataloaders/val/image_paths/Nordland/nordland_{which_set}_qImages.npy")
         
         # ground truth
         self.ground_truth = np.load(
-            f"image_paths/Nordland/{which_ds}_gt.npy", allow_pickle=True
+            f"dataloaders/val/image_paths/Nordland/nordland_{which_set}_gt.npy", allow_pickle=True
         )
         
         # reference images then query images

@@ -19,21 +19,21 @@ def load_model(args):
         out_dim=args.out_dim,
         normalize_output=True,
     )
+    if args.weight_path is not None: 
+        if not os.path.exists(args.weights_path):
+            raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
-    if not os.path.exists(args.load_checkpoint):
-        raise ValueError(f"Checkpoint {args.weights_path} does not exist")
+        sd = torch.load(args.weights_path)["state_dict"]
+        backbone_sd = {
+            k.replace("backbone.", ""): v
+            for k, v in sd.items()
+            if k.startswith("backbone.")
+        }
+        model.backbone.load_state_dict(backbone_sd, strict=False)
 
-    sd = torch.load(args.weights_path)["state_dict"]
-    backbone_sd = {
-        k.replace("backbone.", ""): v
-        for k, v in sd.items()
-        if k.startswith("backbone.")
-    }
-    model.backbone.load_state_dict(backbone_sd, strict=False)
-
-    for param in model.backbone.parameters():
-        param.requires_grad = False
-    model.freeze()
+        for param in model.backbone.parameters():
+            param.requires_grad = False
+        model.freeze()
 
     return model
 
