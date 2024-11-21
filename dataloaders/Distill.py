@@ -18,9 +18,10 @@ from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
                                              get_feature_dim)
 from dataloaders.utils.Distill.schedulers import (QuantScheduler,
                                                   WeightDecayScheduler)
-from dataloaders.utils.transforms import get_augmentation
+from dataloaders.utils.transforms import get_transform
 from matching.match_cosine import match_cosine
-from models.helper import get_model, get_preset_transform
+from models.helper import get_model
+from models.transforms import get_transform
 
 sys.path.append(
     os.path.abspath(
@@ -62,7 +63,7 @@ class Distill(pl.LightningModule):
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
-        augment_level="LightAugment",
+        augment_level="light",
         matching_function=match_cosine,
         use_attention=False,
         weight_decay_init=0.05,
@@ -94,15 +95,15 @@ class Distill(pl.LightningModule):
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
             out_dim=get_feature_dim(
-                self.teacher, get_preset_transform(self.teacher_preset)
+                self.teacher, get_transform(preset=self.teacher_preset)
             ),
             image_size=image_size,
         )
         self.adapter = adapt_descriptors_dim(
             self.teacher,
-            get_preset_transform(self.teacher_preset),
+            get_transform(preset=self.teacher_preset),
             self.student,
-            get_augmentation(self.augment_level, self.image_size),
+            get_transform(self.augment_level, self.image_size),
         )
 
         freeze_model(self.teacher)
@@ -121,8 +122,8 @@ class Distill(pl.LightningModule):
                     self.val_datasets.append(
                         PittsburghDataset(
                             which_ds=val_set_name,
-                            input_transform=get_augmentation(
-                                "NoAugment", self.image_size
+                            input_transform=get_transform(
+                                "None", self.image_size
                             ),
                         )
                     )
@@ -131,8 +132,8 @@ class Distill(pl.LightningModule):
 
                     self.val_datasets.append(
                         MSLS(
-                            input_transform=get_augmentation(
-                                "NoAugment", self.image_size
+                            input_transform=get_transform(
+                                "None", self.image_size
                             )
                         )
                     )
@@ -147,8 +148,8 @@ class Distill(pl.LightningModule):
 
                     self.val_datasets.append(
                         SPEDDataset(
-                            input_transform=get_augmentation(
-                                "NoAugment", self.image_size
+                            input_transform=get_transform(
+                                "None", self.image_size
                             )
                         )
                     )
@@ -162,8 +163,8 @@ class Distill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_val",
-                            input_transform=get_augmentation(
-                                "NoAugment", self.image_size
+                            input_transform=get_transform(
+                                "None", self.image_size
                             ),
                         )
                     )
@@ -177,8 +178,8 @@ class Distill(pl.LightningModule):
                     self.val_datasets.append(
                         SF_XL(
                             which_ds="sf_xl_small_test",
-                            input_transform=get_augmentation(
-                                "NoAugment", self.image_size
+                            input_transform=get_transform(
+                                "None", self.image_size
                             ),
                         )
                     )
@@ -381,8 +382,8 @@ class Distill(pl.LightningModule):
 
         dataset = DistillDataset(
             train_dataset,
-            get_augmentation(self.augment_level, self.image_size),
-            get_preset_transform(self.teacher_preset),
+            get_transform(self.augment_level, self.image_size),
+            get_transform(preset=self.teacher_preset),
         )
         return DataLoader(
             dataset,

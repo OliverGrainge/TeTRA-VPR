@@ -10,7 +10,7 @@ from transformers import get_cosine_schedule_with_warmup
 
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from dataloaders.utils.TeTRA.losses import get_loss, get_miner
-from dataloaders.utils.transforms import get_augmentation
+from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
 
@@ -62,11 +62,11 @@ class TeTRA(pl.LightningModule):
         self.val_datasets = []
 
         # Train and valid transforms
-        self.train_transform = get_augmentation(
-            augment_type="LightAugment", image_size=image_size
+        self.train_transform = get_transform(
+            augment_level="Light", image_size=image_size
         )
-        self.valid_transform = get_augmentation(
-            augment_type="NoAugment", image_size=image_size
+        self.valid_transform = get_transform(
+            augment_level="None", image_size=image_size
         )
 
         # Dataloader configs

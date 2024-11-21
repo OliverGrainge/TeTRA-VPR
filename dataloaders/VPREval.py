@@ -9,9 +9,6 @@ from torchvision import transforms as T
 
 from matching.match_cosine import match_cosine
 
-IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
-VIT_MEAN_STD = {"mean": [0.5, 0.5, 0.5], "std": [0.5, 0.5, 0.5]}
-
 
 def get_sample_output(model, transform):
     model.eval()
@@ -29,6 +26,7 @@ class VPREval(pl.LightningModule):
         model,
         transform,
         val_set_names=["pitts30k"],
+        val_dataset_dir=None, 
         batch_size=32,
         num_workers=4,
         matching_function=match_cosine,
@@ -41,6 +39,7 @@ class VPREval(pl.LightningModule):
         self.num_workers = num_workers
         self.val_set_names = val_set_names
         self.matching_function = matching_function
+        self.val_dataset_dir = val_dataset_dir
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
@@ -48,53 +47,33 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
-
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
                     self.val_datasets.append(
-                        PittsburghDataset(
-                            which_ds=val_set_name, input_transform=self.transform
-                        )
+                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
-                elif val_set_name.lower() == "msls_val":
+                elif "pitts250k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    self.val_datasets.append(
+                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                    )
+                elif val_set_name.lower() == "msls":
                     from dataloaders.val.MapillaryDataset import MSLS
-
-                    self.val_datasets.append(MSLS(input_transform=self.transform))
+                    self.val_datasets.append(
+                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                    )
                 elif val_set_name.lower() == "nordland":
                     from dataloaders.val.NordlandDataset import NordlandDataset
-
                     self.val_datasets.append(
-                        NordlandDataset(input_transform=self.transform)
+                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
                 elif val_set_name.lower() == "sped":
                     from dataloaders.val.SPEDDataset import SPEDDataset
-
                     self.val_datasets.append(
-                        SPEDDataset(input_transform=self.transform)
-                    )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "val" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
+                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test"))
+                elif "sanfrancicscosmall" in val_set_name.lower():
+                    from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
                     self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_val", input_transform=self.transform
-                        )
-                    )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "test" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
-                    self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_test", input_transform=self.transform
-                        )
+                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
                 else:
                     raise NotImplementedError(

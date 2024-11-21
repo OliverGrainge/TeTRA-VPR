@@ -1,10 +1,11 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 
 @dataclass
 class DataConfig:
+    # dataset directories
     val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"
     train_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets/Pittsburgh-Query/query"
 
@@ -54,23 +55,36 @@ class ModelConfig:
 
 @dataclass
 class EvalConfig:
-    # training model
+    # evaluation model 
     backbone_arch: str = "ResNet50"
     agg_arch: str = "MixVPR"
     preset: str = None
     out_dim: int = 2048
     weights_path: str = ""
+    image_size: Tuple[int] = (224, 224)
+
+    # evaluation dataset
     val_set_names: Tuple[str] = ("pitts30k_val",)
+    val_dataset_dir: Union[str, None] = None 
+
+    # evaluation runtime
+    batch_size: int = 32
+    num_workers: int = 4
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
-        group = parent_parser.add_argument_group("Model")
+        group = parent_parser.add_argument_group("Eval")
         group.add_argument(
-            "--backbone_arch", type=str, default=ModelConfig.backbone_arch
+            "--backbone_arch", type=str, default=EvalConfig.backbone_arch
         )
-        group.add_argument("--agg_arch", type=str, default=ModelConfig.agg_arch)
-        group.add_argument("--out_dim", type=int, default=ModelConfig.out_dim)
-        group.add_argument("--weights_path", type=str, default=ModelConfig.weights_path)
+        group.add_argument("--agg_arch", type=str, default=EvalConfig.agg_arch)
+        group.add_argument("--preset", type=str, default=EvalConfig.preset)
+        group.add_argument("--out_dim", type=int, default=EvalConfig.out_dim)
+        group.add_argument("--weights_path", type=str, default=EvalConfig.weights_path)
+        group.add_argument("--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names)
+        group.add_argument("--val_dataset_dir", type=str, default=EvalConfig.val_dataset_dir)
+        group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
+        group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
         return parent_parser
 
     @classmethod
