@@ -59,8 +59,8 @@ def setup_training(args):
         precision=args.precision,
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb],
-        #reload_dataloaders_every_n_epochs=1,
-        #val_check_interval=0.05,
+        reload_dataloaders_every_n_epochs=1,
+        val_check_interval=0.05,
         logger=wandb_logger,
     )
 
