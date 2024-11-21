@@ -13,4 +13,4 @@
 #SBATCH --partition=a100
 
 source activate venv
-python pretrain.py --backbone_arch vit_base --agg_arch Salad --teacher_preset DinoSalad --image_size 322 322 --batch_size 32 --num_workers 17 --max_epochs 3 --use_attention True --augmentation_level Moderate --val_dataset_dir "" --train_dataset_dir ""
+python pretrain.py --backbone_arch vit_base --agg_arch Salad --teacher_preset DinoSalad --image_size 322 322 --batch_size 128 --num_workers 16 --max_epochs 3 --use_attention True --augmentation_level Moderate --val_dataset_dir "" --train_dataset_dir ""
