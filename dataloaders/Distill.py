@@ -23,6 +23,7 @@ from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
 
+
 sys.path.append(
     os.path.abspath(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,7 +66,6 @@ class Distill(pl.LightningModule):
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
         augmentation_level="light",
-        matching_function=match_cosine,
         use_attention=False,
         weight_decay_init=0.05,
         weight_decay_schedule="staged_linear",
@@ -86,7 +86,7 @@ class Distill(pl.LightningModule):
         self.teacher_preset = teacher_preset
         self.val_set_names = val_set_names
         self.backbone_arch = student_backbone_arch
-        self.matching_function = matching_function
+        self.matching_function = match_cosine
         self.use_attention = use_attention
         self.weight_decay_init = weight_decay_init
         self.weight_decay_schedule = weight_decay_schedule

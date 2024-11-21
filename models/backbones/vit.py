@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
-from transformers import ViTModel
 
 
 # Model definition (same as before)

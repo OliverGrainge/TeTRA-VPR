@@ -23,10 +23,10 @@ class PittsburghDataset30k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_dbImages.npy")
+        self.dbImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_dbImages.npy", allow_pickle=True)
 
         # query images names
-        self.qImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_qImages.npy")
+        self.qImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_qImages.npy", allow_pickle=True)
 
         # ground truth
         self.ground_truth = np.load(
@@ -63,10 +63,10 @@ class PittsburghDataset250k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
+        self.dbImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy", allow_pickle=True)
 
         # query images names
-        self.qImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
+        self.qImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy", allow_pickle=True)
 
         # ground truth
         self.ground_truth = np.load(

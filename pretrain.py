@@ -53,6 +53,7 @@ def setup_training(args):
 
     trainer = pl.Trainer(
         enable_progress_bar=args.pbar,
+        devices=1, 
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,
