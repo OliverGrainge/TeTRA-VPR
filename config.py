@@ -82,11 +82,11 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # Teacher model settings
-    teacher_preset: str = "EigenPlaces"
+    teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
-    lr: float = 0.0001
-    batch_size: int = 32
+    lr: float = 0.003
+    batch_size: int = 128
     max_epochs: int = 3
 
     # Loss and regularization
@@ -97,7 +97,7 @@ class DistillConfig:
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
-    augmentation_level: str = "Light"
+    augmentation_level: str = "Moderate"
 
     # Runtime settings
     num_workers: int = 0
