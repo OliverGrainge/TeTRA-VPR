@@ -9,6 +9,7 @@ cache/
 */logs/*
 */wandb/*
 
+
 # Ignore everything in jobfiles/logs
 jobfiles/logs/*
 
