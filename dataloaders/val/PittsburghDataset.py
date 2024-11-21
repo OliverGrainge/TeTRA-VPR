@@ -13,23 +13,23 @@ from torch.utils.data import Dataset
 # performance is exactly the same as if you use VPR-Bench.
 
 
-class PittsburghDataset(Dataset):
-    def __init__(self,root=None, which_ds="pitts30k_val", input_transform=None):
+class PittsburghDataset30k(Dataset):
+    def __init__(self, val_dataset_dir=None, which_set="val",input_transform=None):
 
-        assert which_ds.lower() in ["pitts30k_val", "pitts30k_test", "pitts250k_test"]
+        assert which_set.lower() in ["val", "test"]
 
         self.input_transform = input_transform
-        self.dataset_root = os.path.join(root, "Pittsburgh-Query")
+        self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load("image_paths/Pittsburgh/{which_ds}_dbImages.npy")
+        self.dbImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
 
         # query images names
-        self.qImages = np.load("image_paths/Pittsburgh/{which_ds}_qImages.npy")
+        self.qImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
 
         # ground truth
         self.ground_truth = np.load(
-            "image_paths/Pittsburgh/{which_ds}_gt.npy", allow_pickle=True
+            "image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -47,3 +47,41 @@ class PittsburghDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+
+
+class PittsburghDataset250k(Dataset):
+    def __init__(self, val_dataset_dir=None, which_set="test",input_transform=None):
+
+        assert which_set.lower() in ["test"]
+
+        self.input_transform = input_transform
+        self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
+
+        # reference images names
+        self.dbImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy")
+
+        # query images names
+        self.qImages = np.load("image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy")
+
+        # ground truth
+        self.ground_truth = np.load(
+            "image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
+        )
+
+        # reference images then query images
+        self.images = np.concatenate((self.dbImages, self.qImages))
+
+        self.num_references = len(self.dbImages)
+        self.num_queries = len(self.qImages)
+
+    def __getitem__(self, index):
+        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
+        if self.input_transform:
+            img = self.input_transform(img)
+
+        return img, index
+
+    def __len__(self):
+        return len(self.images)
+

@@ -12,40 +12,21 @@ from torch.utils.data import Dataset
 # I hardcoded the image names and ground truth for faster evaluation
 # performance is exactly the same as if you use VPR-Bench.
 
-config_path = os.path.join(os.path.dirname(__file__), "../../config.yaml")
-# Load the YAML configuration
-with open(config_path, "r") as config_file:
-    config = yaml.safe_load(config_file)
-
-DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"], "ESSEX3IN1_dataset/")
-GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), "../../datasets/")
-
-
-path_obj = Path(DATASET_ROOT)
-if not path_obj.exists():
-    raise Exception(
-        f"Please make sure the path {DATASET_ROOT} to ESSEX3IN1 dataset is correct"
-    )
-
-if not path_obj.joinpath("ref") or not path_obj.joinpath("query"):
-    raise Exception(
-        f"Please make sure the directories query and ref are situated in the directory {DATASET_ROOT}"
-    )
-
 
 class EssexDataset(Dataset):
-    def __init__(self, input_transform=None):
+    def __init__(self,val_dataset_dir=None, input_transform=None):
 
         self.input_transform = input_transform
+        self.dataset_root = os.path.join(val_dataset_dir, "ESSEX")
 
         # reference images names
-        self.dbImages = np.load(GT_ROOT + "ESSEX/ESSEX_dbImages.npy")
+        self.dbImages = np.load("image_paths/ESSEX_dbImages.npy")
 
         # query images names
-        self.qImages = np.load(GT_ROOT + "ESSEX/ESSEX_qImages.npy")
+        self.qImages = np.load("image_paths/ESSEX_qImages.npy")
 
         # ground truth
-        self.ground_truth = np.load(GT_ROOT + "ESSEX/ESSEX_gt.npy", allow_pickle=True)
+        self.ground_truth = np.load("image_paths/ESSEX_gt.npy", allow_pickle=True)
 
         # reference images then query images
         self.images = np.concatenate((self.dbImages, self.qImages))
@@ -54,7 +35,7 @@ class EssexDataset(Dataset):
         self.num_queries = len(self.qImages)
 
     def __getitem__(self, index):
-        img = Image.open(DATASET_ROOT + self.images[index])
+        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
 
         if self.input_transform:
             img = self.input_transform(img)

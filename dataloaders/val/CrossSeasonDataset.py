@@ -13,7 +13,6 @@ from torch.utils.data import Dataset
 # performance is exactly the same as if you use VPR-Bench.
 
 
-
 class CrossSeasonDataset(Dataset):
     def __init__(self, root=None, input_transform=None):
 

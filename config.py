@@ -53,6 +53,33 @@ class ModelConfig:
 
 
 @dataclass
+class EvalConfig:
+    # training model
+    backbone_arch: str = "ResNet50"
+    agg_arch: str = "MixVPR"
+    preset: str = None
+    out_dim: int = 2048
+    weights_path: str = ""
+    val_set_names: Tuple[str] = ("pitts30k_val",)
+
+    @staticmethod
+    def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        group = parent_parser.add_argument_group("Model")
+        group.add_argument(
+            "--backbone_arch", type=str, default=ModelConfig.backbone_arch
+        )
+        group.add_argument("--agg_arch", type=str, default=ModelConfig.agg_arch)
+        group.add_argument("--out_dim", type=int, default=ModelConfig.out_dim)
+        group.add_argument("--weights_path", type=str, default=ModelConfig.weights_path)
+        return parent_parser
+
+    @classmethod
+    def from_argparse_args(cls, args):
+        return cls(
+            **{k: v for k, v in vars(args).items() if k in cls.__dataclass_fields__}
+        )
+
+@dataclass
 class DistillConfig:
     # Teacher model settings
     teacher_preset: str = "EigenPlaces"

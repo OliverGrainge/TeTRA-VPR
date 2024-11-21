@@ -29,7 +29,6 @@ class VPREval(pl.LightningModule):
         model,
         transform,
         val_set_names=["pitts30k"],
-        search_precision="float32",
         batch_size=32,
         num_workers=4,
         matching_function=match_cosine,
@@ -41,7 +40,6 @@ class VPREval(pl.LightningModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_set_names = val_set_names
-        self.search_precision = search_precision
         self.matching_function = matching_function
 
     def setup(self, stage=None):
