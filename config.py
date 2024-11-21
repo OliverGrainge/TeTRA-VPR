@@ -97,7 +97,7 @@ class DistillConfig:
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
-    augment_level: str = "LightAugment"
+    augmentation_level: str = "Light"
 
     # Runtime settings
     num_workers: int = 0
@@ -133,7 +133,7 @@ class DistillConfig:
             "--image_size", type=int, nargs=2, default=DistillConfig.image_size
         )
         group.add_argument(
-            "--augment_level", type=str, default=DistillConfig.augment_level
+            "--augmentation_level", type=str, default=DistillConfig.augmentation_level
         )
         group.add_argument("--num_workers", type=int, default=DistillConfig.num_workers)
         group.add_argument("--pbar", type=bool, default=DistillConfig.pbar)

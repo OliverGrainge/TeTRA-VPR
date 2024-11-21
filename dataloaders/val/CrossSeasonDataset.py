@@ -18,6 +18,7 @@ class CrossSeasonDataset(Dataset):
 
         assert which_set == "test", "CrossSeasonDataset only supports test set"
         self.input_transform = input_transform
+        self.which_set = which_set
         self.dataset_root = os.path.join(val_dataset_dir, "CrossSeason_CoHOG_Dataset")
         # reference images names
         self.dbImages = np.load("dataloaders/val/image_paths/CrossSeason_dbImages.npy")
@@ -46,3 +47,6 @@ class CrossSeasonDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"CrossSeason_{self.which_set}"

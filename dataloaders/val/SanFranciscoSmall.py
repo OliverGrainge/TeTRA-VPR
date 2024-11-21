@@ -13,6 +13,7 @@ class SanFranciscoSmall(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "SF_XL")
 
         assert which_set in ["val", "test"]
+        self.which_set = which_set
         # reference images names
         self.dbImages = np.load(f"dataloaders/val/image_paths/sf_xl_small_{which_set}_dbImages.npy")
 
@@ -40,3 +41,6 @@ class SanFranciscoSmall(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"SFXL_small_{self.which_set}"

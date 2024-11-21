@@ -14,6 +14,7 @@ class MSLS(Dataset):
     def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
 
         self.input_transform = input_transform
+        self.which_set = which_set
         assert which_set == "val", "MSLS only supports val set"
         self.dataset_root = os.path.join(val_dataset_dir, "msls_val")
         self.dbImages = np.load("dataloaders/val/image_paths/msls_val_dbImages.npy")
@@ -37,3 +38,6 @@ class MSLS(Dataset):
 
     def __len__(self):
         return len(self.images)
+
+    def __repr__(self): 
+        return f"MSLS_{self.which_set}"

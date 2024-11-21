@@ -18,6 +18,7 @@ class EssexDataset(Dataset):
 
         assert which_set == "test", "EssexDataset only supports test set"
         self.input_transform = input_transform
+        self.which_set = which_set
         self.dataset_root = os.path.join(val_dataset_dir, "ESSEX3IN1_dataset")
 
         # reference images names
@@ -45,3 +46,6 @@ class EssexDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"ESSEX3IN1_{self.which_set}"

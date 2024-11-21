@@ -18,7 +18,8 @@ from dataloaders.Distill import Distill
 
 def setup_training(args):
     model_module = Distill(
-        data_directory=args.train_dataset_dir,
+        train_dataset_dir=args.train_dataset_dir,
+        val_dataset_dir=args.val_dataset_dir,
         student_backbone_arch=args.backbone_arch,
         student_agg_arch=args.agg_arch,
         teacher_preset=args.teacher_preset,
@@ -29,7 +30,7 @@ def setup_training(args):
         weight_decay_schedule=args.weight_decay_schedule,
         use_attention=args.use_attention,
         image_size=args.image_size,
-        augment_level=args.augment_level,
+        augmentation_level=args.augmentation_level,
         num_workers=args.num_workers,
         val_set_names=args.val_set_names,
     )
@@ -37,6 +38,7 @@ def setup_training(args):
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
         dirpath=_get_checkpoint_dir(args),
+        filename="{epoch}-{" + args.val_set_names[0] + "_R1:.2f}",
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
         save_weights_only=True,
@@ -57,8 +59,8 @@ def setup_training(args):
         precision=args.precision,
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb],
-        reload_dataloaders_every_n_epochs=1,
-        val_check_interval=0.05,
+        #reload_dataloaders_every_n_epochs=1,
+        #val_check_interval=0.05,
         logger=wandb_logger,
     )
 
@@ -66,11 +68,11 @@ def setup_training(args):
 
 
 def _get_checkpoint_dir(args):
-    return f"./checkpoints/Distill/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
+    return f"./checkpoints/Distill/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augmentation_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
 
 
 def _get_wandb_run_name(args):
-    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
+    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augmentation_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
 
 
 if __name__ == "__main__":
@@ -85,4 +87,5 @@ if __name__ == "__main__":
 
     # Setup and run training
     trainer, model_module = setup_training(args)
+    #model_module = torch.compile(model_module)
     trainer.fit(model_module)

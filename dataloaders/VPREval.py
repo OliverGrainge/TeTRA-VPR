@@ -6,6 +6,8 @@ import torch
 from PIL import Image
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
+from tabulate import tabulate
+
 
 from matching.match_cosine import match_cosine
 
@@ -80,6 +82,16 @@ class VPREval(pl.LightningModule):
                     self.val_datasets.append(
                         SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
+                elif "tokyo" in val_set_name.lower():
+                    from dataloaders.val.Tokyo247 import Tokyo247
+                    self.val_datasets.append(
+                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                    )
+                elif "cross" in val_set_name.lower():
+                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    self.val_datasets.append(
+                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                    )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
@@ -122,24 +134,28 @@ class VPREval(pl.LightningModule):
             )
         return descriptors["global_desc"].detach().cpu()
 
+    
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
-
+        self.results = {}
         results_dict = {}
+
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
-            recalls_dict, _ = self.matching_function(
+            recalls_dict, _, _ = self.matching_function(
                 **set_outputs,
                 num_references=val_dataset.num_references,
                 ground_truth=val_dataset.ground_truth,
             )
-            self.log_dict(
-                recalls_dict,
-                prog_bar=False,
-                logger=True,
-            )
-            results_dict[val_set_name] = recalls_dict
-        return results_dict
+
+            # Store results in the dictionary
+            results_dict[val_dataset.__repr__()] = recalls_dict
+
+        # Return the results to the Trainer
+        self.results = results_dict 
+        return None
+
+

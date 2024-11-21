@@ -72,11 +72,11 @@ def _get_preset_transform(preset):
 
 
 
-def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
+def _get_augmentation(augmentation_level: str, image_size: Union[tuple, int]):
     if isinstance(image_size, int):
         image_size = (image_size, image_size)
 
-    if augment_type.lower() == "severe":
+    if augmentation_level.lower() == "severe":
         return T.Compose(
             [
                 T.RandomResizedCrop(
@@ -98,7 +98,7 @@ def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
-    elif augment_type.lower() == "moderate":
+    elif augmentation_level.lower() == "moderate":
         return T.Compose(
             [
                 T.RandomResizedCrop(
@@ -121,7 +121,7 @@ def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
             ]
         )
     
-    elif augment_type.lower() == "light":
+    elif augmentation_level.lower() == "light":
         return T.Compose(
             [
                 T.Resize(image_size),
@@ -133,7 +133,7 @@ def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
             ]
         )
 
-    elif augment_type.lower() == "none":
+    elif augmentation_level.lower() == "none":
         return T.Compose(
             [
                 T.Resize(image_size),  # Resize the image to the specified size
@@ -142,7 +142,7 @@ def _get_augmentation(augment_type: str, image_size: Union[tuple, int]):
             ]
         )
     else:
-        raise Exception(f"Augmentation type {augment_type} not found")
+        raise Exception(f"Augmentation type {augmentation_level} not found")
     
 
 

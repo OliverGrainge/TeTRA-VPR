@@ -18,7 +18,7 @@ from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
                                              get_feature_dim)
 from dataloaders.utils.Distill.schedulers import (QuantScheduler,
                                                   WeightDecayScheduler)
-from dataloaders.utils.transforms import get_transform
+from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
@@ -59,11 +59,12 @@ def adapt_descriptors_dim(
 class Distill(pl.LightningModule):
     def __init__(
         self,
-        data_directory,
+        train_dataset_dir, 
+        val_dataset_dir,
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
         teacher_preset="EigenPlaces",
-        augment_level="light",
+        augmentation_level="light",
         matching_function=match_cosine,
         use_attention=False,
         weight_decay_init=0.05,
@@ -80,7 +81,8 @@ class Distill(pl.LightningModule):
         self.num_workers = num_workers
         self.image_size = image_size
         self.lr = lr
-        self.data_directory = data_directory
+        self.train_dataset_dir = train_dataset_dir
+        self.val_dataset_dir = val_dataset_dir
         self.teacher_preset = teacher_preset
         self.val_set_names = val_set_names
         self.backbone_arch = student_backbone_arch
@@ -90,7 +92,7 @@ class Distill(pl.LightningModule):
         self.weight_decay_schedule = weight_decay_schedule
         self.mse_loss_mult = mse_loss_mult
         self.teacher = get_model(preset=teacher_preset)
-        self.augment_level = augment_level
+        self.augmentation_level = augmentation_level
         self.student = get_model(
             backbone_arch=student_backbone_arch,
             agg_arch=student_agg_arch,
@@ -103,7 +105,7 @@ class Distill(pl.LightningModule):
             self.teacher,
             get_transform(preset=self.teacher_preset),
             self.student,
-            get_transform(self.augment_level, self.image_size),
+            get_transform(augmentation_level=self.augmentation_level, image_size=self.image_size),
         )
 
         freeze_model(self.teacher)
@@ -114,74 +116,51 @@ class Distill(pl.LightningModule):
         # Setup for 'fit' or 'validate'self
         if stage == "fit" or stage == "validate":
             self.val_datasets = []
+            val_transform = get_transform(augmentation_level="None", image_size=self.image_size)
             for val_set_name in self.val_set_names:
-                if "pitts" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
-
+                if "pitts30k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
                     self.val_datasets.append(
-                        PittsburghDataset(
-                            which_ds=val_set_name,
-                            input_transform=get_transform(
-                                "None", self.image_size
-                            ),
-                        )
+                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif val_set_name.lower() == "msls_val":
+                elif "pitts250k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    self.val_datasets.append(
+                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                    )
+                elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
-
                     self.val_datasets.append(
-                        MSLS(
-                            input_transform=get_transform(
-                                "None", self.image_size
-                            )
-                        )
+                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif val_set_name.lower() == "nordland":
+                elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
-
                     self.val_datasets.append(
-                        NordlandDataset(input_transform=self.transform)
+                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif val_set_name.lower() == "sped":
+                elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
-
                     self.val_datasets.append(
-                        SPEDDataset(
-                            input_transform=get_transform(
-                                "None", self.image_size
-                            )
-                        )
+                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val"))
+                elif "essex" in val_set_name.lower():
+                    from dataloaders.val.EssexDataset import EssexDataset
+                    self.val_datasets.append(
+                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "val" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
+                elif "sanfrancicscosmall" in val_set_name.lower():
+                    from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
                     self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_val",
-                            input_transform=get_transform(
-                                "None", self.image_size
-                            ),
-                        )
+                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "test" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
+                elif "tokyo" in val_set_name.lower():
+                    from dataloaders.val.Tokyo247 import Tokyo247
                     self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_test",
-                            input_transform=get_transform(
-                                "None", self.image_size
-                            ),
-                        )
+                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                    )
+                elif "cross" in val_set_name.lower():
+                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    self.val_datasets.append(
+                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
                 else:
                     raise NotImplementedError(
@@ -371,19 +350,19 @@ class Distill(pl.LightningModule):
         return total_loss
 
     def train_dataloader(self):
-        paths = os.listdir(self.data_directory)
-        if not os.path.isdir(self.data_directory):
-            raise ValueError(f"Invalid data directory: {self.data_directory}")
+        paths = os.listdir(self.train_dataset_dir)
+        if not os.path.isdir(self.train_dataset_dir):
+            raise ValueError(f"Invalid data directory: {self.train_dataset_dir}")
 
         if "*tar" in paths[0]:
-            train_dataset = TarImageDataset(self.data_directory)
+            train_dataset = TarImageDataset(self.train_dataset_dir)
         else:
-            train_dataset = JPGDataset(self.data_directory)
+            train_dataset = JPGDataset(self.train_dataset_dir)
 
         dataset = DistillDataset(
-            train_dataset,
-            get_transform(self.augment_level, self.image_size),
-            get_transform(preset=self.teacher_preset),
+            dataset=train_dataset,
+            student_transform=get_transform(augmentation_level=self.augmentation_level, image_size=self.image_size),
+            teacher_transform=get_transform(preset=self.teacher_preset),
         )
         return DataLoader(
             dataset,

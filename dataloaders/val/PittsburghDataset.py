@@ -19,6 +19,7 @@ class PittsburghDataset30k(Dataset):
         assert which_set.lower() in ["val", "test"]
 
         self.input_transform = input_transform
+        self.which_set = which_set
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
@@ -48,6 +49,8 @@ class PittsburghDataset30k(Dataset):
     def __len__(self):
         return len(self.images)
     
+    def __repr__(self): 
+        return f"Pittsburgh30k_{self.which_set}"
 
 
 class PittsburghDataset250k(Dataset):
@@ -56,6 +59,7 @@ class PittsburghDataset250k(Dataset):
         assert which_set == "test", "PittsburghDataset250k only supports test set"
 
         self.input_transform = input_transform
+        self.which_set = which_set
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
@@ -84,4 +88,6 @@ class PittsburghDataset250k(Dataset):
 
     def __len__(self):
         return len(self.images)
-
+    
+    def __repr__(self): 
+        return f"Pittsburgh250k_{self.which_set}"

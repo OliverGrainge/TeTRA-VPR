@@ -18,6 +18,7 @@ class SPEDDataset(Dataset):
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, "SPEDTEST")
         assert which_set == "test", "SPEDDataset only supports test set"
+        self.which_set = which_set
 
         # reference images names
         self.dbImages = np.load("dataloaders/val/image_paths/SPED_dbImages.npy")
@@ -46,3 +47,6 @@ class SPEDDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"SPEDTEST_{self.which_set}"

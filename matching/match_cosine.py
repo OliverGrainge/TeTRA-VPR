@@ -26,6 +26,6 @@ def match_cosine(global_desc, num_references, ground_truth, k_values=[1, 5, 10])
                 correct_at_k[i:] += 1
                 break
 
-    correct_at_k = correct_at_k / len(predictions)
+    correct_at_k = (correct_at_k / len(predictions)) * 100
     d = {f"R{k}": v for (k, v) in zip(k_values, correct_at_k)}
     return d, predictions, search_time

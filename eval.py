@@ -5,6 +5,7 @@ from models.transforms import get_transform
 import torch 
 import argparse
 import pytorch_lightning as pl
+from tabulate import tabulate
 
 
 
@@ -25,6 +26,16 @@ def _load_model_and_transform(args):
     return model, transform
 
 
+def _print_results(args, results): 
+    table_data = []
+    headers = ["Validation Set"] + list(next(iter(results.values())).keys())
+    for val_set_name, metrics in results.items():
+        row = [val_set_name] + [f"{value:.1f}" for value in metrics.values()]
+        table_data.append(row)
+
+    print("\n" + tabulate(table_data, headers=headers, tablefmt="pretty") + "\n")
+
+
 def eval(args): 
     model, transform = _load_model_and_transform(args)
     module = VPREval(
@@ -41,13 +52,15 @@ def eval(args):
         accelerator="auto", 
         max_epochs=1,  # Set the number of epochs
         logger=False,  # Disable logging if not needed
+        enable_progress_bar=True,
     )
     
     # Use the trainer to validate the module
     trainer.validate(module)
-
+    _print_results(args, module.results)
 
 if __name__ == "__main__": 
+    torch.set_float32_matmul_precision('high')
     parser = argparse.ArgumentParser()
     for config in [DataConfig, ModelConfig, EvalConfig]: 
         parser = config.add_argparse_args(parser)

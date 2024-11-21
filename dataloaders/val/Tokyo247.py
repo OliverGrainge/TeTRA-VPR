@@ -10,8 +10,8 @@ from torch.utils.data import Dataset
 class Tokyo247(Dataset):
     def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
         self.input_transform = input_transform
-        self.dataset_root = os.path.join(val_dataset_dir, "Tokyo247")
-        assert which_ds == "test", "SPEDDataset only supports test set"
+        self.dataset_root = os.path.join(val_dataset_dir, "tokyo247")
+        assert which_set == "test", "Tokyo247 only supports test set"
         # reference images names
         self.dbImages = np.load("dataloaders/val/image_paths/tokyo247_dbImages.npy")
 
@@ -39,3 +39,6 @@ class Tokyo247(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"Tokyo247_{self.which_set}"
