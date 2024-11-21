@@ -6,27 +6,21 @@ import torch
 import torchvision.transforms as T
 import yaml
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import  Dataset
 
-config_path = os.path.join(os.path.dirname(__file__), "../../config.yaml")
-# Load the YAML configuration
-with open(config_path, "r") as config_file:
-    config = yaml.safe_load(config_file)
-
-DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"], "msls_val/")
-GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), "../../datasets/")
 
 
 class MSLS(Dataset):
-    def __init__(self, input_transform=None):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
 
         self.input_transform = input_transform
-
-        self.dbImages = np.load(GT_ROOT + "msls_val/msls_val_dbImages.npy")
-        self.qIdx = np.load(GT_ROOT + "msls_val/msls_val_qIdx.npy")
-        self.qImages = np.load(GT_ROOT + "msls_val/msls_val_qImages.npy")
+        self.which_set = which_set
+        assert which_set == "val", "MSLS only supports val set"
+        self.dataset_root = os.path.join(val_dataset_dir, "msls_val")
+        self.dbImages = np.load("dataloaders/val/image_paths/msls_val_dbImages.npy")
+        self.qImages = np.load("dataloaders/val/image_paths/msls_val_qImages.npy")
         self.ground_truth = np.load(
-            GT_ROOT + "msls_val/msls_val_pIdx.npy", allow_pickle=True
+            "dataloaders/val/image_paths/msls_val_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -35,7 +29,7 @@ class MSLS(Dataset):
         self.num_queries = len(self.qImages[self.qIdx])
 
     def __getitem__(self, index):
-        img = Image.open(DATASET_ROOT + self.images[index])
+        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
 
         if self.input_transform:
             img = self.input_transform(img)
@@ -44,3 +38,6 @@ class MSLS(Dataset):
 
     def __len__(self):
         return len(self.images)
+
+    def __repr__(self): 
+        return f"MSLS_{self.which_set}"

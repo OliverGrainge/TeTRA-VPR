@@ -11,51 +11,35 @@ from torch.utils.data import Dataset
 # the folders named ref and query should reside in DATASET_ROOT path
 # I hardcoded the image names and ground truth for faster evaluation
 # performance is exactly the same as if you use VPR-Bench.
-config_path = os.path.join(os.path.dirname(__file__), "../../config.yaml")
-# Load the YAML configuration
-with open(config_path, "r") as config_file:
-    config = yaml.safe_load(config_file)
 
-DATASET_ROOT = os.path.join(config["Datasets"]["datasets_dir"], "Nordland/")
-GT_ROOT = config_path = os.path.join(os.path.dirname(__file__), "../../datasets/")
-
-path_obj = Path(DATASET_ROOT)
-if not path_obj.exists():
-    raise Exception(
-        f"Please make sure the path {DATASET_ROOT} to Nordland dataset is correct"
-    )
-
-if not path_obj.joinpath("ref") or not path_obj.joinpath("query"):
-    raise Exception(
-        f"Please make sure the directories query and ref are situated in the directory {DATASET_ROOT}"
-    )
 
 
 class NordlandDataset(Dataset):
-    def __init__(self, input_transform=None):
-
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
+        assert which_set == "test", "NordlandDataset only supports test set"
         self.input_transform = input_transform
-
+        self.dataset_root = os.path.join(val_dataset_dir, "Nordland")
+        self.which_set = which_set
+        
         # reference images names
-        self.dbImages = np.load(GT_ROOT + "Nordland/Nordland_dbImages.npy")
-
+        self.dbImages = np.load(f"dataloaders/val/image_paths/Nordland_dbImages.npy")
+        
         # query images names
-        self.qImages = np.load(GT_ROOT + "Nordland/Nordland_qImages.npy")
-
+        self.qImages = np.load(f"dataloaders/val/image_paths/Nordland_qImages.npy")
+        
         # ground truth
         self.ground_truth = np.load(
-            GT_ROOT + "Nordland/Nordland_gt.npy", allow_pickle=True
+            f"dataloaders/val/image_paths/Nordland_gt.npy", allow_pickle=True
         )
-
+        
         # reference images then query images
         self.images = np.concatenate((self.dbImages, self.qImages))
-
+        
         self.num_references = len(self.dbImages)
         self.num_queries = len(self.qImages)
 
     def __getitem__(self, index):
-        img = Image.open(DATASET_ROOT + self.images[index])
-
+        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
         if self.input_transform:
             img = self.input_transform(img)
 
@@ -63,3 +47,6 @@ class NordlandDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"Nordland_{self.which_set}"
