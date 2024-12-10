@@ -165,6 +165,7 @@ class TeTRAConfig:
     miner_name: str = "MultiSimilarityMiner"
     loss_name: str = "MultiSimilarityLoss"
     miner_margin: float = 0.1
+    quant_schedule: str = "sigmoid"
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
@@ -230,6 +231,7 @@ class TeTRAConfig:
         )
         group.add_argument("--cities", type=str, nargs="+", default=TeTRAConfig.cities)
         group.add_argument("--val_set_names", type=str, nargs="+", default=TeTRAConfig.val_set_names)
+        group.add_argument("--quant_schedule", type=str, default=TeTRAConfig.quant_schedule)
         return parent_parser
 
     @classmethod

@@ -15,16 +15,13 @@ from dataloaders.utils.TeTRA.losses import get_loss, get_miner
 from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
-from dataloaders.utils.TeTRA.distances import HammingDistance
+from dataloaders.utils.TeTRA.distances import HammingDistance, binarize
 from dataloaders.utils.TeTRA.schedulers import QuantScheduler
 
 
 import argparse
 from config import DataConfig, TeTRAConfig, ModelConfig
 
-
-def symmetric_binarize(x):
-    return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
 
 
 class TeTRA(pl.LightningModule):
@@ -41,6 +38,7 @@ class TeTRA(pl.LightningModule):
         lr=0.0001,
         img_per_place=4,
         min_img_per_place=4,
+        scheduler_type="simgmoid"
     ):
         super().__init__()
         # Model parameters
@@ -73,6 +71,7 @@ class TeTRA(pl.LightningModule):
         self.random_sample_from_each_place = True
         self.train_dataset = None
         self.val_datasets = []
+        self.scheduler_type = scheduler_type
 
         # Train and valid transforms
         self.train_transform = get_transform(
@@ -155,7 +154,7 @@ class TeTRA(pl.LightningModule):
                     )
     
     def _setup_schedulers(self): 
-        self.schedulers = {"quant": QuantScheduler(total_steps=self.trainer.estimated_stepping_batches)}
+        self.schedulers = {"quant": QuantScheduler(total_steps=self.trainer.estimated_stepping_batches, scheduler_type=self.scheduler_type)}
 
 
     def _step_schedulers(self, batch_idx):
@@ -227,8 +226,7 @@ class TeTRA(pl.LightningModule):
     
 
     def _q_loss_func(self, descriptors, labels):
-        q_descriptors = symmetric_binarize(descriptors)
-        miner_outputs = self.q_miner(q_descriptors, labels)
+        miner_outputs = self.q_miner(descriptors, labels)
         loss = self.q_loss_fn(descriptors, labels, miner_outputs)
 
         nb_samples = descriptors.shape[0]
@@ -238,6 +236,7 @@ class TeTRA(pl.LightningModule):
         self.batch_acc.append(batch_acc)
         self.log('q_b_acc', sum(self.batch_acc) /
                 len(self.batch_acc), prog_bar=True, logger=True)
+        print(loss.item())
         return loss
 
 
@@ -248,13 +247,32 @@ class TeTRA(pl.LightningModule):
         images = places.view(BS * N, ch, h, w)
         labels = labels.view(-1)
         descriptors = self(images)
+
+        desc = descriptors["global_desc"]
+        labels = labels.view(-1)
+        #============================================================
+        """
+        desc_sample = desc[:2]
+        labels_sample = labels[:2]
+
+        qdesc_sample = binarize(desc_sample)
+        print(qdesc_sample)
+
+        qdesc_sample = desc_sample = torch.tensor([[1., 1., 1., 0.9], [1., -1., -1., -1.]])
+
+        cosine_dist = 1 - (desc_sample[0] @ desc_sample[1].T / (torch.norm(desc_sample[0]) * torch.norm(desc_sample[1])))
+        hamming_dist = 2 * ((qdesc_sample[0] != qdesc_sample[1]).sum() / qdesc_sample.shape[1])
+        print(f"cosine_dist: {cosine_dist}, hamming_dist: {hamming_dist} error: {((torch.abs(hamming_dist - cosine_dist))/cosine_dist)*100}")
+        """
+        #============================================================
+
+        
         
         fp_loss = self._fp_loss_func(descriptors["global_desc"], labels)
         q_loss = self._q_loss_func(descriptors["global_desc"], labels)
         
-        #q_lambda = self.schedulers["quant"].get_last_lr()[0]
-        #loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
-        loss = q_loss
+        q_lambda = self.schedulers["quant"].get_last_lr()[0]
+        loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
         #self._step_schedulers(batch_idx)
         self.log('fp_loss', fp_loss, prog_bar=True, logger=True)
         self.log('q_loss', q_loss, prog_bar=True, logger=True)

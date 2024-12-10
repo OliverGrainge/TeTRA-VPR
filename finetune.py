@@ -58,11 +58,13 @@ def setup_training(args, model):
         num_workers=args.num_workers,
         cities=args.cities,
         lr=args.lr,
+        scheduler_type=args.quant_schedule,
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"pitts30k_fp32_R1",
+        monitor=f"pitts30k_q_R1",
         dirpath=_get_checkpoint_dir(args),
+        filename="epoch-{epoch}-pitts30k_q_R1{pitts30k_q_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -92,11 +94,11 @@ def setup_training(args, model):
 
 
 def _get_checkpoint_dir(args):
-    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_loss_name[{args.loss_name}]_miner_name[{args.miner_name}]]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level}]"
+    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level}]"
 
 
 def _get_wandb_run_name(args):
-    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]_lossname[{args.loss_name}]_minername[{args.miner_name}]_res[{args.image_size[0]}x{args.image_size[1]}]"
+    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
 
 
 if __name__ == "__main__":

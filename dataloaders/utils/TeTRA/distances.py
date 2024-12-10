@@ -2,6 +2,7 @@ import torch
 from torch.autograd import Function
 from pytorch_metric_learning.distances import BaseDistance
 from pytorch_metric_learning.distances import CosineSimilarity
+from pytorch_metric_learning.losses import MultiSimilarityLoss
 
 class BinarizeSTE(Function):
     @staticmethod
@@ -28,8 +29,10 @@ class BinarizeSTE(Function):
         grad_input[input_tensor.abs() > 1] = 0
         return grad_input
 
+
 def binarize(input_tensor):
     return BinarizeSTE.apply(input_tensor)
+
 
 class HammingDistance(BaseDistance):
     def __init__(self, **kwargs):
@@ -37,10 +40,15 @@ class HammingDistance(BaseDistance):
 
     def compute_mat(self, query_emb, ref_emb):
         query_emb, ref_emb = binarize(query_emb), binarize(ref_emb)
-        dist = 1 - (torch.matmul(query_emb, ref_emb.t()) / query_emb.shape[1])
-        return dist
+        dist = (query_emb.shape[1] - torch.matmul(query_emb, ref_emb.t())) / 2
+        return ((dist/query_emb.shape[1]) * 2) - 1
 
     def pairwise_distance(self, query_emb, ref_emb):
         query_emb, ref_emb = binarize(query_emb), binarize(ref_emb)
-        dist = 1 - (torch.sum(query_emb * ref_emb, dim=1) / query_emb.shape[1])
-        return dist
+        # Compute the dot product between all queries and all references
+        dot_product = torch.matmul(query_emb, ref_emb.t())
+        # Calculate Hamming distance using the formula
+        dist = (query_emb.shape[1] - dot_product) / 2
+        return ((dist/query_emb.shape[1]) * 2) - 1
+
+
