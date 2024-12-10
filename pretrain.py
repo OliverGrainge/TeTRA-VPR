@@ -90,5 +90,4 @@ if __name__ == "__main__":
 
     # Setup and run training
     trainer, model_module = setup_training(args)
-    #model_module = torch.compile(model_module)
     trainer.fit(model_module)

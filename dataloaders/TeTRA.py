@@ -14,6 +14,9 @@ from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
 
+import argparse
+from config import DataConfig, TeTRAConfig, ModelConfig
+
 
 def symmetric_binarize(x):
     return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
@@ -47,8 +50,10 @@ class TeTRA(pl.LightningModule):
         self.cities = cities
         self.matching_functions = matching_functions
         self.batch_acc = []
-        self.loss_fn = get_loss(self.loss_name)
-        self.miner = get_miner(self.miner_name, self.miner_margin)
+        self.fp_loss_fn = losses.MultiSimilarityLoss(
+            alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
+        )
+        self.fp_miner = miners.MultiSimilarityMiner(epsilon=0.1, distance=CosineSimilarity())
 
         self.model = model
 
@@ -190,82 +195,52 @@ class TeTRA(pl.LightningModule):
             },
         }
 
-    def loss_function(self, descriptors, labels, binary_mine=False):
-        if self.miner is not None:
-            if binary_mine:
-                miner_desc = torch.nn.functional.normalize(
-                    symmetric_binarize(descriptors), p=2, dim=1
-                )
-            else:
-                miner_desc = descriptors
-            miner_outputs = self.miner(miner_desc, labels)
-            loss = self.loss_fn(descriptors, labels, miner_outputs)
-            nb_samples = descriptors.shape[0]
-            nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
-            batch_acc = 1.0 - (nb_mined / nb_samples)
-        else:
-            loss = self.loss_fn(descriptors, labels)
-            batch_acc = 0.0
-            if isinstance(loss, tuple):
-                loss, batch_acc = loss
+    def _fp_loss_func(self, descriptors, labels): 
+        miner_outputs = self.fp_miner(descriptors, labels)
+        loss = self.fp_loss_fn(descriptors, labels, miner_outputs)
+
+        nb_samples = descriptors.shape[0]
+        nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
+        batch_acc = 1.0 - (nb_mined/nb_samples)
+
         self.batch_acc.append(batch_acc)
-        self.log(
-            "b_acc",
-            sum(self.batch_acc) / len(self.batch_acc),
-            prog_bar=True,
-            logger=True,
-        )
+        self.log('fp_b_acc', sum(self.batch_acc) /
+                len(self.batch_acc), prog_bar=True, logger=True)
+        return loss
+    
+
+    def _q_loss_func(self, descriptors, labels):
+        q_descriptors = symmetric_binarize(descriptors)
+        miner_outputs = self.q_miner(q_descriptors, labels)
+        loss = self.q_loss_fn(descriptors, labels, miner_outputs)
+
+        nb_samples = descriptors.shape[0]
+        nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
+        batch_acc = 1.0 - (nb_mined/nb_samples)
+
+        self.batch_acc.append(batch_acc)
+        self.log('q_b_acc', sum(self.batch_acc) /
+                len(self.batch_acc), prog_bar=True, logger=True)
         return loss
 
-    def reg_function(self, descriptors):
-        desc = descriptors["global_desc"]
-        qdesc = symmetric_binarize(desc)
-        # Cosine similarity ranges from -1 to 1 since both desc and qdesc are normalized
-        cos_sim = torch.nn.functional.cosine_similarity(
-            desc, qdesc, dim=1
-        )  # Range: [-1, 1]
-        cos_dist = 1 - cos_sim
-        reg_loss = cos_dist.mean()
-        return reg_loss
 
-    def training_step(self, batch, batch_idx):
-        places, labels = batch
-        BS, N, ch, h, w = places.shape
+    def training_step(self, batch, batch_idx): 
+        places, labels = batch 
+        BS, N, ch, h, w = places.shape 
+
         images = places.view(BS * N, ch, h, w)
         labels = labels.view(-1)
         descriptors = self(images)
+        
+        fp_loss = self._fp_loss_func(descriptors, labels)
+        q_loss = self.q_loss_func(descriptors, labels)
 
-        # Main loss
-        main_loss = self.loss_function(
-            descriptors["global_desc"], labels, binary_mine=False
-        )
+        loss = fp_loss + q_loss
+        self.log('fp_loss', fp_loss, prog_bar=True, logger=True)
+        self.log('q_loss', q_loss, prog_bar=True, logger=True)
+        self.log('loss', loss, prog_bar=True, logger=True)
+        return loss
 
-        # Regularization loss with sine scheduled weight
-        reg_loss = self.reg_function(descriptors)
-
-        # Calculate sine schedule weight between 0 and 0.2
-        total_steps = self.trainer.estimated_stepping_batches
-        current_step = self.global_step
-
-        reg_weight = 0.5 * (
-            (
-                1
-                + torch.sin(
-                    torch.tensor((current_step - total_steps / 2) * np.pi / total_steps)
-                )
-            )
-            / 2
-        )
-
-        # Combined loss with scheduled reg weight
-        loss = main_loss + reg_weight * reg_loss
-        # Log losses and weight
-        self.log("main_loss", main_loss)
-        self.log("reg_loss", reg_loss)
-        self.log("reg_weight", reg_weight)
-        self.log("loss", loss)
-
-        return {"loss": loss}
 
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
@@ -325,3 +300,14 @@ class TeTRA(pl.LightningModule):
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
         return self.model.state_dict()
+
+
+if __name__ == "__main__": 
+    torch.set_float32_matmul_precision("medium")
+
+    parser = argparse.ArgumentParser()
+    for config in [DataConfig, ModelConfig, TeTRAConfig]:
+        parser = config.add_argparse_args(parser)
+    args = parser.parse_args()
+
+
