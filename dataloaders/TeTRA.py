@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
+from pytorch_metric_learning import losses, miners
+from pytorch_metric_learning.distances import CosineSimilarity
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
 
@@ -13,6 +15,8 @@ from dataloaders.utils.TeTRA.losses import get_loss, get_miner
 from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
+from dataloaders.utils.TeTRA.distances import HammingDistance
+
 
 import argparse
 from config import DataConfig, TeTRAConfig, ModelConfig
@@ -30,10 +34,6 @@ class TeTRA(pl.LightningModule):
         image_size=[224, 224],
         num_workers=4,
         val_set_names=["pitts30k_val", "msls_val"],
-        loss_name="MultiSimilarityLoss",
-        miner_name="MultiSimilarityMiner",
-        matching_functions=[match_cosine, match_hamming],
-        miner_margin=0.1,
         cities=["London", "Melbourne", "Boston"],
         lr=0.0001,
         img_per_place=4,
@@ -42,18 +42,21 @@ class TeTRA(pl.LightningModule):
         super().__init__()
         # Model parameters
         self.lr = lr
-        self.loss_name = loss_name
-        self.miner_name = miner_name
-        self.miner_margin = miner_margin
         self.img_per_place = img_per_place
         self.min_img_per_place = min_img_per_place
         self.cities = cities
-        self.matching_functions = matching_functions
         self.batch_acc = []
+        # full precision loss and miner
         self.fp_loss_fn = losses.MultiSimilarityLoss(
             alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
         )
         self.fp_miner = miners.MultiSimilarityMiner(epsilon=0.1, distance=CosineSimilarity())
+
+        # quantization aware loss and miner
+        self.q_loss_fn = losses.MultiSimilarityLoss(
+            alpha=1.0, beta=50, base=0.0, distance=HammingDistance()
+        )
+        self.q_miner = miners.MultiSimilarityMiner(epsilon=0.1, distance=HammingDistance())
 
         self.model = model
 
@@ -270,20 +273,30 @@ class TeTRA(pl.LightningModule):
             for key, value in set_outputs.items():
                 set_outputs[key] = torch.concat(value, dim=0)
 
-            for matching_function in self.matching_functions:
-                recalls_dict, _, search_time = matching_function(
-                    **set_outputs,
+                fp_recalls_dict, _, search_time = match_cosine(
+                    **set_outputs, 
                     num_references=val_dataset.num_references,
                     ground_truth=val_dataset.ground_truth,
+                    k_values=[1, 5, 10]
                 )
 
-                for k, v in recalls_dict.items():
-                    full_recalls_dict[
-                        f"{matching_function.__name__}]_{val_set_name}_R{k}"
-                    ] = v
-                full_recalls_dict[
-                    f"{matching_function.__name__}]_{val_set_name}_search_time"
-                ] = search_time
+                full_recalls_dict[f"{val_set_name}_fp32_R1"] = fp_recalls_dict["R1"]
+                full_recalls_dict[f"{val_set_name}_fp32_R5"] = fp_recalls_dict["R5"]
+                full_recalls_dict[f"{val_set_name}_fp32_R10"] = fp_recalls_dict["R10"]
+                full_recalls_dict[f"{val_set_name}_fp32_search_time"] = search_time
+
+                q_recalls_dict, _, search_time = match_hamming(
+                    **set_outputs, 
+                    num_references=val_dataset.num_references,
+                    ground_truth=val_dataset.ground_truth,
+                    k_values=[1, 5, 10]
+                )
+
+                full_recalls_dict[f"{val_set_name}_q_R1"] = q_recalls_dict["R1"]
+                full_recalls_dict[f"{val_set_name}_q_R5"] = q_recalls_dict["R5"]
+                full_recalls_dict[f"{val_set_name}_q_R10"] = q_recalls_dict["R10"]
+                full_recalls_dict[f"{val_set_name}_q_search_time"] = search_time
+
         self.log_dict(
             full_recalls_dict,
             logger=True,

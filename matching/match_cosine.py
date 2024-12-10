@@ -2,7 +2,6 @@ import time
 
 import faiss
 import numpy as np
-import torch
 
 
 def match_cosine(global_desc, num_references, ground_truth, k_values=[1, 5, 10]):

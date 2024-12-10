@@ -53,7 +53,7 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"match_cosine_{args.val_set_names[0]}_R1",
+        monitor=f"Pitts30k_fp32_R1",
         dirpath=_get_checkpoint_dir(args),
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
