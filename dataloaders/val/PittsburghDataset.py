@@ -55,10 +55,15 @@ class PittsburghDataset30k(Dataset):
 
 class PittsburghDataset250k(Dataset):
     def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
+class PittsburghDataset250k(Dataset):
+    def __init__(self, val_dataset_dir=None, input_transform=None, which_set="test"):
 
+        assert which_set == "test", "PittsburghDataset250k only supports test set"
         assert which_set == "test", "PittsburghDataset250k only supports test set"
 
         self.input_transform = input_transform
+        self.which_set = which_set
+        self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
         self.which_set = which_set
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
@@ -71,6 +76,7 @@ class PittsburghDataset250k(Dataset):
         # ground truth
         self.ground_truth = np.load(
             f"image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
+            f"image_paths/Pittsburgh/pitts30k_{which_set}_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -81,6 +87,7 @@ class PittsburghDataset250k(Dataset):
 
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.dataset_root, self.images[index]))
+        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
         if self.input_transform:
             img = self.input_transform(img)
 
@@ -88,6 +95,9 @@ class PittsburghDataset250k(Dataset):
 
     def __len__(self):
         return len(self.images)
+    
+    def __repr__(self): 
+        return f"Pittsburgh250k_{self.which_set}"
     
     def __repr__(self): 
         return f"Pittsburgh250k_{self.which_set}"
