@@ -19,7 +19,7 @@ def load_model(args):
         out_dim=args.out_dim,
         normalize_output=True,
     )
-    if args.weight_path is not None: 
+    if args.weights_path is not None: 
         if not os.path.exists(args.weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
@@ -29,7 +29,17 @@ def load_model(args):
             for k, v in sd.items()
             if k.startswith("backbone.")
         }
-        model.backbone.load_state_dict(backbone_sd, strict=False)
+        
+        # load_state_dict returns a NamedTuple with missing_keys and unexpected_keys
+        load_result = model.backbone.load_state_dict(backbone_sd, strict=False)
+        
+        print("\nMissing keys (weights in model but not in checkpoint):")
+        print("\n".join(load_result.missing_keys))
+        
+        print("\nSuccessfully loaded keys:")
+        successful_keys = [k for k in backbone_sd.keys() 
+                         if k not in load_result.unexpected_keys]
+        print("\n".join(successful_keys))
 
         for param in model.backbone.parameters():
             param.requires_grad = False
@@ -41,20 +51,17 @@ def load_model(args):
 def setup_training(args, model):
     model_module = TeTRA(
         model,
-        base_path=args.train_dataset_dir,
+        train_dataset_dir=args.train_dataset_dir,
+        val_dataset_dir=args.val_dataset_dir,
         batch_size=args.batch_size,
         image_size=args.image_size,
         num_workers=args.num_workers,
-        val_set_names=args.val_set_names,
-        loss_name=args.loss_name,
-        miner_name=args.miner_name,
-        miner_margin=0.1,
         cities=args.cities,
         lr=args.lr,
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"Pitts30k_fp32_R1",
+        monitor=f"pitts30k_fp32_R1",
         dirpath=_get_checkpoint_dir(args),
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -78,13 +85,14 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
+        limit_train_batches=200,
     )
 
     return trainer, model_module
 
 
 def _get_checkpoint_dir(args):
-    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_loss_name[{args.loss_name}]_miner_name[{args.miner_name}]]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.aug_level}]"
+    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_loss_name[{args.loss_name}]_miner_name[{args.miner_name}]]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level}]"
 
 
 def _get_wandb_run_name(args):

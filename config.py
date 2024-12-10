@@ -6,8 +6,8 @@ from typing import List, Optional, Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"
-    train_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets/Pittsburgh-Query/query"
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -202,6 +202,9 @@ class TeTRAConfig:
         # "PRS",
     )
 
+    # validation set 
+    val_set_names: Tuple[str] = ("pitts30k_val",)
+
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("TeTRA")
@@ -226,6 +229,7 @@ class TeTRAConfig:
             "--checkpoint_dir", type=str, default=TeTRAConfig.checkpoint_dir
         )
         group.add_argument("--cities", type=str, nargs="+", default=TeTRAConfig.cities)
+        group.add_argument("--val_set_names", type=str, nargs="+", default=TeTRAConfig.val_set_names)
         return parent_parser
 
     @classmethod

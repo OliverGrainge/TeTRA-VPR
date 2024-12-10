@@ -16,6 +16,7 @@ from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
 from dataloaders.utils.TeTRA.distances import HammingDistance
+from dataloaders.utils.TeTRA.schedulers import QuantScheduler
 
 
 import argparse
@@ -30,11 +31,12 @@ class TeTRA(pl.LightningModule):
     def __init__(
         self,
         model,
-        base_path,
+        train_dataset_dir,
+        val_dataset_dir,
         batch_size=32,
         image_size=[224, 224],
         num_workers=4,
-        val_set_names=["pitts30k_val", "msls_val"],
+        val_set_names=["pitts30k"],
         cities=["London", "Melbourne", "Boston"],
         lr=0.0001,
         img_per_place=4,
@@ -62,7 +64,8 @@ class TeTRA(pl.LightningModule):
         self.model = model
 
         # Data parameters
-        self.base_path = base_path
+        self.base_path = train_dataset_dir 
+        self.val_dataset_dir = val_dataset_dir
         self.batch_size = batch_size
         self.image_size = image_size
         self.num_workers = num_workers
@@ -73,10 +76,10 @@ class TeTRA(pl.LightningModule):
 
         # Train and valid transforms
         self.train_transform = get_transform(
-            augment_level="Light", image_size=image_size
+            augmentation_level="Light", image_size=image_size
         )
         self.valid_transform = get_transform(
-            augment_level="None", image_size=image_size
+            augmentation_level="None", image_size=image_size
         )
 
         # Dataloader configs
@@ -99,62 +102,68 @@ class TeTRA(pl.LightningModule):
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
         if stage == "fit" or stage == "validate":
-            self.reload()
             self.val_datasets = []
+            val_transform = get_transform(augmentation_level="None", image_size=self.image_size)
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset
-
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
                     self.val_datasets.append(
-                        PittsburghDataset(
-                            which_ds=val_set_name, input_transform=self.valid_transform
-                        )
+                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif val_set_name.lower() == "msls_val":
+                elif "pitts250k" in val_set_name.lower():
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    self.val_datasets.append(
+                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                    )
+                elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
-
-                    self.val_datasets.append(MSLS(input_transform=self.valid_transform))
-                elif val_set_name.lower() == "nordland":
+                    self.val_datasets.append(
+                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                    )
+                elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
-
                     self.val_datasets.append(
-                        NordlandDataset(input_transform=self.valid_transform)
+                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif val_set_name.lower() == "sped":
+                elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
-
                     self.val_datasets.append(
-                        SPEDDataset(input_transform=self.valid_transform)
+                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val"))
+                elif "essex" in val_set_name.lower():
+                    from dataloaders.val.EssexDataset import EssexDataset
+                    self.val_datasets.append(
+                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "val" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
+                elif "sanfrancicscosmall" in val_set_name.lower():
+                    from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
                     self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_val", input_transform=self.transform
-                        )
+                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
-                elif (
-                    "sf_xl" in val_set_name.lower()
-                    and "test" in val_set_name.lower()
-                    and "small" in val_set_name.lower()
-                ):
-                    from dataloaders.val.SF_XL import SF_XL
-
+                elif "tokyo" in val_set_name.lower():
+                    from dataloaders.val.Tokyo247 import Tokyo247
                     self.val_datasets.append(
-                        SF_XL(
-                            which_ds="sf_xl_small_test", input_transform=self.transform
-                        )
+                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                    )
+                elif "cross" in val_set_name.lower():
+                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    self.val_datasets.append(
+                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
                     )
+    
+    def _setup_schedulers(self): 
+        self.schedulers = {"quant": QuantScheduler(total_steps=self.trainer.estimated_stepping_batches)}
+
+
+    def _step_schedulers(self, batch_idx):
+        if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
+            for param_name, schd in self.schedulers.items():
+                schd.step()
+                self.log(param_name, schd.get_last_lr()[0], on_step=True)
+
 
     def reload(self):
         self.train_dataset = GSVCitiesDataset(
@@ -191,6 +200,8 @@ class TeTRA(pl.LightningModule):
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
+
+        self._setup_schedulers()
 
         return {
             "optimizer": optimizer,
@@ -238,10 +249,13 @@ class TeTRA(pl.LightningModule):
         labels = labels.view(-1)
         descriptors = self(images)
         
-        fp_loss = self._fp_loss_func(descriptors, labels)
-        q_loss = self.q_loss_func(descriptors, labels)
-
-        loss = fp_loss + q_loss
+        fp_loss = self._fp_loss_func(descriptors["global_desc"], labels)
+        q_loss = self._q_loss_func(descriptors["global_desc"], labels)
+        
+        #q_lambda = self.schedulers["quant"].get_last_lr()[0]
+        #loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
+        loss = q_loss
+        #self._step_schedulers(batch_idx)
         self.log('fp_loss', fp_loss, prog_bar=True, logger=True)
         self.log('q_loss', q_loss, prog_bar=True, logger=True)
         self.log('loss', loss, prog_bar=True, logger=True)
