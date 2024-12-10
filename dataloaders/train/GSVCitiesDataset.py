@@ -19,26 +19,18 @@ default_transform = T.Compose(
 )
 
 
-config_path = os.path.join(os.path.dirname(__file__), "../../config.yaml")
-# Load the YAML configuration
-with open(config_path, "r") as config_file:
-    config = yaml.safe_load(config_file)
 
-BASE_PATH = os.path.join(config["Datasets"]["datasets_dir"], "gsv-cities/")
-
-if not Path(BASE_PATH).exists():
-    print("BASE_PATH is hardcoded, please adjust to point to gsv_cities")
 
 
 class GSVCitiesDataset(Dataset):
     def __init__(
         self,
+        base_path,
         cities=["London", "Boston"],
         img_per_place=4,
         min_img_per_place=4,
         random_sample_from_each_place=True,
         transform=default_transform,
-        base_path=BASE_PATH,
     ):
         super(GSVCitiesDataset, self).__init__()
         self.base_path = base_path

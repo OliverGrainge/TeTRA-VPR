@@ -41,6 +41,7 @@ def load_model(args):
 def setup_training(args, model):
     model_module = TeTRA(
         model,
+        base_path=args.train_dataset_dir,
         batch_size=args.batch_size,
         image_size=args.image_size,
         num_workers=args.num_workers,

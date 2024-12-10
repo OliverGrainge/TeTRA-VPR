@@ -30,6 +30,7 @@ class TeTRA(pl.LightningModule):
     def __init__(
         self,
         model,
+        base_path,
         batch_size=32,
         image_size=[224, 224],
         num_workers=4,
@@ -61,6 +62,7 @@ class TeTRA(pl.LightningModule):
         self.model = model
 
         # Data parameters
+        self.base_path = base_path
         self.batch_size = batch_size
         self.image_size = image_size
         self.num_workers = num_workers
@@ -156,6 +158,7 @@ class TeTRA(pl.LightningModule):
 
     def reload(self):
         self.train_dataset = GSVCitiesDataset(
+            base_path=self.base_path,
             cities=self.cities,
             img_per_place=self.img_per_place,
             min_img_per_place=self.min_img_per_place,
