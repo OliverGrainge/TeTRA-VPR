@@ -94,11 +94,11 @@ def setup_training(args, model):
 
 
 def _get_checkpoint_dir(args):
-    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augment_level}]"
+    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
 
 
 def _get_wandb_run_name(args):
-    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_dim[{args.out_dim}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
+    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
 
 
 if __name__ == "__main__":

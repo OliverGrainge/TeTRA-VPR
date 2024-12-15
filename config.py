@@ -157,14 +157,11 @@ class DistillConfig:
 class TeTRAConfig:
     # Training hyperparameters
     lr: float = 0.0001
-    batch_size: int = 256
+    batch_size: int = 100
     max_epochs: int = 30
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
-    miner_name: str = "MultiSimilarityMiner"
-    loss_name: str = "MultiSimilarityLoss"
-    miner_margin: float = 0.1
     quant_schedule: str = "sigmoid"
 
     # Data processing
@@ -213,11 +210,6 @@ class TeTRAConfig:
         group.add_argument("--batch_size", type=int, default=TeTRAConfig.batch_size)
         group.add_argument("--max_epochs", type=int, default=TeTRAConfig.max_epochs)
         group.add_argument("--precision", type=str, default=TeTRAConfig.precision)
-        group.add_argument("--miner_name", type=str, default=TeTRAConfig.miner_name)
-        group.add_argument("--loss_name", type=str, default=TeTRAConfig.loss_name)
-        group.add_argument(
-            "--miner_margin", type=float, default=TeTRAConfig.miner_margin
-        )
         group.add_argument(
             "--image_size", type=int, nargs=2, default=TeTRAConfig.image_size
         )
