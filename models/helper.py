@@ -249,3 +249,33 @@ def get_model(
     else:
         model.descriptor_dim = desc.shape[1]
     return model
+
+
+
+def get_fintune_model(agg_arch, out_dim, image_size=(224, 224), pretrain_backbone_arch="vit_small", pretrain_agg_arch="cls", normalize_output=True, checkpoint_path=None, freeze_backbone=True):
+    pretrained_model = get_model(image_size=image_size, backbone_arch=pretrain_backbone_arch, agg_arch = pretrain_agg_arch, normalize_output=True)
+    if os.path.exists(checkpoint_path) and checkpoint_path is not None:
+        pretrained_model.load_state_dict(torch.load(checkpoint_path)["state_dict"])
+    else:
+        raise ValueError(f"Checkpoint {checkpoint_path} does not exist")
+    
+    pretrained_backbone = pretrained_model.backbone 
+
+    if freeze_backbone: 
+        for param in pretrained_backbone.parameters():
+            param.requires_grad = False
+        pretrained_backbone.freeze()
+
+    image = torch.randn(3, *(image_size))
+    features = pretrained_backbone(image[None, :])
+    features_dim = list(features[0].shape)
+    aggregation = get_aggregator(agg_arch, features_dim, image_size, out_dim=out_dim)
+
+    model = VPRModel(pretrained_backbone, aggregation, normalize_output=normalize_output)
+    return model
+
+
+    
+    
+
+    return pretrained_backbone
