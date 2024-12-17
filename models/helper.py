@@ -163,7 +163,7 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
     """
 
     if "gem" in agg_arch.lower():
-        return aggregators.GeM(in_dim=features_dim[0], out_dim=out_dim)
+        return aggregators.GeM(features_dim=features_dim, out_dim=2048)
 
     elif "convap" in agg_arch.lower():
         assert out_dim % 4 == 0
@@ -171,17 +171,11 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
 
     elif "mixvpr" in agg_arch.lower():
         config = {}
-        if len(features_dim) == 3:
-            config["in_channels"] = features_dim[0]
-            config["in_h"] = features_dim[1]
-            config["in_w"] = features_dim[2]
-        else:
-            config["channel_number"] = features_dim[1]
-            config["token_dim"] = features_dim[0]
-
+        config["channel_number"] = features_dim[1]
+        config["token_dim"] = features_dim[0]
         config["mix_depth"] = 4
         config["out_rows"] = 4
-        config["out_channels"] = out_dim // config["out_rows"]
+        config["out_channels"] = 4096 // config["out_rows"]
         return aggregators.MixVPR(features_dim=features_dim, config=config)
 
     elif "salad" in agg_arch.lower():
@@ -191,9 +185,12 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         config["num_clusters"] = 64
         config["cluster_dim"] = 128
         return aggregators.SALAD(**config)
+    
+    elif "boq" in agg_arch.lower():
+        return aggregators.BoQ(patch_size=14, image_size=image_size, in_channels=features_dim[1], proj_channels=512, num_queries=64, row_dim=12288//512)
 
-    elif "cls" in agg_arch.lower():
-        return aggregators.CLS(features_dim, out_dim)
+
+
 
 
 class VPRModel(Qmodel):
@@ -252,30 +249,3 @@ def get_model(
 
 
 
-def get_fintune_model(agg_arch, out_dim, image_size=(224, 224), pretrain_backbone_arch="vit_small", pretrain_agg_arch="cls", normalize_output=True, checkpoint_path=None, freeze_backbone=True):
-    pretrained_model = get_model(image_size=image_size, backbone_arch=pretrain_backbone_arch, agg_arch = pretrain_agg_arch, normalize_output=True)
-    if os.path.exists(checkpoint_path) and checkpoint_path is not None:
-        pretrained_model.load_state_dict(torch.load(checkpoint_path)["state_dict"])
-    else:
-        raise ValueError(f"Checkpoint {checkpoint_path} does not exist")
-    
-    pretrained_backbone = pretrained_model.backbone 
-
-    if freeze_backbone: 
-        for param in pretrained_backbone.parameters():
-            param.requires_grad = False
-        pretrained_backbone.freeze()
-
-    image = torch.randn(3, *(image_size))
-    features = pretrained_backbone(image[None, :])
-    features_dim = list(features[0].shape)
-    aggregation = get_aggregator(agg_arch, features_dim, image_size, out_dim=out_dim)
-
-    model = VPRModel(pretrained_backbone, aggregation, normalize_output=normalize_output)
-    return model
-
-
-    
-    
-
-    return pretrained_backbone

@@ -12,9 +12,8 @@ class GeMPool(nn.Module):
         self.eps = eps
 
     def forward(self, x):
-        return F.avg_pool2d(
-            x.clamp(min=self.eps).pow(self.p), (x.size(-2), x.size(-1))
-        ).pow(1.0 / self.p)
+        x = x.permute(0, 2, 1)
+        return F.avg_pool1d(x.clamp(min=self.eps).pow(self.p), (x.size(-1))).pow(1./self.p).unsqueeze(3)
 
 
 class GeM(nn.Module):
@@ -26,10 +25,11 @@ class GeM(nn.Module):
         out_dim: dimension of the output descriptor
     """
 
-    def __init__(self, in_dim, out_dim):
+    def __init__(self, features_dim, out_dim):
         super().__init__()
         self.gem = GeMPool()
-        self.fc = nn.Linear(in_dim, out_dim)
+        self.fc = nn.Linear(features_dim[1], out_dim)
+        self.features_dim = features_dim
 
     def forward(self, x):
         x = F.normalize(x, p=2, dim=1)

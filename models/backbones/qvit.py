@@ -146,6 +146,30 @@ class ViT(Qmodel):
             ff_layer_type=ff_layer_type,
         )
 
+    def freeze_all_except_last_n(self, n):
+        # Freeze patch embedding components
+        for module in self.to_patch_embedding.modules():
+            if isinstance(module, nn.Parameter):
+                module.requires_grad = False
+            if hasattr(module, 'freeze'):
+                module.freeze()
+        
+        # Freeze positional embeddings and cls token
+        self.pos_embedding.requires_grad = False
+        self.cls_token.requires_grad = False
+        
+        # Freeze transformer layers except last n
+        n_layers = len(self.transformer.layers)
+        layers_to_freeze = self.transformer.layers[:-n] if n > 0 else self.transformer.layers
+        
+        for idx, layer in enumerate(layers_to_freeze):
+            print(f"Freezing layer {idx}")
+            for module in layer.modules():
+                if isinstance(module, nn.Parameter):
+                    module.requires_grad = False
+                if hasattr(module, 'freeze'):
+                    module.freeze()
+
     def forward(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape

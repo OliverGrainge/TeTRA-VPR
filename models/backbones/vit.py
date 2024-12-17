@@ -108,6 +108,7 @@ class ViT(nn.Module):
         ff_layer_type=nn.Linear,
     ):
         super().__init__()
+        self.patch_size = patch_size
         image_height, image_width = image_size, image_size
         patch_height, patch_width = patch_size, patch_size
         num_patches = (image_height // patch_height) * (image_width // patch_width)
@@ -135,6 +136,26 @@ class ViT(nn.Module):
             attention_layer_type=attention_layer_type,
             ff_layer_type=ff_layer_type,
         )
+
+    def freeze_all_except_last_n(self, n):
+        # Freeze patch embedding components
+        for module in self.to_patch_embedding.modules():
+            if isinstance(module, nn.Parameter):
+                module.requires_grad = False
+        
+        # Freeze positional embeddings and cls token
+        self.pos_embedding.requires_grad = False
+        self.cls_token.requires_grad = False
+        
+        # Freeze transformer layers except last n
+        n_layers = len(self.transformer.layers)
+        layers_to_freeze = self.transformer.layers[:-n] if n > 0 else self.transformer.layers
+        
+        for idx, layer in enumerate(layers_to_freeze):
+            for module in layer.modules():
+                if isinstance(module, nn.Parameter):
+                    module.requires_grad = False
+
 
     def forward(self, img):
         x = self.to_patch_embedding(img)

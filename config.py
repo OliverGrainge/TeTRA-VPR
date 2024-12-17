@@ -158,7 +158,7 @@ class TeTRAConfig:
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 100
-    max_epochs: int = 30
+    max_epochs: int = 8
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
@@ -173,31 +173,34 @@ class TeTRAConfig:
     num_workers: int = 0
     checkpoint_dir: str = ""
 
+    #backbone freezing 
+    freeze_all_except_last_n: int=1
+
     # Cities
     cities: Tuple[str] = (
-        # "Bangkok",
-        # "BuenosAires",
-        # "LosAngeles",
-        # "MexicoCity",
-        # "OSL",
-        # "Rome",
-        # "Barcelona",
-        # "Chicago",
-        # "Madrid",
-        # "Miami",
-        # "Phoenix",
-        # "TRT",
+        "Bangkok",
+        "BuenosAires",
+        "LosAngeles",
+        "MexicoCity",
+        "OSL",
+        "Rome",
+        "Barcelona",
+        "Chicago",
+        "Madrid",
+        "Miami",
+        "Phoenix",
+        "TRT",
         "Boston",
-        # "Lisbon",
-        # "Medellin",
-        # "Minneapolis",
-        # "PRG",
-        # "WashingtonDC",
-        # "Brussels",
+        "Lisbon",
+        "Medellin",
+        "Minneapolis",
+        "PRG",
+        "WashingtonDC",
+        "Brussels",
         "London",
         "Melbourne",
-        # "Osaka",
-        # "PRS",
+        "Osaka",
+        "PRS",
     )
 
     # validation set 
@@ -224,6 +227,7 @@ class TeTRAConfig:
         group.add_argument("--cities", type=str, nargs="+", default=TeTRAConfig.cities)
         group.add_argument("--val_set_names", type=str, nargs="+", default=TeTRAConfig.val_set_names)
         group.add_argument("--quant_schedule", type=str, default=TeTRAConfig.quant_schedule)
+        group.add_argument("--freeze_all_except_last_n", type=str, default=TeTRAConfig.freeze_all_except_last_n)
         return parent_parser
 
     @classmethod

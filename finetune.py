@@ -16,9 +16,9 @@ def load_model(args):
         args.image_size,
         args.backbone_arch,
         args.agg_arch,
-        out_dim=args.out_dim,
         normalize_output=True,
     )
+
     if args.weights_path is not None: 
         if not os.path.exists(args.weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
@@ -31,20 +31,11 @@ def load_model(args):
         }
         
         # load_state_dict returns a NamedTuple with missing_keys and unexpected_keys
-        load_result = model.backbone.load_state_dict(backbone_sd, strict=False)
-        
-        print("\nMissing keys (weights in model but not in checkpoint):")
-        print("\n".join(load_result.missing_keys))
-        
-        print("\nSuccessfully loaded keys:")
-        successful_keys = [k for k in backbone_sd.keys() 
-                         if k not in load_result.unexpected_keys]
-        print("\n".join(successful_keys))
-
+        model.backbone.load_state_dict(backbone_sd, strict=True)
         for param in model.backbone.parameters():
             param.requires_grad = False
-        model.freeze()
-
+        model.backbone.freeze()
+        #model.backbone.freeze_all_except_last_n(args.freeze_all_except_last_n)
     return model
 
 
@@ -87,7 +78,6 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
-        limit_train_batches=200,
     )
 
     return trainer, model_module

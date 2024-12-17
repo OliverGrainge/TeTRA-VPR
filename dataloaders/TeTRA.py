@@ -236,7 +236,6 @@ class TeTRA(pl.LightningModule):
         self.batch_acc.append(batch_acc)
         self.log('q_b_acc', sum(self.batch_acc) /
                 len(self.batch_acc), prog_bar=True, logger=True)
-        print(loss.item())
         return loss
 
 
