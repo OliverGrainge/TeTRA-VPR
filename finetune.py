@@ -11,6 +11,7 @@ from config import DataConfig, ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 
+
 def load_model(args):
     model = get_model(
         args.image_size,
@@ -19,7 +20,7 @@ def load_model(args):
         normalize_output=True,
     )
 
-    if args.weights_path is not None: 
+    if args.weights_path is not None:
         if not os.path.exists(args.weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
@@ -29,12 +30,12 @@ def load_model(args):
             for k, v in sd.items()
             if k.startswith("backbone.")
         }
-        
+
         # load_state_dict returns a NamedTuple with missing_keys and unexpected_keys
         model.backbone.load_state_dict(backbone_sd, strict=True)
-        #for param in model.backbone.parameters():
+        # for param in model.backbone.parameters():
         #    param.requires_grad = False
-        #model.backbone.freeze()
+        # model.backbone.freeze()
         model.backbone.freeze_all_except_last_n(1)
     return model
 

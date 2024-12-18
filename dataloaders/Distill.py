@@ -18,11 +18,9 @@ from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
                                              get_feature_dim)
 from dataloaders.utils.Distill.schedulers import (QuantScheduler,
                                                   WeightDecayScheduler)
-from models.transforms import get_transform
 from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
-
 
 sys.path.append(
     os.path.abspath(
@@ -60,7 +58,7 @@ def adapt_descriptors_dim(
 class Distill(pl.LightningModule):
     def __init__(
         self,
-        train_dataset_dir, 
+        train_dataset_dir,
         val_dataset_dir,
         student_backbone_arch="ResNet50",
         student_agg_arch="MixVPR",
@@ -105,7 +103,9 @@ class Distill(pl.LightningModule):
             self.teacher,
             get_transform(preset=self.teacher_preset),
             self.student,
-            get_transform(augmentation_level=self.augmentation_level, image_size=self.image_size),
+            get_transform(
+                augmentation_level=self.augmentation_level, image_size=self.image_size
+            ),
         )
 
         freeze_model(self.teacher)
@@ -116,51 +116,102 @@ class Distill(pl.LightningModule):
         # Setup for 'fit' or 'validate'self
         if stage == "fit" or stage == "validate":
             self.val_datasets = []
-            val_transform = get_transform(augmentation_level="None", image_size=self.image_size)
+            val_transform = get_transform(
+                augmentation_level="None", image_size=self.image_size
+            )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
+
                     self.val_datasets.append(
-                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        PittsburghDataset30k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "pitts250k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset250k
+
                     self.val_datasets.append(
-                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        PittsburghDataset250k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
+
                     self.val_datasets.append(
-                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        MSLS(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
+
                     self.val_datasets.append(
-                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        NordlandDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
+
                     self.val_datasets.append(
-                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val"))
+                        SPEDDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
+                    )
                 elif "essex" in val_set_name.lower():
                     from dataloaders.val.EssexDataset import EssexDataset
+
                     self.val_datasets.append(
-                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        EssexDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "sanfrancicscosmall" in val_set_name.lower():
                     from dataloaders.val.SanFrancisco import SanFranciscoSmall
+
                     self.val_datasets.append(
-                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        SanFranciscoSmall(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "tokyo" in val_set_name.lower():
                     from dataloaders.val.Tokyo247 import Tokyo247
+
                     self.val_datasets.append(
-                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        Tokyo247(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "cross" in val_set_name.lower():
-                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    from dataloaders.val.CrossSeasonDataset import \
+                        CrossSeasonDataset
+
                     self.val_datasets.append(
-                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        CrossSeasonDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 else:
                     raise NotImplementedError(
@@ -361,7 +412,9 @@ class Distill(pl.LightningModule):
 
         dataset = DistillDataset(
             dataset=train_dataset,
-            student_transform=get_transform(augmentation_level=self.augmentation_level, image_size=self.image_size),
+            student_transform=get_transform(
+                augmentation_level=self.augmentation_level, image_size=self.image_size
+            ),
             teacher_transform=get_transform(preset=self.teacher_preset),
         )
         return DataLoader(

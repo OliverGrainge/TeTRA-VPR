@@ -47,6 +47,6 @@ class CrossSeasonDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"CrossSeason_{self.which_set}"

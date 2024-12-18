@@ -1,6 +1,4 @@
-import torch 
-
-
+import torch
 
 
 class QuantScheduler:
@@ -26,8 +24,10 @@ class QuantScheduler:
             scale = 0.2
         elif self.scheduler_type == "linear":
             scale = self._step_count / self.total_steps
-        else: 
-            raise NotImplementedError(f"Scheduler type {self.scheduler_type} not implemented")
+        else:
+            raise NotImplementedError(
+                f"Scheduler type {self.scheduler_type} not implemented"
+            )
         return scale
 
     def get_last_lr(self):

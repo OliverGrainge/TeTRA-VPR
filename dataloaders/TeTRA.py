@@ -1,27 +1,24 @@
+import argparse
 from collections import defaultdict
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
-from torch.utils.data.dataloader import DataLoader
 from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import CosineSimilarity
+from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
 
+from config import DataConfig, ModelConfig, TeTRAConfig
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
+from dataloaders.utils.TeTRA.distances import HammingDistance, binarize
 from dataloaders.utils.TeTRA.losses import get_loss, get_miner
-from models.transforms import get_transform
+from dataloaders.utils.TeTRA.schedulers import QuantScheduler
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
-from dataloaders.utils.TeTRA.distances import HammingDistance, binarize
-from dataloaders.utils.TeTRA.schedulers import QuantScheduler
-
-
-import argparse
-from config import DataConfig, TeTRAConfig, ModelConfig
-
+from models.transforms import get_transform
 
 
 class TeTRA(pl.LightningModule):
@@ -38,7 +35,7 @@ class TeTRA(pl.LightningModule):
         lr=0.0001,
         img_per_place=4,
         min_img_per_place=4,
-        scheduler_type="simgmoid"
+        scheduler_type="simgmoid",
     ):
         super().__init__()
         # Model parameters
@@ -51,18 +48,22 @@ class TeTRA(pl.LightningModule):
         self.fp_loss_fn = losses.MultiSimilarityLoss(
             alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
         )
-        self.fp_miner = miners.MultiSimilarityMiner(epsilon=0.1, distance=CosineSimilarity())
+        self.fp_miner = miners.MultiSimilarityMiner(
+            epsilon=0.1, distance=CosineSimilarity()
+        )
 
         # quantization aware loss and miner
         self.q_loss_fn = losses.MultiSimilarityLoss(
             alpha=1.0, beta=50, base=0.0, distance=HammingDistance()
         )
-        self.q_miner = miners.MultiSimilarityMiner(epsilon=0.1, distance=HammingDistance())
+        self.q_miner = miners.MultiSimilarityMiner(
+            epsilon=0.1, distance=HammingDistance()
+        )
 
         self.model = model
 
         # Data parameters
-        self.base_path = train_dataset_dir 
+        self.base_path = train_dataset_dir
         self.val_dataset_dir = val_dataset_dir
         self.batch_size = batch_size
         self.image_size = image_size
@@ -102,67 +103,121 @@ class TeTRA(pl.LightningModule):
         # Setup for 'fit' or 'validate'self
         if stage == "fit" or stage == "validate":
             self.val_datasets = []
-            val_transform = get_transform(augmentation_level="None", image_size=self.image_size)
+            val_transform = get_transform(
+                augmentation_level="None", image_size=self.image_size
+            )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
+
                     self.val_datasets.append(
-                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        PittsburghDataset30k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "pitts250k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset250k
+
                     self.val_datasets.append(
-                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        PittsburghDataset250k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
+
                     self.val_datasets.append(
-                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        MSLS(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
+
                     self.val_datasets.append(
-                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        NordlandDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
+
                     self.val_datasets.append(
-                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val"))
+                        SPEDDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
+                    )
                 elif "essex" in val_set_name.lower():
                     from dataloaders.val.EssexDataset import EssexDataset
+
                     self.val_datasets.append(
-                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        EssexDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "sanfrancicscosmall" in val_set_name.lower():
                     from dataloaders.val.SanFrancisco import SanFranciscoSmall
+
                     self.val_datasets.append(
-                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        SanFranciscoSmall(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "tokyo" in val_set_name.lower():
                     from dataloaders.val.Tokyo247 import Tokyo247
+
                     self.val_datasets.append(
-                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        Tokyo247(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 elif "cross" in val_set_name.lower():
-                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    from dataloaders.val.CrossSeasonDataset import \
+                        CrossSeasonDataset
+
                     self.val_datasets.append(
-                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
+                        CrossSeasonDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=val_transform,
+                            which_set="val",
+                        )
                     )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
                     )
-    
-    def _setup_schedulers(self): 
-        self.schedulers = {"quant": QuantScheduler(total_steps=self.trainer.estimated_stepping_batches, scheduler_type=self.scheduler_type)}
 
+    def _setup_schedulers(self):
+        self.schedulers = {
+            "quant": QuantScheduler(
+                total_steps=self.trainer.estimated_stepping_batches,
+                scheduler_type=self.scheduler_type,
+            )
+        }
 
     def _step_schedulers(self, batch_idx):
         if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
             for param_name, schd in self.schedulers.items():
                 schd.step()
                 self.log(param_name, schd.get_last_lr()[0], on_step=True)
-
 
     def reload(self):
         self.train_dataset = GSVCitiesDataset(
@@ -210,19 +265,22 @@ class TeTRA(pl.LightningModule):
             },
         }
 
-    def _fp_loss_func(self, descriptors, labels): 
+    def _fp_loss_func(self, descriptors, labels):
         miner_outputs = self.fp_miner(descriptors, labels)
         loss = self.fp_loss_fn(descriptors, labels, miner_outputs)
 
         nb_samples = descriptors.shape[0]
         nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
-        batch_acc = 1.0 - (nb_mined/nb_samples)
+        batch_acc = 1.0 - (nb_mined / nb_samples)
 
         self.batch_acc.append(batch_acc)
-        self.log('fp_b_acc', sum(self.batch_acc) /
-                len(self.batch_acc), prog_bar=True, logger=True)
+        self.log(
+            "fp_b_acc",
+            sum(self.batch_acc) / len(self.batch_acc),
+            prog_bar=True,
+            logger=True,
+        )
         return loss
-    
 
     def _q_loss_func(self, descriptors, labels):
         miner_outputs = self.q_miner(descriptors, labels)
@@ -230,32 +288,37 @@ class TeTRA(pl.LightningModule):
 
         nb_samples = descriptors.shape[0]
         nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
-        batch_acc = 1.0 - (nb_mined/nb_samples)
+        batch_acc = 1.0 - (nb_mined / nb_samples)
 
         self.batch_acc.append(batch_acc)
-        self.log('q_b_acc', sum(self.batch_acc) /
-                len(self.batch_acc), prog_bar=True, logger=True)
+        self.log(
+            "q_b_acc",
+            sum(self.batch_acc) / len(self.batch_acc),
+            prog_bar=True,
+            logger=True,
+        )
         return loss
 
-
-    def training_step(self, batch, batch_idx): 
-        places, labels = batch 
-        BS, N, ch, h, w = places.shape 
+    def training_step(self, batch, batch_idx):
+        places, labels = batch
+        BS, N, ch, h, w = places.shape
 
         images = places.view(BS * N, ch, h, w)
-        #n_images = imagage.
+        # n_images = imagage.
         labels = labels.view(-1)
         split_size = images.shape[0] // 2
         descriptors1 = self(images[:split_size])
         descriptors2 = self(images[split_size:])
         descriptors = {
-            "global_desc": torch.cat([descriptors1["global_desc"], descriptors2["global_desc"]], dim=0)
+            "global_desc": torch.cat(
+                [descriptors1["global_desc"], descriptors2["global_desc"]], dim=0
+            )
         }
-        #descriptors = self(images)
+        # descriptors = self(images)
 
         desc = descriptors["global_desc"]
         labels = labels.view(-1)
-        #============================================================
+        # ============================================================
         """
         desc_sample = desc[:2]
         labels_sample = labels[:2]
@@ -269,21 +332,18 @@ class TeTRA(pl.LightningModule):
         hamming_dist = 2 * ((qdesc_sample[0] != qdesc_sample[1]).sum() / qdesc_sample.shape[1])
         print(f"cosine_dist: {cosine_dist}, hamming_dist: {hamming_dist} error: {((torch.abs(hamming_dist - cosine_dist))/cosine_dist)*100}")
         """
-        #============================================================
+        # ============================================================
 
-        
-        
         fp_loss = self._fp_loss_func(descriptors["global_desc"], labels)
         q_loss = self._q_loss_func(descriptors["global_desc"], labels)
-        
+
         q_lambda = self.schedulers["quant"].get_last_lr()[0]
         loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
-        #self._step_schedulers(batch_idx)
-        self.log('fp_loss', fp_loss, prog_bar=True, logger=True)
-        self.log('q_loss', q_loss, prog_bar=True, logger=True)
-        self.log('loss', loss, prog_bar=True, logger=True)
+        # self._step_schedulers(batch_idx)
+        self.log("fp_loss", fp_loss, prog_bar=True, logger=True)
+        self.log("q_loss", q_loss, prog_bar=True, logger=True)
+        self.log("loss", loss, prog_bar=True, logger=True)
         return loss
-
 
     def on_validation_epoch_start(self):
         # Initialize or reset the list to store validation outputs
@@ -314,28 +374,44 @@ class TeTRA(pl.LightningModule):
                 set_outputs[key] = torch.concat(value, dim=0)
 
                 fp_recalls_dict, _, search_time = match_cosine(
-                    **set_outputs, 
+                    **set_outputs,
                     num_references=val_dataset.num_references,
                     ground_truth=val_dataset.ground_truth,
-                    k_values=[1, 5, 10]
+                    k_values=[1, 5, 10],
                 )
 
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = fp_recalls_dict["R1"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = fp_recalls_dict["R5"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = fp_recalls_dict["R10"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = search_time
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = (
+                    fp_recalls_dict["R1"]
+                )
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = (
+                    fp_recalls_dict["R5"]
+                )
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = (
+                    fp_recalls_dict["R10"]
+                )
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = (
+                    search_time
+                )
 
                 q_recalls_dict, _, search_time = match_hamming(
-                    **set_outputs, 
+                    **set_outputs,
                     num_references=val_dataset.num_references,
                     ground_truth=val_dataset.ground_truth,
-                    k_values=[1, 5, 10]
+                    k_values=[1, 5, 10],
                 )
 
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict["R1"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict["R5"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict["R10"]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = search_time
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict[
+                    "R1"
+                ]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict[
+                    "R5"
+                ]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict[
+                    "R10"
+                ]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = (
+                    search_time
+                )
 
         self.log_dict(
             full_recalls_dict,
@@ -355,12 +431,10 @@ class TeTRA(pl.LightningModule):
         return self.model.state_dict()
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
     parser = argparse.ArgumentParser()
     for config in [DataConfig, ModelConfig, TeTRAConfig]:
         parser = config.add_argparse_args(parser)
     args = parser.parse_args()
-
-

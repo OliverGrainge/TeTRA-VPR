@@ -150,16 +150,18 @@ class ViT(Qmodel):
         # Freeze patch embedding components
         for param in self.to_patch_embedding.parameters():
             param.requires_grad = False
-            #if hasattr(module, 'freeze'):
-                #module.freeze()
-        
+            # if hasattr(module, 'freeze'):
+            # module.freeze()
+
         # Freeze positional embeddings and cls token
         self.pos_embedding.requires_grad = False
         self.cls_token.requires_grad = False
-        
+
         # Freeze transformer layers except last n
         n_layers = len(self.transformer.layers)
-        layers_to_freeze = self.transformer.layers[:-n] if n > 0 else self.transformer.layers
+        layers_to_freeze = (
+            self.transformer.layers[:-n] if n > 0 else self.transformer.layers
+        )
         """
         for idx, layer in enumerate(layers_to_freeze):
             print(f"Freezing layer {idx}")
@@ -175,11 +177,11 @@ class ViT(Qmodel):
             for param in layer.parameters():
                 param.requires_grad = False
 
-        for name, param in self.named_parameters(): 
+        for name, param in self.named_parameters():
             print(name, param.requires_grad)
 
         for module in self.modules():
-            if hasattr(module, 'q_lambda'):
+            if hasattr(module, "q_lambda"):
                 module.q_labmda = 1.0
 
     def forward(self, img):

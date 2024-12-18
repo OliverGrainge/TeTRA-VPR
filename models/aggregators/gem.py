@@ -13,7 +13,11 @@ class GeMPool(nn.Module):
 
     def forward(self, x):
         x = x.permute(0, 2, 1)
-        return F.avg_pool1d(x.clamp(min=self.eps).pow(self.p), (x.size(-1))).pow(1./self.p).unsqueeze(3)
+        return (
+            F.avg_pool1d(x.clamp(min=self.eps).pow(self.p), (x.size(-1)))
+            .pow(1.0 / self.p)
+            .unsqueeze(3)
+        )
 
 
 class GeM(nn.Module):

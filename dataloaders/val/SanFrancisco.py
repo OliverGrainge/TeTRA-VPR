@@ -6,6 +6,7 @@ import yaml
 from PIL import Image
 from torch.utils.data import Dataset
 
+
 class SanFrancisco(Dataset):
     def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
         self.input_transform = input_transform
@@ -14,15 +15,19 @@ class SanFrancisco(Dataset):
         assert which_set in ["val", "test"]
         self.which_set = which_set
         # reference images names
-        self.dbImages = np.load(f"dataloaders/val/image_paths/sf_xl_large_{which_set}_dbImages.npy")
+        self.dbImages = np.load(
+            f"dataloaders/val/image_paths/sf_xl_large_{which_set}_dbImages.npy"
+        )
 
         # query images names
-        self.qImages = np.load(f"dataloaders/val/image_paths/sf_xl_large_{which_set}_qImages.npy")
+        self.qImages = np.load(
+            f"dataloaders/val/image_paths/sf_xl_large_{which_set}_qImages.npy"
+        )
 
         # ground truth
         self.ground_truth = np.load(
-            f"dataloaders/val/image_paths/sf_xl_large_{which_set}_gt.npy", 
-            allow_pickle=True
+            f"dataloaders/val/image_paths/sf_xl_large_{which_set}_gt.npy",
+            allow_pickle=True,
         )
 
         # reference images then query images
@@ -40,7 +45,6 @@ class SanFrancisco(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
-        return f"SFXL_large_{self.which_set}"
 
+    def __repr__(self):
+        return f"SFXL_large_{self.which_set}"

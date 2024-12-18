@@ -4,7 +4,6 @@ from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import (CosineSimilarity,
                                                DotProductSimilarity)
 
-
 # ==================== Greedy Hash =============================================
 
 

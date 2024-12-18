@@ -15,7 +15,6 @@ from config import DataConfig, DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
 
 
-
 def setup_training(args):
     model_module = Distill(
         train_dataset_dir=args.train_dataset_dir,
@@ -53,7 +52,7 @@ def setup_training(args):
 
     trainer = pl.Trainer(
         enable_progress_bar=args.pbar,
-        devices=1, 
+        devices=1,
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,

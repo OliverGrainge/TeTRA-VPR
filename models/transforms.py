@@ -1,7 +1,9 @@
-import torchvision.transforms as T
 from typing import Union
 
+import torchvision.transforms as T
+
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
+
 
 def _get_preset_transform(preset):
     if preset.lower() == "dinov2_boq":
@@ -70,8 +72,6 @@ def _get_preset_transform(preset):
     return transform
 
 
-
-
 def _get_augmentation(augmentation_level: str, image_size: Union[tuple, int]):
     if isinstance(image_size, int):
         image_size = (image_size, image_size)
@@ -120,7 +120,7 @@ def _get_augmentation(augmentation_level: str, image_size: Union[tuple, int]):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
-    
+
     elif augmentation_level.lower() == "light":
         return T.Compose(
             [
@@ -143,14 +143,19 @@ def _get_augmentation(augmentation_level: str, image_size: Union[tuple, int]):
         )
     else:
         raise Exception(f"Augmentation type {augmentation_level} not found")
-    
 
 
-def get_transform(augmentation_level: Union[str, None] = "None", image_size: Union[tuple, int] = (224, 224), preset: Union[str, None] = None): 
-    if preset is not None: 
+def get_transform(
+    augmentation_level: Union[str, None] = "None",
+    image_size: Union[tuple, int] = (224, 224),
+    preset: Union[str, None] = None,
+):
+    if preset is not None:
         return _get_preset_transform(preset=preset)
-    else: 
-        return _get_augmentation(augmentation_level=augmentation_level, image_size=image_size)
+    else:
+        return _get_augmentation(
+            augmentation_level=augmentation_level, image_size=image_size
+        )
 
 
 if __name__ == "__main__":
@@ -224,4 +229,3 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-

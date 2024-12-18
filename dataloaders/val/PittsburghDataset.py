@@ -23,14 +23,21 @@ class PittsburghDataset30k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_dbImages.npy", allow_pickle=True)
+        self.dbImages = np.load(
+            f"dataloaders/val/image_paths/pitts30k_{which_set}_dbImages.npy",
+            allow_pickle=True,
+        )
 
         # query images names
-        self.qImages = np.load(f"dataloaders/val/image_paths/pitts30k_{which_set}_qImages.npy", allow_pickle=True)
+        self.qImages = np.load(
+            f"dataloaders/val/image_paths/pitts30k_{which_set}_qImages.npy",
+            allow_pickle=True,
+        )
 
         # ground truth
         self.ground_truth = np.load(
-            f"dataloaders/val/image_paths/pitts30k_{which_set}_gt.npy", allow_pickle=True
+            f"dataloaders/val/image_paths/pitts30k_{which_set}_gt.npy",
+            allow_pickle=True,
         )
 
         # reference images then query images
@@ -48,8 +55,8 @@ class PittsburghDataset30k(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"Pittsburgh30k_{self.which_set}"
 
 
@@ -63,10 +70,16 @@ class PittsburghDataset250k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, "Pittsburgh-Query")
 
         # reference images names
-        self.dbImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy", allow_pickle=True)
+        self.dbImages = np.load(
+            f"image_paths/Pittsburgh/pitts30k_{which_set}_dbImages.npy",
+            allow_pickle=True,
+        )
 
         # query images names
-        self.qImages = np.load(f"image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy", allow_pickle=True)
+        self.qImages = np.load(
+            f"image_paths/Pittsburgh/pitts30k_{which_set}_qImages.npy",
+            allow_pickle=True,
+        )
 
         # ground truth
         self.ground_truth = np.load(
@@ -88,6 +101,6 @@ class PittsburghDataset250k(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"Pittsburgh250k_{self.which_set}"

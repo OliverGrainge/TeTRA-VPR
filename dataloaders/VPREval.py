@@ -1,19 +1,19 @@
+import time
 from collections import defaultdict
 
+import faiss
 import numpy as np
 import pytorch_lightning as pl
 import torch
 from PIL import Image
+from prettytable import PrettyTable
+from tabulate import tabulate
+from torch.cuda.amp import autocast
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-from tabulate import tabulate
-from prettytable import PrettyTable
+
+from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
-from matching.match_cosine import match_cosine
-import time
-from torch.cuda.amp import autocast
-import faiss
-from matching.match_cosine import match_cosine
 
 
 def get_sample_output(model, transform):
@@ -31,14 +31,14 @@ def get_model_memory(model, inputs):
     total_params = 0
     for name, param in model.named_parameters():
         total_params += param.numel() * param.element_size()
-        
+
     # Convert bytes to MB
     return total_params / (1024 * 1024)
 
 
 def get_runtime_memory(model, inputs):
     # Assumes GPU usage. If on CPU, consider psutil or skip.
-    
+
     if torch.cuda.is_available():
         samples = []
         for _ in range(5):
@@ -54,7 +54,7 @@ def get_runtime_memory(model, inputs):
             peak_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
         samples += [peak_memory]
         return np.mean(peak_memory)
-        
+
     else:
         # On CPU, we can't easily measure memory here without external tools.
         return 0.0
@@ -63,7 +63,7 @@ def get_runtime_memory(model, inputs):
 def get_model_inference_latency(model, inputs):
     model.eval()
     # warmup
-    for _ in range(3): 
+    for _ in range(3):
         _ = model(inputs)
     samples = []
     for _ in range(20):
@@ -77,8 +77,9 @@ def get_model_inference_latency(model, inputs):
         end = time.time()
         latency_ms = (end - start) * 1000.0
         samples.append(latency_ms)
-    
+
     return np.mean(samples)
+
 
 def float_to_binary_desc(desc):
     # Convert floating-point descriptors to binary and pack into bytes
@@ -88,47 +89,44 @@ def float_to_binary_desc(desc):
     packed = np.packbits(binary, axis=1)[:, :n_bytes]
     return packed
 
+
 def get_hamming_retrieval_latency(desc_size, ref_n=10000):
     query = np.random.randn(1, desc_size)
     reference = np.random.randn(ref_n, desc_size)
     binary_query = float_to_binary_desc(query)
     binary_reference = float_to_binary_desc(reference)
 
-    index = faiss.IndexBinaryFlat(
-        binary_reference.shape[1] * 8
-    )
+    index = faiss.IndexBinaryFlat(binary_reference.shape[1] * 8)
     index.add(binary_reference)
 
-    #warmup 
+    # warmup
     for _ in range(3):
         _, _ = index.search(binary_query, 1)
-    
+
     samples = []
-    for _ in range(5): 
+    for _ in range(5):
         start_time = time.time()
         _, _, index.search(binary_query, 1)
         samples.append((time.time() - start_time) * 1000.0)
     return np.mean(samples)
 
 
-
-def get_floating_retrieval_latency(desc_size, ref_n=10000): 
+def get_floating_retrieval_latency(desc_size, ref_n=10000):
     query = np.random.randn(1, desc_size)
     reference = np.random.randn(ref_n, desc_size)
 
     index = faiss.IndexFlatIP(reference.shape[1])
     index.add(reference)
-    #warmup 
+    # warmup
     for _ in range(3):
         _, _ = index.search(query, 1)
-    
+
     samples = []
-    for _ in range(5): 
+    for _ in range(5):
         start_time = time.time()
         _, _, index.search(query, 1)
         samples.append((time.time() - start_time) * 1000.0)
     return np.mean(samples)
-
 
 
 def get_floating_descriptor_size(model, inputs):
@@ -147,9 +145,8 @@ def get_binary_descriptor_size(model, inputs):
         descriptor = model(inputs)
         descriptor = descriptor["global_desc"]
     # descriptor is a torch.Tensor
-    size_in_bytes = (descriptor.numel() * descriptor.element_size())/8
+    size_in_bytes = (descriptor.numel() * descriptor.element_size()) / 8
     return size_in_bytes
-
 
 
 def get_descriptor_dim(model, inputs):
@@ -162,13 +159,14 @@ def get_descriptor_dim(model, inputs):
     dim = descriptor.shape[-1]
     return dim
 
+
 class VPREval(pl.LightningModule):
     def __init__(
         self,
         model,
         transform,
         val_set_names=["pitts30k"],
-        val_dataset_dir=None, 
+        val_dataset_dir=None,
         batch_size=32,
         num_workers=4,
         matching_function=match_cosine,
@@ -189,48 +187,97 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
+
                     self.val_datasets.append(
-                        PittsburghDataset30k(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        PittsburghDataset30k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "pitts250k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset250k
+
                     self.val_datasets.append(
-                        PittsburghDataset250k(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        PittsburghDataset250k(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
+
                     self.val_datasets.append(
-                        MSLS(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="val")
+                        MSLS(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="val",
+                        )
                     )
                 elif "nordland" in val_set_name.lower():
                     from dataloaders.val.NordlandDataset import NordlandDataset
+
                     self.val_datasets.append(
-                        NordlandDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        NordlandDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "sped" in val_set_name.lower():
                     from dataloaders.val.SPEDDataset import SPEDDataset
+
                     self.val_datasets.append(
-                        SPEDDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test"))
+                        SPEDDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
                 elif "essex" in val_set_name.lower():
                     from dataloaders.val.EssexDataset import EssexDataset
+
                     self.val_datasets.append(
-                        EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        EssexDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "sanf" in val_set_name.lower():
                     from dataloaders.val.SanFrancisco import SanFrancisco
+
                     self.val_datasets.append(
-                        SanFrancisco(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        SanFrancisco(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "tokyo" in val_set_name.lower():
                     from dataloaders.val.Tokyo247 import Tokyo247
+
                     self.val_datasets.append(
-                        Tokyo247(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        Tokyo247(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 elif "cross" in val_set_name.lower():
-                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
+                    from dataloaders.val.CrossSeasonDataset import \
+                        CrossSeasonDataset
+
                     self.val_datasets.append(
-                        CrossSeasonDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        CrossSeasonDataset(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
                     )
                 else:
                     raise NotImplementedError(
@@ -273,9 +320,7 @@ class VPREval(pl.LightningModule):
                 value.detach().cpu()
             )
         return descriptors["global_desc"].detach().cpu()
-    
 
-    
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
 
@@ -302,40 +347,48 @@ class VPREval(pl.LightningModule):
 
             # Perform cosine similarity matching
             fp_recalls_dict, _, cosine_search_time = match_cosine(
-                **set_outputs, 
+                **set_outputs,
                 num_references=val_dataset.num_references,
                 ground_truth=val_dataset.ground_truth,
-                k_values=[1, 5, 10]
+                k_values=[1, 5, 10],
             )
 
             # Extract dataset name (cleaning up the __repr__ if necessary)
             dataset_repr = val_dataset.__repr__()
-            dataset_name = " ".join(dataset_repr.split("_")[:-1]) if "_" in dataset_repr else dataset_repr
+            dataset_name = (
+                " ".join(dataset_repr.split("_")[:-1])
+                if "_" in dataset_repr
+                else dataset_repr
+            )
 
             # Update accuracy table for cosine similarity
-            accuracy_table.add_row([dataset_name, "Cosine", f"{fp_recalls_dict['R1']:.2f}"])
+            accuracy_table.add_row(
+                [dataset_name, "Cosine", f"{fp_recalls_dict['R1']:.2f}"]
+            )
 
             # Perform hamming distance matching
             q_recalls_dict, _, hamming_search_time = match_hamming(
-                **set_outputs, 
+                **set_outputs,
                 num_references=val_dataset.num_references,
                 ground_truth=val_dataset.ground_truth,
-                k_values=[1, 5, 10]
+                k_values=[1, 5, 10],
             )
 
             # Update accuracy table for hamming distance
-            accuracy_table.add_row([dataset_name, "Hamming", f"{q_recalls_dict['R1']:.3f}"])
-
-        
+            accuracy_table.add_row(
+                [dataset_name, "Hamming", f"{q_recalls_dict['R1']:.3f}"]
+            )
 
         # Generate a dummy input image and transform it
         img = torch.randint(0, 255, size=(224, 224, 3), dtype=torch.uint8).numpy()
         img = Image.fromarray(img)
-        inputs = self.transform(img).unsqueeze(0).to(next(self.model.parameters()).device)
+        inputs = (
+            self.transform(img).unsqueeze(0).to(next(self.model.parameters()).device)
+        )
 
         # Collect resource metrics
         feature_latency = get_model_inference_latency(self.model, inputs)
-        
+
         model_memory = get_model_memory(self.model, inputs)
         runtime_memory = get_runtime_memory(self.model, inputs)
         descriptor_size_floating = get_floating_descriptor_size(self.model, inputs)
@@ -344,34 +397,41 @@ class VPREval(pl.LightningModule):
         search_latency_hamming = get_hamming_retrieval_latency(descriptor_dim)
         search_latency_fp = get_floating_retrieval_latency(descriptor_dim)
 
-        resource_table.add_row(["Feature Extraction Latency", f"{feature_latency:.2f}", "ms"])
-        resource_table.add_row(["Search Latency Floating", f"{search_latency_fp:.2f}", "ms/10k"])
-        resource_table.add_row(["Search Latency Hamming", f"{search_latency_hamming:.2f}", "ms/10k"])
+        resource_table.add_row(
+            ["Feature Extraction Latency", f"{feature_latency:.2f}", "ms"]
+        )
+        resource_table.add_row(
+            ["Search Latency Floating", f"{search_latency_fp:.2f}", "ms/10k"]
+        )
+        resource_table.add_row(
+            ["Search Latency Hamming", f"{search_latency_hamming:.2f}", "ms/10k"]
+        )
         resource_table.add_row(["Model Memory", f"{model_memory:.2f}", "Mb"])
         resource_table.add_row(["Peak Runtime Memory", f"{runtime_memory:.2f}", "Mb"])
         resource_table.add_row(["Descriptor Dimension", f"{descriptor_dim}", "#"])
-        resource_table.add_row(["Descriptor Size Floating", f"{descriptor_size_floating}", "bytes"])
-        resource_table.add_row(["Descriptor Size binary", f"{descriptor_size_binary}", "bytes"])
-        
-
+        resource_table.add_row(
+            ["Descriptor Size Floating", f"{descriptor_size_floating}", "bytes"]
+        )
+        resource_table.add_row(
+            ["Descriptor Size binary", f"{descriptor_size_binary}", "bytes"]
+        )
 
         # Print accuracy results
         print(" ")
         print(" ")
         print(" ")
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("                 ACCURACY RESULTS")
-        print("="*50)
+        print("=" * 50)
         print(accuracy_table)
 
         # Print resource results
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("                 RESOURCE RESULTS")
-        print("="*50)
+        print("=" * 50)
         print(resource_table)
         print(" ")
         print(" ")
         print(" ")
 
         return None
-

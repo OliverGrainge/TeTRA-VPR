@@ -35,7 +35,7 @@ class MixVPR(nn.Module):
         mlp_ratio=1,
         out_rows=4,
         patch_size=None,
-        image_size=None, 
+        image_size=None,
     ) -> None:
         super().__init__()
 
@@ -65,11 +65,16 @@ class MixVPR(nn.Module):
         self.row_proj = nn.Linear(hw, out_rows)
 
     def forward(self, x):
-        if len(x.shape) == 3: 
+        if len(x.shape) == 3:
             B, T, C = x.shape
             # reduce input dimension using 3x3 conv when using ResNet
-            x = x[:, 1:] # remove the [CLS] token 
-            x = x.permute(0, 2, 1).view(B, C, self.image_size[0] // self.patch_size, self.image_size[1] // self.patch_size)
+            x = x[:, 1:]  # remove the [CLS] token
+            x = x.permute(0, 2, 1).view(
+                B,
+                C,
+                self.image_size[0] // self.patch_size,
+                self.image_size[1] // self.patch_size,
+            )
 
         x = x.flatten(2)
         x = self.mix(x)
@@ -79,5 +84,3 @@ class MixVPR(nn.Module):
         x = self.row_proj(x)
         x = F.normalize(x.flatten(1), p=2, dim=-1)
         return x
-
-

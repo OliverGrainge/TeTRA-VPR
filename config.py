@@ -55,7 +55,7 @@ class ModelConfig:
 
 @dataclass
 class EvalConfig:
-    # evaluation model 
+    # evaluation model
     preset: str = None
     # evaluation dataset
     val_set_names: Tuple[str] = ("SanFrancisco",)
@@ -69,10 +69,14 @@ class EvalConfig:
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("Eval")
         group.add_argument("--preset", type=str, default=EvalConfig.preset)
-        group.add_argument("--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names)
+        group.add_argument(
+            "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
+        )
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
-        group.add_argument("--image_size", type=int, nargs=2, default=EvalConfig.image_size)
+        group.add_argument(
+            "--image_size", type=int, nargs=2, default=EvalConfig.image_size
+        )
         return parent_parser
 
     @classmethod
@@ -80,6 +84,7 @@ class EvalConfig:
         return cls(
             **{k: v for k, v in vars(args).items() if k in cls.__dataclass_fields__}
         )
+
 
 @dataclass
 class DistillConfig:
@@ -117,7 +122,11 @@ class DistillConfig:
         )
         group.add_argument("--lr", type=float, default=DistillConfig.lr)
         group.add_argument("--batch_size", type=int, default=DistillConfig.batch_size)
-        group.add_argument("--accumulate_grad_batches", type=int, default=DistillConfig.accumulate_grad_batches)
+        group.add_argument(
+            "--accumulate_grad_batches",
+            type=int,
+            default=DistillConfig.accumulate_grad_batches,
+        )
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
         group.add_argument(
             "--mse_loss_mult", type=float, default=DistillConfig.mse_loss_mult
@@ -144,7 +153,9 @@ class DistillConfig:
         group.add_argument(
             "--checkpoint_dir", type=str, default=DistillConfig.checkpoint_dir
         )
-        group.add_argument("--val_set_names", type=str, nargs="+", default=DistillConfig.val_set_names)
+        group.add_argument(
+            "--val_set_names", type=str, nargs="+", default=DistillConfig.val_set_names
+        )
         group.add_argument("--precision", type=str, default=DistillConfig.precision)
         return parent_parser
 
@@ -175,8 +186,8 @@ class TeTRAConfig:
     num_workers: int = 0
     checkpoint_dir: str = ""
 
-    #backbone freezing 
-    freeze_all_except_last_n: int=1
+    # backbone freezing
+    freeze_all_except_last_n: int = 1
 
     # Cities
     cities: Tuple[str] = (
@@ -205,7 +216,7 @@ class TeTRAConfig:
         "PRS",
     )
 
-    # validation set 
+    # validation set
     val_set_names: Tuple[str] = ("pitts30k_val",)
 
     @staticmethod
@@ -227,9 +238,17 @@ class TeTRAConfig:
             "--checkpoint_dir", type=str, default=TeTRAConfig.checkpoint_dir
         )
         group.add_argument("--cities", type=str, nargs="+", default=TeTRAConfig.cities)
-        group.add_argument("--val_set_names", type=str, nargs="+", default=TeTRAConfig.val_set_names)
-        group.add_argument("--quant_schedule", type=str, default=TeTRAConfig.quant_schedule)
-        group.add_argument("--freeze_all_except_last_n", type=str, default=TeTRAConfig.freeze_all_except_last_n)
+        group.add_argument(
+            "--val_set_names", type=str, nargs="+", default=TeTRAConfig.val_set_names
+        )
+        group.add_argument(
+            "--quant_schedule", type=str, default=TeTRAConfig.quant_schedule
+        )
+        group.add_argument(
+            "--freeze_all_except_last_n",
+            type=str,
+            default=TeTRAConfig.freeze_all_except_last_n,
+        )
         return parent_parser
 
     @classmethod

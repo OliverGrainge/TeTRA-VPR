@@ -19,9 +19,6 @@ default_transform = T.Compose(
 )
 
 
-
-
-
 class GSVCitiesDataset(Dataset):
     def __init__(
         self,
@@ -61,14 +58,16 @@ class GSVCitiesDataset(Dataset):
         for each city in self.cities
         """
         # read the first city dataframe
-        df = pd.read_csv(os.path.join(self.base_path, "Dataframes/" + f"{self.cities[0]}.csv"))
+        df = pd.read_csv(
+            os.path.join(self.base_path, "Dataframes/" + f"{self.cities[0]}.csv")
+        )
         df = df.sample(frac=1)  # shuffle the city dataframe
 
         # append other cities one by one
         for i in range(1, len(self.cities)):
             tmp_df = pd.read_csv(
-                os.path.join(self.base_path, "Dataframes/" f"{self.cities[i]}.csv"
-            ))
+                os.path.join(self.base_path, "Dataframes/" f"{self.cities[i]}.csv")
+            )
 
             # Now we add a prefix to place_id, so that we
             # don't confuse, say, place number 13 of NewYork
@@ -107,7 +106,9 @@ class GSVCitiesDataset(Dataset):
         imgs = []
         for i, row in place.iterrows():
             img_name = self.get_img_name(row)
-            img_path = os.path.join(self.base_path, "Images/" + row["city_id"] + "/" + img_name)
+            img_path = os.path.join(
+                self.base_path, "Images/" + row["city_id"] + "/" + img_name
+            )
             img = self.image_loader(img_path)
 
             if self.transform is not None:

@@ -6,8 +6,7 @@ import torch
 import torchvision.transforms as T
 import yaml
 from PIL import Image
-from torch.utils.data import  Dataset
-
+from torch.utils.data import Dataset
 
 
 class MSLS(Dataset):
@@ -39,5 +38,5 @@ class MSLS(Dataset):
     def __len__(self):
         return len(self.images)
 
-    def __repr__(self): 
+    def __repr__(self):
         return f"MSLS_{self.which_set}"

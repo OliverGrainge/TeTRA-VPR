@@ -28,8 +28,7 @@ class SPEDDataset(Dataset):
 
         # ground truth
         self.ground_truth = np.load(
-            "dataloaders/val/image_paths/SPED_gt.npy", 
-            allow_pickle=True
+            "dataloaders/val/image_paths/SPED_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -47,6 +46,6 @@ class SPEDDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"SPEDTEST_{self.which_set}"

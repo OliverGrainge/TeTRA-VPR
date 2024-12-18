@@ -172,8 +172,8 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
     elif "mixvpr" in agg_arch.lower():
         config = {}
         config["in_channels"] = features_dim[1]
-        config["in_h"] = int((features_dim[0]-1)**0.5)
-        config["in_w"] = int((features_dim[0]-1)**0.5)
+        config["in_h"] = int((features_dim[0] - 1) ** 0.5)
+        config["in_w"] = int((features_dim[0] - 1) ** 0.5)
         config["out_channels"] = 1024
         config["mix_depth"] = 4
         config["mlp_ratio"] = 1
@@ -189,12 +189,16 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
         config["num_clusters"] = 64
         config["cluster_dim"] = 128
         return aggregators.SALAD(**config)
-    
+
     elif "boq" in agg_arch.lower():
-        return aggregators.BoQ(patch_size=14, image_size=image_size, in_channels=features_dim[1], proj_channels=512, num_queries=64, row_dim=12288//512)
-
-
-
+        return aggregators.BoQ(
+            patch_size=14,
+            image_size=image_size,
+            in_channels=features_dim[1],
+            proj_channels=512,
+            num_queries=64,
+            row_dim=12288 // 512,
+        )
 
 
 class VPRModel(Qmodel):
@@ -250,6 +254,3 @@ def get_model(
     else:
         model.descriptor_dim = desc.shape[1]
     return model
-
-
-

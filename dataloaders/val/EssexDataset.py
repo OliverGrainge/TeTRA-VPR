@@ -28,7 +28,9 @@ class EssexDataset(Dataset):
         self.qImages = np.load("dataloaders/val/image_paths/ESSEX_qImages.npy")
 
         # ground truth
-        self.ground_truth = np.load("dataloaders/val/image_paths/ESSEX_gt.npy", allow_pickle=True)
+        self.ground_truth = np.load(
+            "dataloaders/val/image_paths/ESSEX_gt.npy", allow_pickle=True
+        )
 
         # reference images then query images
         self.images = np.concatenate((self.dbImages, self.qImages))
@@ -46,6 +48,6 @@ class EssexDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"ESSEX3IN1_{self.which_set}"

@@ -20,8 +20,7 @@ class Tokyo247(Dataset):
 
         # ground truth
         self.ground_truth = np.load(
-            "dataloaders/val/image_paths/tokyo247_gt.npy", 
-            allow_pickle=True
+            "dataloaders/val/image_paths/tokyo247_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -39,6 +38,6 @@ class Tokyo247(Dataset):
 
     def __len__(self):
         return len(self.images)
-    
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"Tokyo247_{self.which_set}"
