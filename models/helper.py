@@ -171,12 +171,16 @@ def get_aggregator(agg_arch, features_dim, image_size, out_dim=1000):
 
     elif "mixvpr" in agg_arch.lower():
         config = {}
-        config["channel_number"] = features_dim[1]
-        config["token_dim"] = features_dim[0]
+        config["in_channels"] = features_dim[1]
+        config["in_h"] = int((features_dim[0]-1)**0.5)
+        config["in_w"] = int((features_dim[0]-1)**0.5)
+        config["out_channels"] = 1024
         config["mix_depth"] = 4
+        config["mlp_ratio"] = 1
         config["out_rows"] = 4
-        config["out_channels"] = 4096 // config["out_rows"]
-        return aggregators.MixVPR(features_dim=features_dim, config=config)
+        config["patch_size"] = 14
+        config["image_size"] = image_size
+        return aggregators.MixVPR(**config)
 
     elif "salad" in agg_arch.lower():
         config = {}

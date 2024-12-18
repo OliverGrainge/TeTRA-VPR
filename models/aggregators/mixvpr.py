@@ -24,7 +24,7 @@ class FeatureMixerLayer(nn.Module):
         return x + self.mix(x)
 
 
-class MixVPR_Conv(nn.Module):
+class MixVPR(nn.Module):
     def __init__(
         self,
         in_channels=1024,
@@ -34,6 +34,8 @@ class MixVPR_Conv(nn.Module):
         mix_depth=1,
         mlp_ratio=1,
         out_rows=4,
+        patch_size=None,
+        image_size=None, 
     ) -> None:
         super().__init__()
 
@@ -49,6 +51,9 @@ class MixVPR_Conv(nn.Module):
             mlp_ratio  # ratio of the mid projection layer in the mixer block
         )
 
+        self.patch_size = patch_size
+        self.image_size = image_size
+
         hw = in_h * in_w
         self.mix = nn.Sequential(
             *[
@@ -60,6 +65,12 @@ class MixVPR_Conv(nn.Module):
         self.row_proj = nn.Linear(hw, out_rows)
 
     def forward(self, x):
+        if len(x.shape) == 3: 
+            B, T, C = x.shape
+            # reduce input dimension using 3x3 conv when using ResNet
+            x = x[:, 1:] # remove the [CLS] token 
+            x = x.permute(0, 2, 1).view(B, C, self.image_size[0] // self.patch_size, self.image_size[1] // self.patch_size)
+
         x = x.flatten(2)
         x = self.mix(x)
         x = x.permute(0, 2, 1)
@@ -70,52 +81,3 @@ class MixVPR_Conv(nn.Module):
         return x
 
 
-class MixVPR_Token(nn.Module):
-    def __init__(
-        self,
-        channel_number=1024,
-        token_dim=196,
-        out_channels=512,
-        mix_depth=1,
-        mlp_ratio=1,
-        out_rows=4,
-    ) -> None:
-        super().__init__()
-
-        self.channel_number = channel_number
-        self.token_dim = token_dim
-        self.in_channels = self.token_dim  # depth of input feature maps
-
-        self.out_channels = out_channels  # depth wise projection dimension
-        self.out_rows = out_rows  # row wise projection dimesion
-
-        self.mix_depth = mix_depth  # L the number of stacked FeatureMixers
-        self.mlp_ratio = (
-            mlp_ratio  # ratio of the mid projection layer in the mixer block
-        )
-
-        hw = self.channel_number
-        self.mix = nn.Sequential(
-            *[
-                FeatureMixerLayer(in_dim=hw, mlp_ratio=mlp_ratio)
-                for _ in range(self.mix_depth)
-            ]
-        )
-        self.channel_proj = nn.Linear(self.in_channels, out_channels)
-        self.row_proj = nn.Linear(hw, out_rows)
-
-    def forward(self, x):
-        x = self.mix(x)
-        x = x.permute(0, 2, 1)
-        x = self.channel_proj(x)
-        x = x.permute(0, 2, 1)
-        x = self.row_proj(x)
-        x = F.normalize(x.flatten(1), p=2, dim=-1)
-        return x
-
-
-def MixVPR(features_dim, config):
-    if len(features_dim) == 2:
-        return MixVPR_Token(**config)
-    else:
-        return MixVPR_Conv(**config)
