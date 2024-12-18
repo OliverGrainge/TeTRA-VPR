@@ -32,10 +32,10 @@ def load_model(args):
         
         # load_state_dict returns a NamedTuple with missing_keys and unexpected_keys
         model.backbone.load_state_dict(backbone_sd, strict=True)
-        for param in model.backbone.parameters():
-            param.requires_grad = False
+        #for param in model.backbone.parameters():
+        #    param.requires_grad = False
         #model.backbone.freeze()
-        #model.backbone.freeze_all_except_last_n(0)
+        model.backbone.freeze_all_except_last_n(1)
     return model
 
 
@@ -78,7 +78,6 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
-        limit_train_batches=200,
     )
 
     return trainer, model_module

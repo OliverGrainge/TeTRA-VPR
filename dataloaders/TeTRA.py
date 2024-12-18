@@ -243,8 +243,15 @@ class TeTRA(pl.LightningModule):
         BS, N, ch, h, w = places.shape 
 
         images = places.view(BS * N, ch, h, w)
+        #n_images = imagage.
         labels = labels.view(-1)
-        descriptors = self(images)
+        split_size = images.shape[0] // 2
+        descriptors1 = self(images[:split_size])
+        descriptors2 = self(images[split_size:])
+        descriptors = {
+            "global_desc": torch.cat([descriptors1["global_desc"], descriptors2["global_desc"]], dim=0)
+        }
+        #descriptors = self(images)
 
         desc = descriptors["global_desc"]
         labels = labels.view(-1)

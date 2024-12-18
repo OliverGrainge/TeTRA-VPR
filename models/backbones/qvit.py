@@ -148,9 +148,8 @@ class ViT(Qmodel):
 
     def freeze_all_except_last_n(self, n):
         # Freeze patch embedding components
-        for module in self.to_patch_embedding.modules():
-            if isinstance(module, nn.Parameter):
-                module.requires_grad = False
+        for param in self.to_patch_embedding.parameters():
+            param.requires_grad = False
             #if hasattr(module, 'freeze'):
                 #module.freeze()
         
@@ -161,7 +160,7 @@ class ViT(Qmodel):
         # Freeze transformer layers except last n
         n_layers = len(self.transformer.layers)
         layers_to_freeze = self.transformer.layers[:-n] if n > 0 else self.transformer.layers
-        
+        """
         for idx, layer in enumerate(layers_to_freeze):
             print(f"Freezing layer {idx}")
             for module in layer.modules():
@@ -169,6 +168,16 @@ class ViT(Qmodel):
                     module.requires_grad = False
                 #if hasattr(module, 'freeze'):
                 #    module.freeze()
+        """
+
+        for idx, layer in enumerate(layers_to_freeze):
+            print(f"Freezing layer {idx}")
+            for param in layer.parameters():
+                param.requires_grad = False
+
+        for name, param in self.named_parameters(): 
+            print(name, param.requires_grad)
+
         for module in self.modules():
             if hasattr(module, 'q_lambda'):
                 module.q_labmda = 1.0
