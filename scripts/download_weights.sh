@@ -1,1 +1,1 @@
-rsync -av oeg1n18@loginX001.iridis.soton.ac.uk:/home/oeg1n18/QuantPlaceFinder/checkpoints/Distill/ ../checkpoints/Distill/
+rsync -av --progress oeg1n18@loginX001.iridis.soton.ac.uk:/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA/ ../checkpoints/TeTRA/

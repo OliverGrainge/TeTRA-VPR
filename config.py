@@ -6,8 +6,8 @@ from typing import List, Optional, Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
-    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -58,11 +58,12 @@ class EvalConfig:
     # evaluation model 
     preset: str = None
     # evaluation dataset
-    val_set_names: Tuple[str] = ("pitts30k_val",)
+    val_set_names: Tuple[str] = ("sped", "essex")
 
     # evaluation runtime
     batch_size: int = 32
     num_workers: int = 4
+    image_size: Tuple[int] = (224, 224)
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -71,6 +72,7 @@ class EvalConfig:
         group.add_argument("--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names)
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
+        group.add_argument("--image_size", type=int, nargs=2, default=EvalConfig.image_size)
         return parent_parser
 
     @classmethod
@@ -104,7 +106,7 @@ class DistillConfig:
     num_workers: int = 0
     pbar: bool = False
     checkpoint_dir: str = ""
-    val_set_names: Tuple[str] = ("Pitts30k_val",)
+    val_set_names: Tuple[str] = ("Pitts30k",)
     precision: str = "bf16-mixed"
 
     @staticmethod

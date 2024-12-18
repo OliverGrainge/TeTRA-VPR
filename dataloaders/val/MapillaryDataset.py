@@ -24,9 +24,9 @@ class MSLS(Dataset):
         )
 
         # reference images then query images
-        self.images = np.concatenate((self.dbImages, self.qImages[self.qIdx]))
+        self.images = np.concatenate((self.dbImages, self.qImages))
         self.num_references = len(self.dbImages)
-        self.num_queries = len(self.qImages[self.qIdx])
+        self.num_queries = len(self.qImages)
 
     def __getitem__(self, index):
         img = Image.open(os.path.join(self.dataset_root, self.images[index]))

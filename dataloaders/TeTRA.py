@@ -320,10 +320,10 @@ class TeTRA(pl.LightningModule):
                     k_values=[1, 5, 10]
                 )
 
-                full_recalls_dict[f"{val_set_name}_fp32_R1"] = fp_recalls_dict["R1"]
-                full_recalls_dict[f"{val_set_name}_fp32_R5"] = fp_recalls_dict["R5"]
-                full_recalls_dict[f"{val_set_name}_fp32_R10"] = fp_recalls_dict["R10"]
-                full_recalls_dict[f"{val_set_name}_fp32_search_time"] = search_time
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = fp_recalls_dict["R1"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = fp_recalls_dict["R5"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = fp_recalls_dict["R10"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = search_time
 
                 q_recalls_dict, _, search_time = match_hamming(
                     **set_outputs, 
@@ -332,10 +332,10 @@ class TeTRA(pl.LightningModule):
                     k_values=[1, 5, 10]
                 )
 
-                full_recalls_dict[f"{val_set_name}_q_R1"] = q_recalls_dict["R1"]
-                full_recalls_dict[f"{val_set_name}_q_R5"] = q_recalls_dict["R5"]
-                full_recalls_dict[f"{val_set_name}_q_R10"] = q_recalls_dict["R10"]
-                full_recalls_dict[f"{val_set_name}_q_search_time"] = search_time
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict["R1"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict["R5"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict["R10"]
+                full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = search_time
 
         self.log_dict(
             full_recalls_dict,
