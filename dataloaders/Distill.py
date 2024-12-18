@@ -148,7 +148,7 @@ class Distill(pl.LightningModule):
                         EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )
                 elif "sanfrancicscosmall" in val_set_name.lower():
-                    from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
+                    from dataloaders.val.SanFrancisco import SanFranciscoSmall
                     self.val_datasets.append(
                         SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=val_transform, which_set="val")
                     )

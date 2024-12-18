@@ -217,10 +217,10 @@ class VPREval(pl.LightningModule):
                     self.val_datasets.append(
                         EssexDataset(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
-                elif "sanfrancicscosmall" in val_set_name.lower():
-                    from dataloaders.val.SanFranciscoSmall import SanFranciscoSmall
+                elif "sanf" in val_set_name.lower():
+                    from dataloaders.val.SanFrancisco import SanFrancisco
                     self.val_datasets.append(
-                        SanFranciscoSmall(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
+                        SanFrancisco(val_dataset_dir=self.val_dataset_dir, input_transform=self.transform, which_set="test")
                     )
                 elif "tokyo" in val_set_name.lower():
                     from dataloaders.val.Tokyo247 import Tokyo247
@@ -234,7 +234,7 @@ class VPREval(pl.LightningModule):
                     )
                 else:
                     raise NotImplementedError(
-                        f"Validation set {val_set_name} not implemented"
+                        f"Evaluation set {val_set_name} not implemented"
                     )
 
     def val_dataloader(self):

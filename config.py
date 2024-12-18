@@ -58,7 +58,7 @@ class EvalConfig:
     # evaluation model 
     preset: str = None
     # evaluation dataset
-    val_set_names: Tuple[str] = ("sped", "essex")
+    val_set_names: Tuple[str] = ("SanFrancisco",)
 
     # evaluation runtime
     batch_size: int = 32
