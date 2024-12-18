@@ -1,0 +1,170 @@
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:26: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241218_012103-qzwzcp1y
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/qzwzcp1y
+/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /iridisfs/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA/backbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322] exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 87.4 M | train
+------------------------------------------------------------
+1.4 M     Trainable params
+86.0 M    Non-trainable params
+87.4 M    Total params
+349.467   Total estimated model params size (MB)
+287       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+`Trainer.fit` stopped: `max_epochs=8` reached.
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:26: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241218_022305-oawypcsi
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/oawypcsi
+/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /iridisfs/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA/backbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224] exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 87.2 M | train
+------------------------------------------------------------
+1.4 M     Trainable params
+85.7 M    Non-trainable params
+87.2 M    Total params
+348.629   Total estimated model params size (MB)
+287       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 303, in _run_finalizers
+    finalizer()
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 227, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 136, in _remove_temp_dir
+    rmtree(tempdir, onerror=onerror)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 759, in rmtree
+    _rmtree_safe_fd(stack, onexc)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 703, in _rmtree_safe_fd
+    onexc(func, path, err)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 750, in onexc
+    return onerror(func, path, exc_info)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 662, in _rmtree_safe_fd
+    os.rmdir(name, dir_fd=dirfd)
+OSError: [Errno 39] Directory not empty: '/tmp/pymp-r6ewpya1'
+`Trainer.fit` stopped: `max_epochs=8` reached.
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:26: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241218_025621-oa1387qg
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_small_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/oa1387qg
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 26.1 M | train
+------------------------------------------------------------
+821 K     Trainable params
+25.3 M    Non-trainable params
+26.1 M    Total params
+104.429   Total estimated model params size (MB)
+287       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+`Trainer.fit` stopped: `max_epochs=8` reached.
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:26: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241218_033754-t25ca5m0
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_small_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/t25ca5m0
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 26.0 M | train
+------------------------------------------------------------
+821 K     Trainable params
+25.2 M    Non-trainable params
+26.0 M    Total params
+104.010   Total estimated model params size (MB)
+287       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 303, in _run_finalizers
+    finalizer()
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 227, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/multiprocessing/util.py", line 136, in _remove_temp_dir
+    rmtree(tempdir, onerror=onerror)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 759, in rmtree
+    _rmtree_safe_fd(stack, onexc)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 703, in _rmtree_safe_fd
+    onexc(func, path, err)
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 750, in onexc
+    return onerror(func, path, exc_info)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/ixsoftware/conda/miniconda-py3/lib/python3.12/shutil.py", line 662, in _rmtree_safe_fd
+    os.rmdir(name, dir_fd=dirfd)
+OSError: [Errno 39] Directory not empty: '/tmp/pymp-k3d0m_ib'
+`Trainer.fit` stopped: `max_epochs=8` reached.

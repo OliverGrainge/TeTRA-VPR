@@ -1,0 +1,36 @@
+Using cache found in /home/oeg1n18/.cache/torch/hub/facebookresearch_dinov2_main
+/home/oeg1n18/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/home/oeg1n18/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/home/oeg1n18/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241128_114324-ef4f57m1
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_base_plrbitlinear]_agg[salad]_teacher[dinosalad]_res[322x322]_aug[severe]_decay[sigmoid]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/distill
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/distill/runs/ef4f57m1
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name    | Type     | Params | Mode 
+---------------------------------------------
+0 | teacher | VPRModel | 88.0 M | train
+1 | student | VPRModel | 87.4 M | train
+2 | adapter | Identity | 0      | train
+---------------------------------------------
+87.4 M    Trainable params
+88.0 M    Non-trainable params
+175 M     Total params
+701.433   Total estimated model params size (MB)
+505       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+`Trainer.fit` stopped: `max_epochs=3` reached.

@@ -6,8 +6,8 @@ from typing import List, Optional, Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
+    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:

@@ -34,8 +34,8 @@ def load_model(args):
         model.backbone.load_state_dict(backbone_sd, strict=True)
         for param in model.backbone.parameters():
             param.requires_grad = False
-        model.backbone.freeze()
-        #model.backbone.freeze_all_except_last_n(args.freeze_all_except_last_n)
+        #model.backbone.freeze()
+        #model.backbone.freeze_all_except_last_n(0)
     return model
 
 
@@ -78,6 +78,7 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
+        limit_train_batches=200,
     )
 
     return trainer, model_module

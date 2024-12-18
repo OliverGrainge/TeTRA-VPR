@@ -1,0 +1,33 @@
+Running SLURM prolog script on swarma1002
+===============================================================================
+Job started on Sat Nov 23 14:13:00 GMT 2024
+Job ID          : 33307
+Job name        : vitsmall_fp_322_moderateaug
+WorkDir         : /iridisfs/home/oeg1n18/QuantPlaceFinder
+Command         : /iridisfs/home/oeg1n18/QuantPlaceFinder/jobfiles/distill_vitsmall_fp_moderateaug_322.slurm
+Partition       : swarm_a100
+Num hosts       : 1
+Num cores       : 16
+Num of tasks    : 1
+Hosts allocated : swarma1002
+Job Output Follows ...
+===============================================================================
+==============================================================================
+Running epilogue script on swarma1002.
+
+Submit time  : 2024-11-23T14:12:59
+Start time   : 2024-11-23T14:13:00
+End time     : 2024-11-23T14:13:13
+Elapsed time : 00:00:13 (Timelimit=2-11:00:00)
+
+Job ID: 33307
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: FAILED (exit code 2)
+Nodes: 1
+Cores per node: 16
+CPU Utilized: 00:00:07
+CPU Efficiency: 3.37% of 00:03:28 core-walltime
+Job Wall-clock time: 00:00:13
+Memory Utilized: 2.48 MB
+Memory Efficiency: 0.00% of 128.00 GB

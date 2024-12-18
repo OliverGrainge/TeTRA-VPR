@@ -1,0 +1,13 @@
+Elapsed time : 00:20:35 (Timelimit=2-11:00:00)
+
+Job ID: 62048
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: CANCELLED (exit code 0)
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 00:16:23
+CPU Efficiency: 6.63% of 04:07:00 core-walltime
+Job Wall-clock time: 00:20:35
+Memory Utilized: 66.65 GB
+Memory Efficiency: 52.07% of 128.00 GB

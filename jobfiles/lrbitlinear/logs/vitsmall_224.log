@@ -1,0 +1,715 @@
+Running SLURM prolog script on swarma1002
+===============================================================================
+Job started on Tue Dec 10 19:27:06 GMT 2024
+Job ID          : 56831
+Job name        : vitsmall_224
+WorkDir         : /iridisfs/home/oeg1n18/QuantPlaceFinder
+Command         : /iridisfs/home/oeg1n18/QuantPlaceFinder/jobfiles/lrbitlinear/vitsmall_224.slurm
+Partition       : swarm_a100
+Num hosts       : 1
+Num cores       : 16
+Num of tasks    : 1
+Hosts allocated : swarma1002
+Job Output Follows ...
+===============================================================================
+torch.Size([3, 322, 322])
+torch.Size([3, 322, 322])
+torch.Size([3, 224, 224])
+========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+Teacher and student have the same descriptor dimension. No adaptation needed.
+========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+VPRModel(
+  (backbone): ViT(
+    (to_patch_embedding): Sequential(
+      (0): Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=14, p2=14)
+      (1): LayerNorm((588,), eps=1e-05, elementwise_affine=True)
+      (2): Linear(in_features=588, out_features=384, bias=True)
+      (3): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+    )
+    (dropout): Dropout(p=0.1, inplace=False)
+    (transformer): Transformer(
+      (norm): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+      (layers): ModuleList(
+        (0-11): 12 x ModuleList(
+          (0): Attention(
+            (norm): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+            (attend): Softmax(dim=-1)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (to_qkv): LRBitLinear
+            (to_out): Sequential(
+              (0): LRBitLinear
+              (1): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (1): FeedForward(
+            (net): Sequential(
+              (0): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+              (1): LRBitLinear
+              (2): GELU(approximate='none')
+              (3): Dropout(p=0.1, inplace=False)
+              (4): LRBitLinear
+              (5): Dropout(p=0.1, inplace=False)
+            )
+          )
+        )
+      )
+    )
+  )
+  (aggreagtion): SALAD(
+    (token_features): Sequential(
+      (0): Linear(in_features=384, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=256, bias=True)
+    )
+    (cluster_features): Sequential(
+      (0): Conv2d(384, 512, kernel_size=(1, 1), stride=(1, 1))
+      (1): Dropout(p=0.3, inplace=False)
+      (2): ReLU()
+      (3): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1))
+    )
+    (score): Sequential(
+      (0): Conv2d(384, 512, kernel_size=(1, 1), stride=(1, 1))
+      (1): Dropout(p=0.3, inplace=False)
+      (2): ReLU()
+      (3): Conv2d(512, 64, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+Scanning directory: /scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas
+Found subdirectories. Scanning each:
+  37.71: 228643 images
+  37.76: 412361 images
+  37.72: 235935 images
+  37.78: 438066 images
+  37.74: 311148 images
+  37.70: 163665 images
+  37.80: 188416 images
+  37.77: 458764 images
+  37.73: 347857 images
+  37.79: 309385 images
+  37.75: 335999 images
+  37.81: 853 images
+Total images found: 3431092
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  |  8.6356 |
+| Pitts30k_val_R5  | 22.7261 |
+| Pitts30k_val_R10 | 32.5447 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  |  9.8975 |
+| Pitts30k_val_R5  | 25.7098 |
+| Pitts30k_val_R10 | 36.2907 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 11.8822 |
+| Pitts30k_val_R5  | 28.9958 |
+| Pitts30k_val_R10 | 40.4311 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 15.4837 |
+| Pitts30k_val_R5  | 34.6872 |
+| Pitts30k_val_R10 | 47.6078 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 18.2965 |
+| Pitts30k_val_R5  | 40.6546 |
+| Pitts30k_val_R10 | 53.1414 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 26.3407 |
+| Pitts30k_val_R5  | 51.5379 |
+| Pitts30k_val_R10 | 63.3281 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 37.2371 |
+| Pitts30k_val_R5  | 61.8428 |
+| Pitts30k_val_R10 | 71.6877 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 42.7050 |
+| Pitts30k_val_R5  | 66.4958 |
+| Pitts30k_val_R10 | 75.6178 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 45.7545 |
+| Pitts30k_val_R5  | 68.6251 |
+| Pitts30k_val_R10 | 77.3922 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 49.8817 |
+| Pitts30k_val_R5  | 72.4369 |
+| Pitts30k_val_R10 | 80.0868 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 54.9290 |
+| Pitts30k_val_R5  | 75.9727 |
+| Pitts30k_val_R10 | 83.0442 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 62.1714 |
+| Pitts30k_val_R5  | 81.9926 |
+| Pitts30k_val_R10 | 88.1309 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 64.9974 |
+| Pitts30k_val_R5  | 83.8591 |
+| Pitts30k_val_R10 | 89.4322 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 68.0205 |
+| Pitts30k_val_R5  | 85.6335 |
+| Pitts30k_val_R10 | 90.5100 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 67.6393 |
+| Pitts30k_val_R5  | 85.7124 |
+| Pitts30k_val_R10 | 90.7334 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 67.6393 |
+| Pitts30k_val_R5  | 85.8964 |
+| Pitts30k_val_R10 | 90.7597 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 74.9343 |
+| Pitts30k_val_R5  | 89.9054 |
+| Pitts30k_val_R10 | 93.3754 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 76.0121 |
+| Pitts30k_val_R5  | 90.8517 |
+| Pitts30k_val_R10 | 94.1509 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 74.5794 |
+| Pitts30k_val_R5  | 89.6951 |
+| Pitts30k_val_R10 | 93.3360 |
++------------------+---------+
+Skipping corrupted image: 2639231
+Skipping corrupted image: 3014996
+Skipping corrupted image: 3283479
+Skipping corrupted image: 1263776
+Skipping corrupted image: 2421385
+Skipping corrupted image: 3057859
+Skipping corrupted image: 723652
+Skipping corrupted image: 995626
+Skipping corrupted image: 3359030
+Skipping corrupted image: 1661876
+Skipping corrupted image: 1357413
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 75.1314 |
+| Pitts30k_val_R5  | 90.1551 |
+| Pitts30k_val_R10 | 93.6383 |
++------------------+---------+
+Scanning directory: /scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas
+Found subdirectories. Scanning each:
+  37.71: 228643 images
+  37.76: 412361 images
+  37.72: 235935 images
+  37.78: 438066 images
+  37.74: 311148 images
+  37.70: 163665 images
+  37.80: 188416 images
+  37.77: 458764 images
+  37.73: 347857 images
+  37.79: 309385 images
+  37.75: 335999 images
+  37.81: 853 images
+Total images found: 3431092
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 75.9595 |
+| Pitts30k_val_R5  | 90.8649 |
+| Pitts30k_val_R10 | 94.0457 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 75.3417 |
+| Pitts30k_val_R5  | 90.6809 |
+| Pitts30k_val_R10 | 93.9143 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 78.5358 |
+| Pitts30k_val_R5  | 92.2976 |
+| Pitts30k_val_R10 | 95.4653 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 77.6157 |
+| Pitts30k_val_R5  | 91.7981 |
+| Pitts30k_val_R10 | 94.8738 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 77.3396 |
+| Pitts30k_val_R5  | 91.3775 |
+| Pitts30k_val_R10 | 94.4664 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 82.9390 |
+| Pitts30k_val_R5  | 93.9537 |
+| Pitts30k_val_R10 | 95.9911 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.1362 |
+| Pitts30k_val_R5  | 94.4401 |
+| Pitts30k_val_R10 | 96.5300 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 81.2566 |
+| Pitts30k_val_R5  | 93.1388 |
+| Pitts30k_val_R10 | 95.6099 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 81.3617 |
+| Pitts30k_val_R5  | 93.7566 |
+| Pitts30k_val_R10 | 96.0699 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 80.2445 |
+| Pitts30k_val_R5  | 93.1651 |
+| Pitts30k_val_R10 | 95.7413 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 81.7692 |
+| Pitts30k_val_R5  | 93.5857 |
+| Pitts30k_val_R10 | 96.0699 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 81.9926 |
+| Pitts30k_val_R5  | 93.9932 |
+| Pitts30k_val_R10 | 96.5563 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 82.8601 |
+| Pitts30k_val_R5  | 94.3218 |
+| Pitts30k_val_R10 | 96.5563 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 82.0058 |
+| Pitts30k_val_R5  | 93.4411 |
+| Pitts30k_val_R10 | 95.9122 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.2413 |
+| Pitts30k_val_R5  | 94.5715 |
+| Pitts30k_val_R10 | 96.6220 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 82.8733 |
+| Pitts30k_val_R5  | 94.2298 |
+| Pitts30k_val_R10 | 96.1488 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.3312 |
+| Pitts30k_val_R5  | 94.9264 |
+| Pitts30k_val_R10 | 96.7008 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.3454 |
+| Pitts30k_val_R5  | 94.8081 |
+| Pitts30k_val_R10 | 96.7271 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.3060 |
+| Pitts30k_val_R5  | 94.7161 |
+| Pitts30k_val_R10 | 96.5957 |
++------------------+---------+
+Skipping corrupted image: 3057859
+Skipping corrupted image: 2421385
+Skipping corrupted image: 1357413
+Skipping corrupted image: 1661876
+Skipping corrupted image: 3283479
+Skipping corrupted image: 995626
+Skipping corrupted image: 3359030
+Skipping corrupted image: 2639231
+Skipping corrupted image: 3014996
+Skipping corrupted image: 723652
+Skipping corrupted image: 1263776
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 82.8996 |
+| Pitts30k_val_R5  | 94.0063 |
+| Pitts30k_val_R10 | 95.9779 |
++------------------+---------+
+Scanning directory: /scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas
+Found subdirectories. Scanning each:
+  37.71: 228643 images
+  37.76: 412361 images
+  37.72: 235935 images
+  37.78: 438066 images
+  37.74: 311148 images
+  37.70: 163665 images
+  37.80: 188416 images
+  37.77: 458764 images
+  37.73: 347857 images
+  37.79: 309385 images
+  37.75: 335999 images
+  37.81: 853 images
+Total images found: 3431092
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.2403 |
+| Pitts30k_val_R5  | 94.9395 |
+| Pitts30k_val_R10 | 96.7534 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.6488 |
+| Pitts30k_val_R5  | 94.8212 |
+| Pitts30k_val_R10 | 96.8454 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.7671 |
+| Pitts30k_val_R5  | 94.3086 |
+| Pitts30k_val_R10 | 96.5168 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.0300 |
+| Pitts30k_val_R5  | 94.9001 |
+| Pitts30k_val_R10 | 96.6877 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.9117 |
+| Pitts30k_val_R5  | 94.8081 |
+| Pitts30k_val_R10 | 96.3985 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 86.1856 |
+| Pitts30k_val_R5  | 95.3470 |
+| Pitts30k_val_R10 | 97.2135 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 86.2382 |
+| Pitts30k_val_R5  | 95.2156 |
+| Pitts30k_val_R10 | 97.1215 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.1998 |
+| Pitts30k_val_R5  | 95.1498 |
+| Pitts30k_val_R10 | 96.8586 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 83.9380 |
+| Pitts30k_val_R5  | 94.6109 |
+| Pitts30k_val_R10 | 96.3722 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.5163 |
+| Pitts30k_val_R5  | 94.7029 |
+| Pitts30k_val_R10 | 96.5957 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.8580 |
+| Pitts30k_val_R5  | 95.0447 |
+| Pitts30k_val_R10 | 96.8323 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.4495 |
+| Pitts30k_val_R5  | 95.2024 |
+| Pitts30k_val_R10 | 96.8323 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.7913 |
+| Pitts30k_val_R5  | 95.1893 |
+| Pitts30k_val_R10 | 96.8454 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.7913 |
+| Pitts30k_val_R5  | 95.2419 |
+| Pitts30k_val_R10 | 96.9637 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.3049 |
+| Pitts30k_val_R5  | 95.3996 |
+| Pitts30k_val_R10 | 96.8849 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 84.9895 |
+| Pitts30k_val_R5  | 95.1367 |
+| Pitts30k_val_R10 | 96.9506 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 86.5668 |
+| Pitts30k_val_R5  | 95.3076 |
+| Pitts30k_val_R10 | 97.0032 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 86.7376 |
+| Pitts30k_val_R5  | 95.4916 |
+| Pitts30k_val_R10 | 96.9506 |
++------------------+---------+
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.6204 |
+| Pitts30k_val_R5  | 95.1630 |
+| Pitts30k_val_R10 | 96.7928 |
++------------------+---------+
+Skipping corrupted image: 3057859
+Skipping corrupted image: 723652
+Skipping corrupted image: 1263776
+Skipping corrupted image: 3283479
+Skipping corrupted image: 1661876
+Skipping corrupted image: 1357413
+Skipping corrupted image: 995626
+Skipping corrupted image: 3359030
+Skipping corrupted image: 2421385
+Skipping corrupted image: 2639231
+Skipping corrupted image: 3014996
+
+Results for Pitts30k_val:
++------------------+---------+
+|      Metric      |  Value  |
++------------------+---------+
+| Pitts30k_val_R1  | 85.8438 |
+| Pitts30k_val_R5  | 95.1761 |
+| Pitts30k_val_R10 | 96.7666 |
++------------------+---------+
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_lrbitlinear]_agg[salad]_teacher[dinosalad]_res[224x224]_aug[severe]_decay[constant][0m at: [34mhttps://wandb.ai/vpr_minds/distill/runs/4ls1dudy[0m
+==============================================================================
+Running epilogue script on swarma1002.
+
+Submit time  : 2024-12-10T19:27:05
+Start time   : 2024-12-10T19:27:06
+End time     : 2024-12-11T15:18:13
+Elapsed time : 19:51:07 (Timelimit=2-11:00:00)
+
+Job ID: 56831
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: COMPLETED (exit code 0)
+Nodes: 1
+Cores per node: 16
+CPU Utilized: 3-08:13:38
+CPU Efficiency: 25.26% of 13-05:37:52 core-walltime
+Job Wall-clock time: 19:51:07
+Memory Utilized: 161.44 GB
+Memory Efficiency: 126.12% of 128.00 GB

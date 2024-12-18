@@ -151,8 +151,8 @@ class ViT(Qmodel):
         for module in self.to_patch_embedding.modules():
             if isinstance(module, nn.Parameter):
                 module.requires_grad = False
-            if hasattr(module, 'freeze'):
-                module.freeze()
+            #if hasattr(module, 'freeze'):
+                #module.freeze()
         
         # Freeze positional embeddings and cls token
         self.pos_embedding.requires_grad = False
@@ -167,8 +167,11 @@ class ViT(Qmodel):
             for module in layer.modules():
                 if isinstance(module, nn.Parameter):
                     module.requires_grad = False
-                if hasattr(module, 'freeze'):
-                    module.freeze()
+                #if hasattr(module, 'freeze'):
+                #    module.freeze()
+        for module in self.modules():
+            if hasattr(module, 'q_lambda'):
+                module.q_labmda = 1.0
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
