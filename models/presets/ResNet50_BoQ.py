@@ -1,13 +1,15 @@
 import torch
+import contextlib import io
 
 
 def ResNet50_BoQ():
-    model = torch.hub.load(
-        "amaralibey/bag-of-queries",
-        "get_trained_boq",
-        backbone_name="resnet50",
-        output_dim=16384,
-    )
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        model = torch.hub.load(
+            "amaralibey/bag-of-queries",
+            "get_trained_boq",
+            backbone_name="resnet50",
+            output_dim=16384,
+        )
 
     original_forward = model.forward
 

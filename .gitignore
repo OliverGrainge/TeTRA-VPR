@@ -10,7 +10,7 @@ cache/
 */wandb/*
 /checkpoints/
 scratch.py
-
+*.npy
 # Ignore everything in jobfiles/logs
 jobfiles/logs/*
 

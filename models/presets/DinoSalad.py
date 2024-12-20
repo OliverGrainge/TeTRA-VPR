@@ -3,6 +3,8 @@ import math
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import contextlib 
+import io
 
 from models import helper
 
@@ -287,18 +289,18 @@ def DinoSalad(
         "cluster_dim": 128,
         "token_dim": 256,
     }
-
-    model = VPRModel(
-        backbone_arch=backbone,
-        backbone_config=backbone_args,
-        agg_arch="SALAD",
-        agg_config=agg_args,
-    )
-
-    model.load_state_dict(
-        torch.hub.load_state_dict_from_url(
-            f"https://github.com/serizba/salad/releases/download/v1.0.0/dino_salad.ckpt",
-            map_location=torch.device("cpu"),
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        model = VPRModel(
+            backbone_arch=backbone,
+            backbone_config=backbone_args,
+            agg_arch="SALAD",
+            agg_config=agg_args,
         )
-    )
+
+        model.load_state_dict(
+            torch.hub.load_state_dict_from_url(
+                f"https://github.com/serizba/salad/releases/download/v1.0.0/dino_salad.ckpt",
+                map_location=torch.device("cpu"),
+            )
+        )
     return model

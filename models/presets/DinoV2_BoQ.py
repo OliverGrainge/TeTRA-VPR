@@ -1,13 +1,15 @@
 import torch
-
+import io 
+import contextlib
 
 def DinoV2_BoQ():
-    model = torch.hub.load(
-        "amaralibey/bag-of-queries",
-        "get_trained_boq",
-        backbone_name="dinov2",
-        output_dim=12288,
-    )
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        model = torch.hub.load(
+            "amaralibey/bag-of-queries",
+            "get_trained_boq",
+            backbone_name="dinov2",
+            output_dim=12288,
+        )
 
     # Modify the forward method to return only the first element of the tuple
     original_forward = model.forward
