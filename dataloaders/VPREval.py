@@ -48,8 +48,7 @@ def get_runtime_memory(model, inputs):
             # Forward pass with mixed precision
             model.eval()
             with torch.no_grad():
-                with autocast():
-                    _ = model(inputs)
+                _ = model(inputs)
 
             peak_memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
         samples += [peak_memory]
@@ -170,6 +169,7 @@ class VPREval(pl.LightningModule):
         batch_size=32,
         num_workers=4,
         matching_function=match_cosine,
+        silent=False,
     ):
         super().__init__()
         self.model = model
@@ -180,6 +180,7 @@ class VPREval(pl.LightningModule):
         self.val_set_names = val_set_names
         self.matching_function = matching_function
         self.val_dataset_dir = val_dataset_dir
+        self.silent = silent
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
@@ -249,7 +250,7 @@ class VPREval(pl.LightningModule):
                         )
                     )
                 elif "sanf" in val_set_name.lower():
-                    from dataloaders.val.SanFrancisco import SanFrancisco
+                    from dataloaders.val.SanFranciscoDataset import SanFrancisco
 
                     self.val_datasets.append(
                         SanFrancisco(
@@ -259,7 +260,7 @@ class VPREval(pl.LightningModule):
                         )
                     )
                 elif "tokyo" in val_set_name.lower():
-                    from dataloaders.val.Tokyo247 import Tokyo247
+                    from dataloaders.val.Tokyo247Dataset import Tokyo247
 
                     self.val_datasets.append(
                         Tokyo247(
@@ -279,6 +280,57 @@ class VPREval(pl.LightningModule):
                             which_set="test",
                         )
                     )
+                elif "sanf" in val_set_name.lower():
+                    from dataloaders.val.SanFranciscoDataset import SanFrancisco
+
+                    self.val_datasets.append(
+                        SanFrancisco(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
+                elif "amstertime" in val_set_name.lower():
+                    from dataloaders.val.AmsterTimeDataset import AmsterTime
+
+                    self.val_datasets.append(
+                        AmsterTime(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
+                elif "eynsham" in val_set_name.lower():
+                    from dataloaders.val.EynshamDataset import Eynsham
+
+                    self.val_datasets.append(
+                        Eynsham(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
+                elif "svox" in val_set_name.lower():
+                    from dataloaders.val.SVOXDataset import SVOX
+                    if "svox" == val_set_name.lower():
+                        self.val_datasets.append(
+                            SVOX(
+                                val_dataset_dir=self.val_dataset_dir,
+                                input_transform=self.transform,
+                                which_set="test",
+                            )
+                        )
+                    else: 
+                        condition = val_set_name.split("_")[1]
+                        self.val_datasets.append(
+                            SVOX(
+                                val_dataset_dir=self.val_dataset_dir,
+                                input_transform=self.transform,
+                                which_set="test",
+                                condition=condition,
+                            )
+                        )
+                
                 else:
                     raise NotImplementedError(
                         f"Evaluation set {val_set_name} not implemented"
@@ -337,7 +389,14 @@ class VPREval(pl.LightningModule):
         resource_table.align["Value"] = "r"
         resource_table.align["Unit"] = "l"
 
+        # Initialize results dictionary
+        results = {
+            "accuracy": [],
+            "resources": {}
+        }
+
         # Iterate through each validation set
+        accuracy_results = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
 
@@ -363,8 +422,9 @@ class VPREval(pl.LightningModule):
 
             # Update accuracy table for cosine similarity
             accuracy_table.add_row(
-                [dataset_name, "Cosine", f"{fp_recalls_dict['R1']:.2f}"]
+                [dataset_name, "Cosine", f"{fp_recalls_dict['R1']:.1f}"]
             )
+
 
             # Perform hamming distance matching
             q_recalls_dict, _, hamming_search_time = match_hamming(
@@ -376,8 +436,16 @@ class VPREval(pl.LightningModule):
 
             # Update accuracy table for hamming distance
             accuracy_table.add_row(
-                [dataset_name, "Hamming", f"{q_recalls_dict['R1']:.3f}"]
+                [dataset_name, "Hamming", f"{q_recalls_dict['R1']:.1f}"]
             )
+
+            # Add hamming results to dictionary
+            accuracy_results = accuracy_results | {
+                "dataset": dataset_name,
+                f'{dataset_name}_hamming_R@1': q_recalls_dict["R1"],
+                f'{dataset_name}_cosine_R@1': fp_recalls_dict["R1"],
+            }
+            
 
         # Generate a dummy input image and transform it
         img = torch.randint(0, 255, size=(224, 224, 3), dtype=torch.uint8).numpy()
@@ -388,7 +456,6 @@ class VPREval(pl.LightningModule):
 
         # Collect resource metrics
         feature_latency = get_model_inference_latency(self.model, inputs)
-
         model_memory = get_model_memory(self.model, inputs)
         runtime_memory = get_runtime_memory(self.model, inputs)
         descriptor_size_floating = get_floating_descriptor_size(self.model, inputs)
@@ -397,6 +464,7 @@ class VPREval(pl.LightningModule):
         search_latency_hamming = get_hamming_retrieval_latency(descriptor_dim)
         search_latency_fp = get_floating_retrieval_latency(descriptor_dim)
 
+        # Update resource table
         resource_table.add_row(
             ["Feature Extraction Latency", f"{feature_latency:.2f}", "ms"]
         )
@@ -413,25 +481,40 @@ class VPREval(pl.LightningModule):
             ["Descriptor Size Floating", f"{descriptor_size_floating}", "bytes"]
         )
         resource_table.add_row(
-            ["Descriptor Size binary", f"{descriptor_size_binary}", "bytes"]
+            ["Descriptor Size Binary", f"{descriptor_size_binary}", "bytes"]
         )
 
+        # Add resource metrics to dictionary
+        results["accuracy"] = accuracy_results
+        results["resources"] = {
+            "feature_extraction_latency": feature_latency,
+            "search_latency_floating": search_latency_fp,
+            "search_latency_hamming": search_latency_hamming,
+            "model_memory": model_memory,
+            "runtime_memory": runtime_memory,
+            "descriptor_dimension": descriptor_dim,
+            "descriptor_size_floating": descriptor_size_floating,
+            "descriptor_size_binary": descriptor_size_binary,
+        }
+
         # Print accuracy results
-        print(" ")
-        print(" ")
-        print(" ")
-        print("\n" + "=" * 50)
-        print("                 ACCURACY RESULTS")
-        print("=" * 50)
-        print(accuracy_table)
+        if not self.silent:
+            print(" ")
+            print(" ")
+            print(" ")
+            print("\n" + "=" * 50)
+            print("                 ACCURACY RESULTS")
+            print("=" * 50)
+            print(accuracy_table)
 
-        # Print resource results
-        print("\n" + "=" * 50)
-        print("                 RESOURCE RESULTS")
-        print("=" * 50)
-        print(resource_table)
-        print(" ")
-        print(" ")
-        print(" ")
+            # Print resource results
+            print("\n" + "=" * 50)
+            print("                 RESOURCE RESULTS")
+            print("=" * 50)
+            print(resource_table)
+            print(" ")
+            print(" ")
+            print(" ")
 
-        return None
+        self.results = results
+        return results

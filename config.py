@@ -58,12 +58,14 @@ class EvalConfig:
     # evaluation model
     preset: str = None
     # evaluation dataset
-    val_set_names: Tuple[str] = ("SanFrancisco",)
+    val_set_names: Tuple[str] = ("sped", "essex")
 
     # evaluation runtime
     batch_size: int = 32
     num_workers: int = 4
     image_size: Tuple[int] = (224, 224)
+    silent: bool = False
+    checkpoints_dir: str = "./checkpoints/TeTRA/"
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -77,6 +79,8 @@ class EvalConfig:
         group.add_argument(
             "--image_size", type=int, nargs=2, default=EvalConfig.image_size
         )
+        group.add_argument("--silent", type=bool, default=EvalConfig.silent)
+        group.add_argument("--checkpoints_dir", type=str, default=EvalConfig.checkpoints_dir)
         return parent_parser
 
     @classmethod

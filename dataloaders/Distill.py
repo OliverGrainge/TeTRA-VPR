@@ -183,7 +183,7 @@ class Distill(pl.LightningModule):
                         )
                     )
                 elif "sanfrancicscosmall" in val_set_name.lower():
-                    from dataloaders.val.SanFrancisco import SanFranciscoSmall
+                    from dataloaders.val.SanFranciscoDataset import SanFranciscoSmall
 
                     self.val_datasets.append(
                         SanFranciscoSmall(
@@ -193,7 +193,7 @@ class Distill(pl.LightningModule):
                         )
                     )
                 elif "tokyo" in val_set_name.lower():
-                    from dataloaders.val.Tokyo247 import Tokyo247
+                    from dataloaders.val.Tokyo247Dataset import Tokyo247
 
                     self.val_datasets.append(
                         Tokyo247(
