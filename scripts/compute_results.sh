@@ -3,7 +3,7 @@
 # Define variables
 batch_size=64
 num_workers=12
-val_set_names=("pitts30k" "tokyo247" "eynsham" "svox" "svox_rain" "svox_night" "svox_sun" "amstertime" "sf_xl")
+val_set_names=("pitts30k" "amstertime" "tokyo247" "eynsham")
 
 #define the presets to evaluate
 presets=("CosPlaces" "DinoSalad" "EigenPlaces" "DinoV2_BoQ" "ResNet50_BoQ")
