@@ -13,13 +13,15 @@ class SVOX(Dataset):
         if which_set != "test":
             raise ValueError("SVOX only supports test set")
         
-        assert condition in ["overcast", "sun", "snow", None, "rain", "night"], "SVOX only supports overcast and sunny conditions"
+        assert condition in ["overcast", "sun", "snow", None, "rain", "night"], f"SVOX only supports overcast, sun, snow, rain, and night. You gave {condition}"
         self.condition = condition
+        print("==============================================", condition)
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir)
         self.which_set = which_set
         assert which_set == "test", "Tokyo247 only supports test set"
         # reference images names
+        
         if condition is None:
             self.dbImages = np.load(f"dataloaders/val/image_paths/svox_{which_set}_dbImages.npy")
         else:

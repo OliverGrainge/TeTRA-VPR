@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Define variables
-batch_size=64
+batch_size=128
 num_workers=12
-val_set_names=("pitts30k" "amstertime" "tokyo247" "eynsham")
+val_set_names=("svox_night", "svox_sun", "svox_rain", "svox_snow")
 
 #define the presets to evaluate
 presets=("CosPlaces" "DinoSalad" "EigenPlaces" "DinoV2_BoQ" "ResNet50_BoQ")
 
 
 # define the TeTRA models to evaluate
-backbone_archs=("vit_base_PLRBitLinear" "vit_base_PLRBitLinear" "vit_small_PLRBitLinear" "vit_small_PLRBitLinear")
+backbone_archs=("vit_base_PLRBitLinear" "vit_small_PLRBitLinear")
 agg_archs=("salad" "gem" "boq" "mixvpr")
 image_size=("224" "322")
 
@@ -20,16 +20,16 @@ image_size=("224" "322")
 echo "================================================================================="
 echo "=============================== Baseline models ================================"
 echo "================================================================================="
-for preset in "${presets[@]}"; do
-    for val_set in "${val_set_names[@]}"; do
-        echo "========================================"
-        echo "Running evaluation for preset:"
-        echo "  PRESET: $preset"
-        echo "  VAL SET: $val_set"
-        echo "========================================"
-        python eval.py --preset "$preset" --batch_size $batch_size --num_workers $num_workers --val_set_names $val_set --silent True
-    done
-done
+#for preset in "${presets[@]}"; do
+#    for val_set in "${val_set_names[@]}"; do
+#        echo "========================================"#
+#        echo "Running evaluation for preset:"
+#        echo "  PRESET: $preset"
+#        echo "  VAL SET: $val_set"
+#        echo "========================================"
+#        python eval.py --preset "$preset" --batch_size $batch_size --num_workers $num_workers --val_set_names $val_set --silent True
+#    done
+#done
 
 
 echo " "
