@@ -14,12 +14,12 @@ class MSLS(Dataset):
 
         self.input_transform = input_transform
         self.which_set = which_set
-        assert which_set == "val", "MSLS only supports val set"
-        self.dataset_root = os.path.join(val_dataset_dir, "msls_val")
-        self.dbImages = np.load("dataloaders/val/image_paths/msls_val_dbImages.npy")
-        self.qImages = np.load("dataloaders/val/image_paths/msls_val_qImages.npy")
+        assert which_set in ["val", "test"], "MSLS only supports val and test set"
+        self.dataset_root = os.path.join(val_dataset_dir)
+        self.dbImages = np.load(f"dataloaders/val/image_paths/msls_{which_set}_dbImages.npy")
+        self.qImages = np.load(f"dataloaders/val/image_paths/msls_{which_set}_qImages.npy")
         self.ground_truth = np.load(
-            "dataloaders/val/image_paths/msls_val_gt.npy", allow_pickle=True
+            f"dataloaders/val/image_paths/msls_{which_set}_gt.npy", allow_pickle=True
         )
 
         # reference images then query images
@@ -28,7 +28,7 @@ class MSLS(Dataset):
         self.num_queries = len(self.qImages)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.dataset_root, self.images[index]))
+        img = Image.open(os.path.join(self.dataset_root, self.images[index])).convert("RGB")
 
         if self.input_transform:
             img = self.input_transform(img)

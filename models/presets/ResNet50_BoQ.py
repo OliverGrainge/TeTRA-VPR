@@ -1,5 +1,6 @@
 import torch
-import contextlib import io
+import contextlib 
+import io
 
 
 def ResNet50_BoQ():

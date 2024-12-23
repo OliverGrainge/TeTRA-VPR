@@ -33,72 +33,6 @@ def find_best_match(target_string, list_of_strings):
     return None
 
 
-def get_preset_transform(preset):
-    if preset.lower() == "dinov2_boq":
-        transform = T.Compose(
-            [
-                T.ToTensor(),
-                T.Resize(
-                    (322, 322),
-                    interpolation=T.InterpolationMode.BICUBIC,
-                    antialias=True,
-                ),
-                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-    elif preset.lower() == "resnet50_boq":
-        transform = T.Compose(
-            [
-                T.ToTensor(),
-                T.Resize(
-                    (384, 384),
-                    interpolation=T.InterpolationMode.BICUBIC,
-                    antialias=True,
-                ),
-                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-    elif preset.lower() == "dinosalad":
-        transform = T.Compose(
-            [
-                T.ToTensor(),
-                T.Resize(
-                    (322, 322),
-                    interpolation=T.InterpolationMode.BICUBIC,
-                    antialias=True,
-                ),
-                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-    elif preset.lower() == "eigenplaces":
-        transform = T.Compose(
-            [
-                T.ToTensor(),
-                T.Resize(
-                    (512, 512),
-                    interpolation=T.InterpolationMode.BICUBIC,
-                    antialias=True,
-                ),
-                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-    elif preset.lower() == "cosplaces":
-        transform = T.Compose(
-            [
-                T.ToTensor(),
-                T.Resize(
-                    (512, 512),
-                    interpolation=T.InterpolationMode.BICUBIC,
-                    antialias=True,
-                ),
-                T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-
-    else:
-        raise ValueError(f"Unknown preset: {preset}")
-    return transform
-
 
 def get_backbone(backbone_arch, image_size):
     """Helper function that returns the backbone given its name
@@ -232,7 +166,12 @@ def get_model(
     preset=None,
 ):
     if preset is not None:
-        module = importlib.import_module(f"models.presets.{preset}")
+        if "EigenPlaces" in preset:
+            module.importlib.import_module(f"models.presets.EigenPlaces")
+        elif "CosPlaces" in preset:
+            module = importlib.import_module(f"models.presets.CosPlaces")
+        else:
+            module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
         return model()
 

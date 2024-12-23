@@ -330,7 +330,16 @@ class VPREval(pl.LightningModule):
                                 condition=condition,
                             )
                         )
-                
+                elif "msls" in val_set_name.lower():
+                    from dataloaders.val.MapillaryDataset import MSLS
+
+                    self.val_datasets.append(
+                        MSLS(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
                 else:
                     raise NotImplementedError(
                         f"Evaluation set {val_set_name} not implemented"

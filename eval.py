@@ -47,6 +47,8 @@ def save_results(accuracy_results, resource_results):
                     if pd.isna(existing_df.at[row_index, key]) or existing_df.at[row_index, key] == "":
                         existing_df.at[row_index, key] = value
         else:
+            # Remove empty or all-NA columns from new_df before concatenation
+            new_df = new_df.dropna(axis=1, how='all')
             # Append the new results to the existing DataFrame
             existing_df = pd.concat([existing_df, new_df], ignore_index=True)
     else:
@@ -166,4 +168,5 @@ if __name__ == "__main__":
         accuracy_results["backbone_arch"] = args.backbone_arch
         accuracy_results["agg_arch"] = args.agg_arch
         accuracy_results["image_size"] = args.image_size[0]
+    print("==============================================================", accuracy_results["id"])
     save_results(accuracy_results, resource_results)

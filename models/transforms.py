@@ -42,7 +42,7 @@ def _get_preset_transform(preset):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
-    elif preset.lower() == "eigenplaces":
+    elif "eigenplaces" in preset.lower():
         transform = T.Compose(
             [
                 T.ToTensor(),
@@ -54,7 +54,7 @@ def _get_preset_transform(preset):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
-    elif preset.lower() == "cosplaces":
+    elif "cosplaces" in preset.lower():
         transform = T.Compose(
             [
                 T.ToTensor(),
