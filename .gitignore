@@ -11,6 +11,7 @@ cache/
 /checkpoints/
 scratch.py
 *.npy
+**.npy
 # Ignore everything in jobfiles/logs
 jobfiles/logs/*
 
@@ -21,3 +22,4 @@ jobfiles/logs/
 **/jobfiles/logs/**
 
 wandb/
+dataloaders/val/image_paths/*
