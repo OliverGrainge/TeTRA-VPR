@@ -41,7 +41,7 @@ def setup_training(args):
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
         save_weights_only=True,
-        save_top_k=1,
+        save_top_k=3,
         mode="max",
     )
 
@@ -51,7 +51,7 @@ def setup_training(args):
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=args.pbar,
+        #enable_progress_bar=args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
@@ -64,6 +64,7 @@ def setup_training(args):
         log_every_n_steps=1,
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
+        limit_train_batches=10,
     )
 
     return trainer, model_module

@@ -1,0 +1,288 @@
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:27: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241219_041326-q3tiz53f
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_base_plrbitlinear]_agg[gem]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/q3tiz53f
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 87.5 M | train
+------------------------------------------------------------
+8.7 M     Trainable params
+78.9 M    Non-trainable params
+87.5 M    Total params
+350.123   Total estimated model params size (MB)
+276       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py", line 105, in <module>
+    trainer.fit(model_module)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
+    self.fit_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
+    self.advance()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 141, in run
+    self.on_advance_end(data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 295, in on_advance_end
+    self.val_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
+    return self.on_run_end()
+           ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 268, in on_run_end
+    self._on_evaluation_end()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 313, in _on_evaluation_end
+    call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 218, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 334, in on_validation_end
+    self._save_topk_checkpoint(trainer, monitor_candidates)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 383, in _save_topk_checkpoint
+    raise MisconfigurationException(m)
+lightning_fabric.utilities.exceptions.MisconfigurationException: `ModelCheckpoint(monitor='pitts30k_q_R1')` could not find the monitored key in the returned metrics: ['fp_b_acc', 'q_b_acc', 'fp_loss', 'q_loss', 'loss', 'Pittsburgh30k_val_fp32_R1', 'Pittsburgh30k_val_fp32_R5', 'Pittsburgh30k_val_fp32_R10', 'Pittsburgh30k_val_fp32_search_time', 'Pittsburgh30k_val_q_R1', 'Pittsburgh30k_val_q_R5', 'Pittsburgh30k_val_q_R10', 'Pittsburgh30k_val_q_search_time', 'epoch', 'step']. HINT: Did you call `log('pitts30k_q_R1', value)` in the `LightningModule`?
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:27: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241219_043557-f08o36jf
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_base_plrbitlinear]_agg[gem]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/f08o36jf
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 87.3 M | train
+------------------------------------------------------------
+8.7 M     Trainable params
+78.7 M    Non-trainable params
+87.3 M    Total params
+349.284   Total estimated model params size (MB)
+276       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py", line 105, in <module>
+    trainer.fit(model_module)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
+    self.fit_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
+    self.advance()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 141, in run
+    self.on_advance_end(data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 295, in on_advance_end
+    self.val_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
+    return self.on_run_end()
+           ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 268, in on_run_end
+    self._on_evaluation_end()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 313, in _on_evaluation_end
+    call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 218, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 334, in on_validation_end
+    self._save_topk_checkpoint(trainer, monitor_candidates)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 383, in _save_topk_checkpoint
+    raise MisconfigurationException(m)
+lightning_fabric.utilities.exceptions.MisconfigurationException: `ModelCheckpoint(monitor='pitts30k_q_R1')` could not find the monitored key in the returned metrics: ['fp_b_acc', 'q_b_acc', 'fp_loss', 'q_loss', 'loss', 'Pittsburgh30k_val_fp32_R1', 'Pittsburgh30k_val_fp32_R5', 'Pittsburgh30k_val_fp32_R10', 'Pittsburgh30k_val_fp32_search_time', 'Pittsburgh30k_val_q_R1', 'Pittsburgh30k_val_q_R5', 'Pittsburgh30k_val_q_R10', 'Pittsburgh30k_val_q_search_time', 'epoch', 'step']. HINT: Did you call `log('pitts30k_q_R1', value)` in the `LightningModule`?
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:27: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241219_044606-kwxb2uqn
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_small_plrbitlinear]_agg[gem]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/kwxb2uqn
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 26.1 M | train
+------------------------------------------------------------
+2.9 M     Trainable params
+23.2 M    Non-trainable params
+26.1 M    Total params
+104.298   Total estimated model params size (MB)
+276       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py", line 105, in <module>
+    trainer.fit(model_module)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
+    self.fit_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
+    self.advance()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 141, in run
+    self.on_advance_end(data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 295, in on_advance_end
+    self.val_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
+    return self.on_run_end()
+           ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 268, in on_run_end
+    self._on_evaluation_end()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 313, in _on_evaluation_end
+    call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 218, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 334, in on_validation_end
+    self._save_topk_checkpoint(trainer, monitor_candidates)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 383, in _save_topk_checkpoint
+    raise MisconfigurationException(m)
+lightning_fabric.utilities.exceptions.MisconfigurationException: `ModelCheckpoint(monitor='pitts30k_q_R1')` could not find the monitored key in the returned metrics: ['fp_b_acc', 'q_b_acc', 'fp_loss', 'q_loss', 'loss', 'Pittsburgh30k_val_fp32_R1', 'Pittsburgh30k_val_fp32_R5', 'Pittsburgh30k_val_fp32_R10', 'Pittsburgh30k_val_fp32_search_time', 'Pittsburgh30k_val_q_R1', 'Pittsburgh30k_val_q_R5', 'Pittsburgh30k_val_q_R10', 'Pittsburgh30k_val_q_search_time', 'epoch', 'step']. HINT: Did you call `log('pitts30k_q_R1', value)` in the `LightningModule`?
+/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py:27: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.weights_path)["state_dict"]
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: Currently logged in as: oliver1998 (vpr_minds). Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in ./wandb/run-20241219_045854-7e1nvtoj
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run backbone[vit_small_plrbitlinear]_agg[gem]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224]
+wandb: ⭐️ View project at https://wandb.ai/vpr_minds/tetra
+wandb: 🚀 View run at https://wandb.ai/vpr_minds/tetra/runs/7e1nvtoj
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+
+  | Name       | Type                 | Params | Mode 
+------------------------------------------------------------
+0 | fp_loss_fn | MultiSimilarityLoss  | 0      | train
+1 | fp_miner   | MultiSimilarityMiner | 0      | train
+2 | q_loss_fn  | MultiSimilarityLoss  | 0      | train
+3 | q_miner    | MultiSimilarityMiner | 0      | train
+4 | model      | VPRModel             | 26.0 M | train
+------------------------------------------------------------
+2.9 M     Trainable params
+23.1 M    Non-trainable params
+26.0 M    Total params
+103.879   Total estimated model params size (MB)
+276       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/finetune.py", line 105, in <module>
+    trainer.fit(model_module)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
+    self.fit_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
+    self.advance()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 141, in run
+    self.on_advance_end(data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 295, in on_advance_end
+    self.val_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
+    return self.on_run_end()
+           ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 268, in on_run_end
+    self._on_evaluation_end()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 313, in _on_evaluation_end
+    call._call_callback_hooks(trainer, hook_name, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 218, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 334, in on_validation_end
+    self._save_topk_checkpoint(trainer, monitor_candidates)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/callbacks/model_checkpoint.py", line 383, in _save_topk_checkpoint
+    raise MisconfigurationException(m)
+lightning_fabric.utilities.exceptions.MisconfigurationException: `ModelCheckpoint(monitor='pitts30k_q_R1')` could not find the monitored key in the returned metrics: ['fp_b_acc', 'q_b_acc', 'fp_loss', 'q_loss', 'loss', 'Pittsburgh30k_val_fp32_R1', 'Pittsburgh30k_val_fp32_R5', 'Pittsburgh30k_val_fp32_R10', 'Pittsburgh30k_val_fp32_search_time', 'Pittsburgh30k_val_q_R1', 'Pittsburgh30k_val_q_R5', 'Pittsburgh30k_val_q_R10', 'Pittsburgh30k_val_q_search_time', 'epoch', 'step']. HINT: Did you call `log('pitts30k_q_R1', value)` in the `LightningModule`?

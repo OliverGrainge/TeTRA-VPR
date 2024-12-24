@@ -1,0 +1,1089 @@
+Running SLURM prolog script on swarma1003
+===============================================================================
+Job started on Thu Dec 19 03:18:21 GMT 2024
+Job ID          : 62290
+Job name        : salad
+WorkDir         : /iridisfs/home/oeg1n18/QuantPlaceFinder
+Command         : /iridisfs/home/oeg1n18/QuantPlaceFinder/jobfiles/tetra/salad.slurm
+Partition       : swarm_a100
+Num hosts       : 1
+Num cores       : 12
+Num of tasks    : 1
+Hosts allocated : swarma1003
+Job Output Follows ...
+===============================================================================
+Freezing layer 0
+Freezing layer 1
+Freezing layer 2
+Freezing layer 3
+Freezing layer 4
+Freezing layer 5
+Freezing layer 6
+Freezing layer 7
+Freezing layer 8
+Freezing layer 9
+Freezing layer 10
+pos_embedding False
+cls_token False
+to_patch_embedding.1.weight False
+to_patch_embedding.1.bias False
+to_patch_embedding.2.weight False
+to_patch_embedding.2.bias False
+to_patch_embedding.3.weight False
+to_patch_embedding.3.bias False
+transformer.norm.weight True
+transformer.norm.bias True
+transformer.layers.0.0.norm.weight False
+transformer.layers.0.0.norm.bias False
+transformer.layers.0.0.to_qkv.weight False
+transformer.layers.0.0.to_qkv.scale False
+transformer.layers.0.0.to_qkv.rmsnorm.weight False
+transformer.layers.0.0.to_out.0.weight False
+transformer.layers.0.0.to_out.0.bias False
+transformer.layers.0.0.to_out.0.scale False
+transformer.layers.0.0.to_out.0.rmsnorm.weight False
+transformer.layers.0.1.net.0.weight False
+transformer.layers.0.1.net.0.bias False
+transformer.layers.0.1.net.1.weight False
+transformer.layers.0.1.net.1.bias False
+transformer.layers.0.1.net.1.scale False
+transformer.layers.0.1.net.1.rmsnorm.weight False
+transformer.layers.0.1.net.4.weight False
+transformer.layers.0.1.net.4.bias False
+transformer.layers.0.1.net.4.scale False
+transformer.layers.0.1.net.4.rmsnorm.weight False
+transformer.layers.1.0.norm.weight False
+transformer.layers.1.0.norm.bias False
+transformer.layers.1.0.to_qkv.weight False
+transformer.layers.1.0.to_qkv.scale False
+transformer.layers.1.0.to_qkv.rmsnorm.weight False
+transformer.layers.1.0.to_out.0.weight False
+transformer.layers.1.0.to_out.0.bias False
+transformer.layers.1.0.to_out.0.scale False
+transformer.layers.1.0.to_out.0.rmsnorm.weight False
+transformer.layers.1.1.net.0.weight False
+transformer.layers.1.1.net.0.bias False
+transformer.layers.1.1.net.1.weight False
+transformer.layers.1.1.net.1.bias False
+transformer.layers.1.1.net.1.scale False
+transformer.layers.1.1.net.1.rmsnorm.weight False
+transformer.layers.1.1.net.4.weight False
+transformer.layers.1.1.net.4.bias False
+transformer.layers.1.1.net.4.scale False
+transformer.layers.1.1.net.4.rmsnorm.weight False
+transformer.layers.2.0.norm.weight False
+transformer.layers.2.0.norm.bias False
+transformer.layers.2.0.to_qkv.weight False
+transformer.layers.2.0.to_qkv.scale False
+transformer.layers.2.0.to_qkv.rmsnorm.weight False
+transformer.layers.2.0.to_out.0.weight False
+transformer.layers.2.0.to_out.0.bias False
+transformer.layers.2.0.to_out.0.scale False
+transformer.layers.2.0.to_out.0.rmsnorm.weight False
+transformer.layers.2.1.net.0.weight False
+transformer.layers.2.1.net.0.bias False
+transformer.layers.2.1.net.1.weight False
+transformer.layers.2.1.net.1.bias False
+transformer.layers.2.1.net.1.scale False
+transformer.layers.2.1.net.1.rmsnorm.weight False
+transformer.layers.2.1.net.4.weight False
+transformer.layers.2.1.net.4.bias False
+transformer.layers.2.1.net.4.scale False
+transformer.layers.2.1.net.4.rmsnorm.weight False
+transformer.layers.3.0.norm.weight False
+transformer.layers.3.0.norm.bias False
+transformer.layers.3.0.to_qkv.weight False
+transformer.layers.3.0.to_qkv.scale False
+transformer.layers.3.0.to_qkv.rmsnorm.weight False
+transformer.layers.3.0.to_out.0.weight False
+transformer.layers.3.0.to_out.0.bias False
+transformer.layers.3.0.to_out.0.scale False
+transformer.layers.3.0.to_out.0.rmsnorm.weight False
+transformer.layers.3.1.net.0.weight False
+transformer.layers.3.1.net.0.bias False
+transformer.layers.3.1.net.1.weight False
+transformer.layers.3.1.net.1.bias False
+transformer.layers.3.1.net.1.scale False
+transformer.layers.3.1.net.1.rmsnorm.weight False
+transformer.layers.3.1.net.4.weight False
+transformer.layers.3.1.net.4.bias False
+transformer.layers.3.1.net.4.scale False
+transformer.layers.3.1.net.4.rmsnorm.weight False
+transformer.layers.4.0.norm.weight False
+transformer.layers.4.0.norm.bias False
+transformer.layers.4.0.to_qkv.weight False
+transformer.layers.4.0.to_qkv.scale False
+transformer.layers.4.0.to_qkv.rmsnorm.weight False
+transformer.layers.4.0.to_out.0.weight False
+transformer.layers.4.0.to_out.0.bias False
+transformer.layers.4.0.to_out.0.scale False
+transformer.layers.4.0.to_out.0.rmsnorm.weight False
+transformer.layers.4.1.net.0.weight False
+transformer.layers.4.1.net.0.bias False
+transformer.layers.4.1.net.1.weight False
+transformer.layers.4.1.net.1.bias False
+transformer.layers.4.1.net.1.scale False
+transformer.layers.4.1.net.1.rmsnorm.weight False
+transformer.layers.4.1.net.4.weight False
+transformer.layers.4.1.net.4.bias False
+transformer.layers.4.1.net.4.scale False
+transformer.layers.4.1.net.4.rmsnorm.weight False
+transformer.layers.5.0.norm.weight False
+transformer.layers.5.0.norm.bias False
+transformer.layers.5.0.to_qkv.weight False
+transformer.layers.5.0.to_qkv.scale False
+transformer.layers.5.0.to_qkv.rmsnorm.weight False
+transformer.layers.5.0.to_out.0.weight False
+transformer.layers.5.0.to_out.0.bias False
+transformer.layers.5.0.to_out.0.scale False
+transformer.layers.5.0.to_out.0.rmsnorm.weight False
+transformer.layers.5.1.net.0.weight False
+transformer.layers.5.1.net.0.bias False
+transformer.layers.5.1.net.1.weight False
+transformer.layers.5.1.net.1.bias False
+transformer.layers.5.1.net.1.scale False
+transformer.layers.5.1.net.1.rmsnorm.weight False
+transformer.layers.5.1.net.4.weight False
+transformer.layers.5.1.net.4.bias False
+transformer.layers.5.1.net.4.scale False
+transformer.layers.5.1.net.4.rmsnorm.weight False
+transformer.layers.6.0.norm.weight False
+transformer.layers.6.0.norm.bias False
+transformer.layers.6.0.to_qkv.weight False
+transformer.layers.6.0.to_qkv.scale False
+transformer.layers.6.0.to_qkv.rmsnorm.weight False
+transformer.layers.6.0.to_out.0.weight False
+transformer.layers.6.0.to_out.0.bias False
+transformer.layers.6.0.to_out.0.scale False
+transformer.layers.6.0.to_out.0.rmsnorm.weight False
+transformer.layers.6.1.net.0.weight False
+transformer.layers.6.1.net.0.bias False
+transformer.layers.6.1.net.1.weight False
+transformer.layers.6.1.net.1.bias False
+transformer.layers.6.1.net.1.scale False
+transformer.layers.6.1.net.1.rmsnorm.weight False
+transformer.layers.6.1.net.4.weight False
+transformer.layers.6.1.net.4.bias False
+transformer.layers.6.1.net.4.scale False
+transformer.layers.6.1.net.4.rmsnorm.weight False
+transformer.layers.7.0.norm.weight False
+transformer.layers.7.0.norm.bias False
+transformer.layers.7.0.to_qkv.weight False
+transformer.layers.7.0.to_qkv.scale False
+transformer.layers.7.0.to_qkv.rmsnorm.weight False
+transformer.layers.7.0.to_out.0.weight False
+transformer.layers.7.0.to_out.0.bias False
+transformer.layers.7.0.to_out.0.scale False
+transformer.layers.7.0.to_out.0.rmsnorm.weight False
+transformer.layers.7.1.net.0.weight False
+transformer.layers.7.1.net.0.bias False
+transformer.layers.7.1.net.1.weight False
+transformer.layers.7.1.net.1.bias False
+transformer.layers.7.1.net.1.scale False
+transformer.layers.7.1.net.1.rmsnorm.weight False
+transformer.layers.7.1.net.4.weight False
+transformer.layers.7.1.net.4.bias False
+transformer.layers.7.1.net.4.scale False
+transformer.layers.7.1.net.4.rmsnorm.weight False
+transformer.layers.8.0.norm.weight False
+transformer.layers.8.0.norm.bias False
+transformer.layers.8.0.to_qkv.weight False
+transformer.layers.8.0.to_qkv.scale False
+transformer.layers.8.0.to_qkv.rmsnorm.weight False
+transformer.layers.8.0.to_out.0.weight False
+transformer.layers.8.0.to_out.0.bias False
+transformer.layers.8.0.to_out.0.scale False
+transformer.layers.8.0.to_out.0.rmsnorm.weight False
+transformer.layers.8.1.net.0.weight False
+transformer.layers.8.1.net.0.bias False
+transformer.layers.8.1.net.1.weight False
+transformer.layers.8.1.net.1.bias False
+transformer.layers.8.1.net.1.scale False
+transformer.layers.8.1.net.1.rmsnorm.weight False
+transformer.layers.8.1.net.4.weight False
+transformer.layers.8.1.net.4.bias False
+transformer.layers.8.1.net.4.scale False
+transformer.layers.8.1.net.4.rmsnorm.weight False
+transformer.layers.9.0.norm.weight False
+transformer.layers.9.0.norm.bias False
+transformer.layers.9.0.to_qkv.weight False
+transformer.layers.9.0.to_qkv.scale False
+transformer.layers.9.0.to_qkv.rmsnorm.weight False
+transformer.layers.9.0.to_out.0.weight False
+transformer.layers.9.0.to_out.0.bias False
+transformer.layers.9.0.to_out.0.scale False
+transformer.layers.9.0.to_out.0.rmsnorm.weight False
+transformer.layers.9.1.net.0.weight False
+transformer.layers.9.1.net.0.bias False
+transformer.layers.9.1.net.1.weight False
+transformer.layers.9.1.net.1.bias False
+transformer.layers.9.1.net.1.scale False
+transformer.layers.9.1.net.1.rmsnorm.weight False
+transformer.layers.9.1.net.4.weight False
+transformer.layers.9.1.net.4.bias False
+transformer.layers.9.1.net.4.scale False
+transformer.layers.9.1.net.4.rmsnorm.weight False
+transformer.layers.10.0.norm.weight False
+transformer.layers.10.0.norm.bias False
+transformer.layers.10.0.to_qkv.weight False
+transformer.layers.10.0.to_qkv.scale False
+transformer.layers.10.0.to_qkv.rmsnorm.weight False
+transformer.layers.10.0.to_out.0.weight False
+transformer.layers.10.0.to_out.0.bias False
+transformer.layers.10.0.to_out.0.scale False
+transformer.layers.10.0.to_out.0.rmsnorm.weight False
+transformer.layers.10.1.net.0.weight False
+transformer.layers.10.1.net.0.bias False
+transformer.layers.10.1.net.1.weight False
+transformer.layers.10.1.net.1.bias False
+transformer.layers.10.1.net.1.scale False
+transformer.layers.10.1.net.1.rmsnorm.weight False
+transformer.layers.10.1.net.4.weight False
+transformer.layers.10.1.net.4.bias False
+transformer.layers.10.1.net.4.scale False
+transformer.layers.10.1.net.4.rmsnorm.weight False
+transformer.layers.11.0.norm.weight True
+transformer.layers.11.0.norm.bias True
+transformer.layers.11.0.to_qkv.weight True
+transformer.layers.11.0.to_qkv.scale True
+transformer.layers.11.0.to_qkv.rmsnorm.weight True
+transformer.layers.11.0.to_out.0.weight True
+transformer.layers.11.0.to_out.0.bias True
+transformer.layers.11.0.to_out.0.scale True
+transformer.layers.11.0.to_out.0.rmsnorm.weight True
+transformer.layers.11.1.net.0.weight True
+transformer.layers.11.1.net.0.bias True
+transformer.layers.11.1.net.1.weight True
+transformer.layers.11.1.net.1.bias True
+transformer.layers.11.1.net.1.scale True
+transformer.layers.11.1.net.1.rmsnorm.weight True
+transformer.layers.11.1.net.4.weight True
+transformer.layers.11.1.net.4.bias True
+transformer.layers.11.1.net.4.scale True
+transformer.layers.11.1.net.4.rmsnorm.weight True
+
+Results for pitts30k:
++------------------------------------+------------+
+|               Metric               |   Value    |
++------------------------------------+------------+
+|     Pittsburgh30k_val_fp32_R1      |  92.6525   |
+|     Pittsburgh30k_val_fp32_R5      |  98.2781   |
+|     Pittsburgh30k_val_fp32_R10     |  99.0273   |
+| Pittsburgh30k_val_fp32_search_time | 30709.1274 |
+|       Pittsburgh30k_val_q_R1       |  92.5342   |
+|       Pittsburgh30k_val_q_R5       |  98.1730   |
+|      Pittsburgh30k_val_q_R10       |  99.0011   |
+|  Pittsburgh30k_val_q_search_time   |  882.0989  |
++------------------------------------+------------+
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/4ihkzniq[0m
+Freezing layer 0
+Freezing layer 1
+Freezing layer 2
+Freezing layer 3
+Freezing layer 4
+Freezing layer 5
+Freezing layer 6
+Freezing layer 7
+Freezing layer 8
+Freezing layer 9
+Freezing layer 10
+pos_embedding False
+cls_token False
+to_patch_embedding.1.weight False
+to_patch_embedding.1.bias False
+to_patch_embedding.2.weight False
+to_patch_embedding.2.bias False
+to_patch_embedding.3.weight False
+to_patch_embedding.3.bias False
+transformer.norm.weight True
+transformer.norm.bias True
+transformer.layers.0.0.norm.weight False
+transformer.layers.0.0.norm.bias False
+transformer.layers.0.0.to_qkv.weight False
+transformer.layers.0.0.to_qkv.scale False
+transformer.layers.0.0.to_qkv.rmsnorm.weight False
+transformer.layers.0.0.to_out.0.weight False
+transformer.layers.0.0.to_out.0.bias False
+transformer.layers.0.0.to_out.0.scale False
+transformer.layers.0.0.to_out.0.rmsnorm.weight False
+transformer.layers.0.1.net.0.weight False
+transformer.layers.0.1.net.0.bias False
+transformer.layers.0.1.net.1.weight False
+transformer.layers.0.1.net.1.bias False
+transformer.layers.0.1.net.1.scale False
+transformer.layers.0.1.net.1.rmsnorm.weight False
+transformer.layers.0.1.net.4.weight False
+transformer.layers.0.1.net.4.bias False
+transformer.layers.0.1.net.4.scale False
+transformer.layers.0.1.net.4.rmsnorm.weight False
+transformer.layers.1.0.norm.weight False
+transformer.layers.1.0.norm.bias False
+transformer.layers.1.0.to_qkv.weight False
+transformer.layers.1.0.to_qkv.scale False
+transformer.layers.1.0.to_qkv.rmsnorm.weight False
+transformer.layers.1.0.to_out.0.weight False
+transformer.layers.1.0.to_out.0.bias False
+transformer.layers.1.0.to_out.0.scale False
+transformer.layers.1.0.to_out.0.rmsnorm.weight False
+transformer.layers.1.1.net.0.weight False
+transformer.layers.1.1.net.0.bias False
+transformer.layers.1.1.net.1.weight False
+transformer.layers.1.1.net.1.bias False
+transformer.layers.1.1.net.1.scale False
+transformer.layers.1.1.net.1.rmsnorm.weight False
+transformer.layers.1.1.net.4.weight False
+transformer.layers.1.1.net.4.bias False
+transformer.layers.1.1.net.4.scale False
+transformer.layers.1.1.net.4.rmsnorm.weight False
+transformer.layers.2.0.norm.weight False
+transformer.layers.2.0.norm.bias False
+transformer.layers.2.0.to_qkv.weight False
+transformer.layers.2.0.to_qkv.scale False
+transformer.layers.2.0.to_qkv.rmsnorm.weight False
+transformer.layers.2.0.to_out.0.weight False
+transformer.layers.2.0.to_out.0.bias False
+transformer.layers.2.0.to_out.0.scale False
+transformer.layers.2.0.to_out.0.rmsnorm.weight False
+transformer.layers.2.1.net.0.weight False
+transformer.layers.2.1.net.0.bias False
+transformer.layers.2.1.net.1.weight False
+transformer.layers.2.1.net.1.bias False
+transformer.layers.2.1.net.1.scale False
+transformer.layers.2.1.net.1.rmsnorm.weight False
+transformer.layers.2.1.net.4.weight False
+transformer.layers.2.1.net.4.bias False
+transformer.layers.2.1.net.4.scale False
+transformer.layers.2.1.net.4.rmsnorm.weight False
+transformer.layers.3.0.norm.weight False
+transformer.layers.3.0.norm.bias False
+transformer.layers.3.0.to_qkv.weight False
+transformer.layers.3.0.to_qkv.scale False
+transformer.layers.3.0.to_qkv.rmsnorm.weight False
+transformer.layers.3.0.to_out.0.weight False
+transformer.layers.3.0.to_out.0.bias False
+transformer.layers.3.0.to_out.0.scale False
+transformer.layers.3.0.to_out.0.rmsnorm.weight False
+transformer.layers.3.1.net.0.weight False
+transformer.layers.3.1.net.0.bias False
+transformer.layers.3.1.net.1.weight False
+transformer.layers.3.1.net.1.bias False
+transformer.layers.3.1.net.1.scale False
+transformer.layers.3.1.net.1.rmsnorm.weight False
+transformer.layers.3.1.net.4.weight False
+transformer.layers.3.1.net.4.bias False
+transformer.layers.3.1.net.4.scale False
+transformer.layers.3.1.net.4.rmsnorm.weight False
+transformer.layers.4.0.norm.weight False
+transformer.layers.4.0.norm.bias False
+transformer.layers.4.0.to_qkv.weight False
+transformer.layers.4.0.to_qkv.scale False
+transformer.layers.4.0.to_qkv.rmsnorm.weight False
+transformer.layers.4.0.to_out.0.weight False
+transformer.layers.4.0.to_out.0.bias False
+transformer.layers.4.0.to_out.0.scale False
+transformer.layers.4.0.to_out.0.rmsnorm.weight False
+transformer.layers.4.1.net.0.weight False
+transformer.layers.4.1.net.0.bias False
+transformer.layers.4.1.net.1.weight False
+transformer.layers.4.1.net.1.bias False
+transformer.layers.4.1.net.1.scale False
+transformer.layers.4.1.net.1.rmsnorm.weight False
+transformer.layers.4.1.net.4.weight False
+transformer.layers.4.1.net.4.bias False
+transformer.layers.4.1.net.4.scale False
+transformer.layers.4.1.net.4.rmsnorm.weight False
+transformer.layers.5.0.norm.weight False
+transformer.layers.5.0.norm.bias False
+transformer.layers.5.0.to_qkv.weight False
+transformer.layers.5.0.to_qkv.scale False
+transformer.layers.5.0.to_qkv.rmsnorm.weight False
+transformer.layers.5.0.to_out.0.weight False
+transformer.layers.5.0.to_out.0.bias False
+transformer.layers.5.0.to_out.0.scale False
+transformer.layers.5.0.to_out.0.rmsnorm.weight False
+transformer.layers.5.1.net.0.weight False
+transformer.layers.5.1.net.0.bias False
+transformer.layers.5.1.net.1.weight False
+transformer.layers.5.1.net.1.bias False
+transformer.layers.5.1.net.1.scale False
+transformer.layers.5.1.net.1.rmsnorm.weight False
+transformer.layers.5.1.net.4.weight False
+transformer.layers.5.1.net.4.bias False
+transformer.layers.5.1.net.4.scale False
+transformer.layers.5.1.net.4.rmsnorm.weight False
+transformer.layers.6.0.norm.weight False
+transformer.layers.6.0.norm.bias False
+transformer.layers.6.0.to_qkv.weight False
+transformer.layers.6.0.to_qkv.scale False
+transformer.layers.6.0.to_qkv.rmsnorm.weight False
+transformer.layers.6.0.to_out.0.weight False
+transformer.layers.6.0.to_out.0.bias False
+transformer.layers.6.0.to_out.0.scale False
+transformer.layers.6.0.to_out.0.rmsnorm.weight False
+transformer.layers.6.1.net.0.weight False
+transformer.layers.6.1.net.0.bias False
+transformer.layers.6.1.net.1.weight False
+transformer.layers.6.1.net.1.bias False
+transformer.layers.6.1.net.1.scale False
+transformer.layers.6.1.net.1.rmsnorm.weight False
+transformer.layers.6.1.net.4.weight False
+transformer.layers.6.1.net.4.bias False
+transformer.layers.6.1.net.4.scale False
+transformer.layers.6.1.net.4.rmsnorm.weight False
+transformer.layers.7.0.norm.weight False
+transformer.layers.7.0.norm.bias False
+transformer.layers.7.0.to_qkv.weight False
+transformer.layers.7.0.to_qkv.scale False
+transformer.layers.7.0.to_qkv.rmsnorm.weight False
+transformer.layers.7.0.to_out.0.weight False
+transformer.layers.7.0.to_out.0.bias False
+transformer.layers.7.0.to_out.0.scale False
+transformer.layers.7.0.to_out.0.rmsnorm.weight False
+transformer.layers.7.1.net.0.weight False
+transformer.layers.7.1.net.0.bias False
+transformer.layers.7.1.net.1.weight False
+transformer.layers.7.1.net.1.bias False
+transformer.layers.7.1.net.1.scale False
+transformer.layers.7.1.net.1.rmsnorm.weight False
+transformer.layers.7.1.net.4.weight False
+transformer.layers.7.1.net.4.bias False
+transformer.layers.7.1.net.4.scale False
+transformer.layers.7.1.net.4.rmsnorm.weight False
+transformer.layers.8.0.norm.weight False
+transformer.layers.8.0.norm.bias False
+transformer.layers.8.0.to_qkv.weight False
+transformer.layers.8.0.to_qkv.scale False
+transformer.layers.8.0.to_qkv.rmsnorm.weight False
+transformer.layers.8.0.to_out.0.weight False
+transformer.layers.8.0.to_out.0.bias False
+transformer.layers.8.0.to_out.0.scale False
+transformer.layers.8.0.to_out.0.rmsnorm.weight False
+transformer.layers.8.1.net.0.weight False
+transformer.layers.8.1.net.0.bias False
+transformer.layers.8.1.net.1.weight False
+transformer.layers.8.1.net.1.bias False
+transformer.layers.8.1.net.1.scale False
+transformer.layers.8.1.net.1.rmsnorm.weight False
+transformer.layers.8.1.net.4.weight False
+transformer.layers.8.1.net.4.bias False
+transformer.layers.8.1.net.4.scale False
+transformer.layers.8.1.net.4.rmsnorm.weight False
+transformer.layers.9.0.norm.weight False
+transformer.layers.9.0.norm.bias False
+transformer.layers.9.0.to_qkv.weight False
+transformer.layers.9.0.to_qkv.scale False
+transformer.layers.9.0.to_qkv.rmsnorm.weight False
+transformer.layers.9.0.to_out.0.weight False
+transformer.layers.9.0.to_out.0.bias False
+transformer.layers.9.0.to_out.0.scale False
+transformer.layers.9.0.to_out.0.rmsnorm.weight False
+transformer.layers.9.1.net.0.weight False
+transformer.layers.9.1.net.0.bias False
+transformer.layers.9.1.net.1.weight False
+transformer.layers.9.1.net.1.bias False
+transformer.layers.9.1.net.1.scale False
+transformer.layers.9.1.net.1.rmsnorm.weight False
+transformer.layers.9.1.net.4.weight False
+transformer.layers.9.1.net.4.bias False
+transformer.layers.9.1.net.4.scale False
+transformer.layers.9.1.net.4.rmsnorm.weight False
+transformer.layers.10.0.norm.weight False
+transformer.layers.10.0.norm.bias False
+transformer.layers.10.0.to_qkv.weight False
+transformer.layers.10.0.to_qkv.scale False
+transformer.layers.10.0.to_qkv.rmsnorm.weight False
+transformer.layers.10.0.to_out.0.weight False
+transformer.layers.10.0.to_out.0.bias False
+transformer.layers.10.0.to_out.0.scale False
+transformer.layers.10.0.to_out.0.rmsnorm.weight False
+transformer.layers.10.1.net.0.weight False
+transformer.layers.10.1.net.0.bias False
+transformer.layers.10.1.net.1.weight False
+transformer.layers.10.1.net.1.bias False
+transformer.layers.10.1.net.1.scale False
+transformer.layers.10.1.net.1.rmsnorm.weight False
+transformer.layers.10.1.net.4.weight False
+transformer.layers.10.1.net.4.bias False
+transformer.layers.10.1.net.4.scale False
+transformer.layers.10.1.net.4.rmsnorm.weight False
+transformer.layers.11.0.norm.weight True
+transformer.layers.11.0.norm.bias True
+transformer.layers.11.0.to_qkv.weight True
+transformer.layers.11.0.to_qkv.scale True
+transformer.layers.11.0.to_qkv.rmsnorm.weight True
+transformer.layers.11.0.to_out.0.weight True
+transformer.layers.11.0.to_out.0.bias True
+transformer.layers.11.0.to_out.0.scale True
+transformer.layers.11.0.to_out.0.rmsnorm.weight True
+transformer.layers.11.1.net.0.weight True
+transformer.layers.11.1.net.0.bias True
+transformer.layers.11.1.net.1.weight True
+transformer.layers.11.1.net.1.bias True
+transformer.layers.11.1.net.1.scale True
+transformer.layers.11.1.net.1.rmsnorm.weight True
+transformer.layers.11.1.net.4.weight True
+transformer.layers.11.1.net.4.bias True
+transformer.layers.11.1.net.4.scale True
+transformer.layers.11.1.net.4.rmsnorm.weight True
+
+Results for pitts30k:
++------------------------------------+------------+
+|               Metric               |   Value    |
++------------------------------------+------------+
+|     Pittsburgh30k_val_fp32_R1      |  91.4038   |
+|     Pittsburgh30k_val_fp32_R5      |  97.8575   |
+|     Pittsburgh30k_val_fp32_R10     |  98.7513   |
+| Pittsburgh30k_val_fp32_search_time | 30606.8022 |
+|       Pittsburgh30k_val_q_R1       |  91.0489   |
+|       Pittsburgh30k_val_q_R5       |  97.6341   |
+|      Pittsburgh30k_val_q_R10       |  98.6199   |
+|  Pittsburgh30k_val_q_search_time   |  885.6263  |
++------------------------------------+------------+
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/1oheg29t[0m
+Freezing layer 0
+Freezing layer 1
+Freezing layer 2
+Freezing layer 3
+Freezing layer 4
+Freezing layer 5
+Freezing layer 6
+Freezing layer 7
+Freezing layer 8
+Freezing layer 9
+Freezing layer 10
+pos_embedding False
+cls_token False
+to_patch_embedding.1.weight False
+to_patch_embedding.1.bias False
+to_patch_embedding.2.weight False
+to_patch_embedding.2.bias False
+to_patch_embedding.3.weight False
+to_patch_embedding.3.bias False
+transformer.norm.weight True
+transformer.norm.bias True
+transformer.layers.0.0.norm.weight False
+transformer.layers.0.0.norm.bias False
+transformer.layers.0.0.to_qkv.weight False
+transformer.layers.0.0.to_qkv.scale False
+transformer.layers.0.0.to_qkv.rmsnorm.weight False
+transformer.layers.0.0.to_out.0.weight False
+transformer.layers.0.0.to_out.0.bias False
+transformer.layers.0.0.to_out.0.scale False
+transformer.layers.0.0.to_out.0.rmsnorm.weight False
+transformer.layers.0.1.net.0.weight False
+transformer.layers.0.1.net.0.bias False
+transformer.layers.0.1.net.1.weight False
+transformer.layers.0.1.net.1.bias False
+transformer.layers.0.1.net.1.scale False
+transformer.layers.0.1.net.1.rmsnorm.weight False
+transformer.layers.0.1.net.4.weight False
+transformer.layers.0.1.net.4.bias False
+transformer.layers.0.1.net.4.scale False
+transformer.layers.0.1.net.4.rmsnorm.weight False
+transformer.layers.1.0.norm.weight False
+transformer.layers.1.0.norm.bias False
+transformer.layers.1.0.to_qkv.weight False
+transformer.layers.1.0.to_qkv.scale False
+transformer.layers.1.0.to_qkv.rmsnorm.weight False
+transformer.layers.1.0.to_out.0.weight False
+transformer.layers.1.0.to_out.0.bias False
+transformer.layers.1.0.to_out.0.scale False
+transformer.layers.1.0.to_out.0.rmsnorm.weight False
+transformer.layers.1.1.net.0.weight False
+transformer.layers.1.1.net.0.bias False
+transformer.layers.1.1.net.1.weight False
+transformer.layers.1.1.net.1.bias False
+transformer.layers.1.1.net.1.scale False
+transformer.layers.1.1.net.1.rmsnorm.weight False
+transformer.layers.1.1.net.4.weight False
+transformer.layers.1.1.net.4.bias False
+transformer.layers.1.1.net.4.scale False
+transformer.layers.1.1.net.4.rmsnorm.weight False
+transformer.layers.2.0.norm.weight False
+transformer.layers.2.0.norm.bias False
+transformer.layers.2.0.to_qkv.weight False
+transformer.layers.2.0.to_qkv.scale False
+transformer.layers.2.0.to_qkv.rmsnorm.weight False
+transformer.layers.2.0.to_out.0.weight False
+transformer.layers.2.0.to_out.0.bias False
+transformer.layers.2.0.to_out.0.scale False
+transformer.layers.2.0.to_out.0.rmsnorm.weight False
+transformer.layers.2.1.net.0.weight False
+transformer.layers.2.1.net.0.bias False
+transformer.layers.2.1.net.1.weight False
+transformer.layers.2.1.net.1.bias False
+transformer.layers.2.1.net.1.scale False
+transformer.layers.2.1.net.1.rmsnorm.weight False
+transformer.layers.2.1.net.4.weight False
+transformer.layers.2.1.net.4.bias False
+transformer.layers.2.1.net.4.scale False
+transformer.layers.2.1.net.4.rmsnorm.weight False
+transformer.layers.3.0.norm.weight False
+transformer.layers.3.0.norm.bias False
+transformer.layers.3.0.to_qkv.weight False
+transformer.layers.3.0.to_qkv.scale False
+transformer.layers.3.0.to_qkv.rmsnorm.weight False
+transformer.layers.3.0.to_out.0.weight False
+transformer.layers.3.0.to_out.0.bias False
+transformer.layers.3.0.to_out.0.scale False
+transformer.layers.3.0.to_out.0.rmsnorm.weight False
+transformer.layers.3.1.net.0.weight False
+transformer.layers.3.1.net.0.bias False
+transformer.layers.3.1.net.1.weight False
+transformer.layers.3.1.net.1.bias False
+transformer.layers.3.1.net.1.scale False
+transformer.layers.3.1.net.1.rmsnorm.weight False
+transformer.layers.3.1.net.4.weight False
+transformer.layers.3.1.net.4.bias False
+transformer.layers.3.1.net.4.scale False
+transformer.layers.3.1.net.4.rmsnorm.weight False
+transformer.layers.4.0.norm.weight False
+transformer.layers.4.0.norm.bias False
+transformer.layers.4.0.to_qkv.weight False
+transformer.layers.4.0.to_qkv.scale False
+transformer.layers.4.0.to_qkv.rmsnorm.weight False
+transformer.layers.4.0.to_out.0.weight False
+transformer.layers.4.0.to_out.0.bias False
+transformer.layers.4.0.to_out.0.scale False
+transformer.layers.4.0.to_out.0.rmsnorm.weight False
+transformer.layers.4.1.net.0.weight False
+transformer.layers.4.1.net.0.bias False
+transformer.layers.4.1.net.1.weight False
+transformer.layers.4.1.net.1.bias False
+transformer.layers.4.1.net.1.scale False
+transformer.layers.4.1.net.1.rmsnorm.weight False
+transformer.layers.4.1.net.4.weight False
+transformer.layers.4.1.net.4.bias False
+transformer.layers.4.1.net.4.scale False
+transformer.layers.4.1.net.4.rmsnorm.weight False
+transformer.layers.5.0.norm.weight False
+transformer.layers.5.0.norm.bias False
+transformer.layers.5.0.to_qkv.weight False
+transformer.layers.5.0.to_qkv.scale False
+transformer.layers.5.0.to_qkv.rmsnorm.weight False
+transformer.layers.5.0.to_out.0.weight False
+transformer.layers.5.0.to_out.0.bias False
+transformer.layers.5.0.to_out.0.scale False
+transformer.layers.5.0.to_out.0.rmsnorm.weight False
+transformer.layers.5.1.net.0.weight False
+transformer.layers.5.1.net.0.bias False
+transformer.layers.5.1.net.1.weight False
+transformer.layers.5.1.net.1.bias False
+transformer.layers.5.1.net.1.scale False
+transformer.layers.5.1.net.1.rmsnorm.weight False
+transformer.layers.5.1.net.4.weight False
+transformer.layers.5.1.net.4.bias False
+transformer.layers.5.1.net.4.scale False
+transformer.layers.5.1.net.4.rmsnorm.weight False
+transformer.layers.6.0.norm.weight False
+transformer.layers.6.0.norm.bias False
+transformer.layers.6.0.to_qkv.weight False
+transformer.layers.6.0.to_qkv.scale False
+transformer.layers.6.0.to_qkv.rmsnorm.weight False
+transformer.layers.6.0.to_out.0.weight False
+transformer.layers.6.0.to_out.0.bias False
+transformer.layers.6.0.to_out.0.scale False
+transformer.layers.6.0.to_out.0.rmsnorm.weight False
+transformer.layers.6.1.net.0.weight False
+transformer.layers.6.1.net.0.bias False
+transformer.layers.6.1.net.1.weight False
+transformer.layers.6.1.net.1.bias False
+transformer.layers.6.1.net.1.scale False
+transformer.layers.6.1.net.1.rmsnorm.weight False
+transformer.layers.6.1.net.4.weight False
+transformer.layers.6.1.net.4.bias False
+transformer.layers.6.1.net.4.scale False
+transformer.layers.6.1.net.4.rmsnorm.weight False
+transformer.layers.7.0.norm.weight False
+transformer.layers.7.0.norm.bias False
+transformer.layers.7.0.to_qkv.weight False
+transformer.layers.7.0.to_qkv.scale False
+transformer.layers.7.0.to_qkv.rmsnorm.weight False
+transformer.layers.7.0.to_out.0.weight False
+transformer.layers.7.0.to_out.0.bias False
+transformer.layers.7.0.to_out.0.scale False
+transformer.layers.7.0.to_out.0.rmsnorm.weight False
+transformer.layers.7.1.net.0.weight False
+transformer.layers.7.1.net.0.bias False
+transformer.layers.7.1.net.1.weight False
+transformer.layers.7.1.net.1.bias False
+transformer.layers.7.1.net.1.scale False
+transformer.layers.7.1.net.1.rmsnorm.weight False
+transformer.layers.7.1.net.4.weight False
+transformer.layers.7.1.net.4.bias False
+transformer.layers.7.1.net.4.scale False
+transformer.layers.7.1.net.4.rmsnorm.weight False
+transformer.layers.8.0.norm.weight False
+transformer.layers.8.0.norm.bias False
+transformer.layers.8.0.to_qkv.weight False
+transformer.layers.8.0.to_qkv.scale False
+transformer.layers.8.0.to_qkv.rmsnorm.weight False
+transformer.layers.8.0.to_out.0.weight False
+transformer.layers.8.0.to_out.0.bias False
+transformer.layers.8.0.to_out.0.scale False
+transformer.layers.8.0.to_out.0.rmsnorm.weight False
+transformer.layers.8.1.net.0.weight False
+transformer.layers.8.1.net.0.bias False
+transformer.layers.8.1.net.1.weight False
+transformer.layers.8.1.net.1.bias False
+transformer.layers.8.1.net.1.scale False
+transformer.layers.8.1.net.1.rmsnorm.weight False
+transformer.layers.8.1.net.4.weight False
+transformer.layers.8.1.net.4.bias False
+transformer.layers.8.1.net.4.scale False
+transformer.layers.8.1.net.4.rmsnorm.weight False
+transformer.layers.9.0.norm.weight False
+transformer.layers.9.0.norm.bias False
+transformer.layers.9.0.to_qkv.weight False
+transformer.layers.9.0.to_qkv.scale False
+transformer.layers.9.0.to_qkv.rmsnorm.weight False
+transformer.layers.9.0.to_out.0.weight False
+transformer.layers.9.0.to_out.0.bias False
+transformer.layers.9.0.to_out.0.scale False
+transformer.layers.9.0.to_out.0.rmsnorm.weight False
+transformer.layers.9.1.net.0.weight False
+transformer.layers.9.1.net.0.bias False
+transformer.layers.9.1.net.1.weight False
+transformer.layers.9.1.net.1.bias False
+transformer.layers.9.1.net.1.scale False
+transformer.layers.9.1.net.1.rmsnorm.weight False
+transformer.layers.9.1.net.4.weight False
+transformer.layers.9.1.net.4.bias False
+transformer.layers.9.1.net.4.scale False
+transformer.layers.9.1.net.4.rmsnorm.weight False
+transformer.layers.10.0.norm.weight False
+transformer.layers.10.0.norm.bias False
+transformer.layers.10.0.to_qkv.weight False
+transformer.layers.10.0.to_qkv.scale False
+transformer.layers.10.0.to_qkv.rmsnorm.weight False
+transformer.layers.10.0.to_out.0.weight False
+transformer.layers.10.0.to_out.0.bias False
+transformer.layers.10.0.to_out.0.scale False
+transformer.layers.10.0.to_out.0.rmsnorm.weight False
+transformer.layers.10.1.net.0.weight False
+transformer.layers.10.1.net.0.bias False
+transformer.layers.10.1.net.1.weight False
+transformer.layers.10.1.net.1.bias False
+transformer.layers.10.1.net.1.scale False
+transformer.layers.10.1.net.1.rmsnorm.weight False
+transformer.layers.10.1.net.4.weight False
+transformer.layers.10.1.net.4.bias False
+transformer.layers.10.1.net.4.scale False
+transformer.layers.10.1.net.4.rmsnorm.weight False
+transformer.layers.11.0.norm.weight True
+transformer.layers.11.0.norm.bias True
+transformer.layers.11.0.to_qkv.weight True
+transformer.layers.11.0.to_qkv.scale True
+transformer.layers.11.0.to_qkv.rmsnorm.weight True
+transformer.layers.11.0.to_out.0.weight True
+transformer.layers.11.0.to_out.0.bias True
+transformer.layers.11.0.to_out.0.scale True
+transformer.layers.11.0.to_out.0.rmsnorm.weight True
+transformer.layers.11.1.net.0.weight True
+transformer.layers.11.1.net.0.bias True
+transformer.layers.11.1.net.1.weight True
+transformer.layers.11.1.net.1.bias True
+transformer.layers.11.1.net.1.scale True
+transformer.layers.11.1.net.1.rmsnorm.weight True
+transformer.layers.11.1.net.4.weight True
+transformer.layers.11.1.net.4.bias True
+transformer.layers.11.1.net.4.scale True
+transformer.layers.11.1.net.4.rmsnorm.weight True
+
+Results for pitts30k:
++------------------------------------+------------+
+|               Metric               |   Value    |
++------------------------------------+------------+
+|     Pittsburgh30k_val_fp32_R1      |  90.3128   |
+|     Pittsburgh30k_val_fp32_R5      |  97.5421   |
+|     Pittsburgh30k_val_fp32_R10     |  98.5016   |
+| Pittsburgh30k_val_fp32_search_time | 32087.5049 |
+|       Pittsburgh30k_val_q_R1       |  90.2865   |
+|       Pittsburgh30k_val_q_R5       |  97.2792   |
+|      Pittsburgh30k_val_q_R10       |  98.3964   |
+|  Pittsburgh30k_val_q_search_time   |  890.4123  |
++------------------------------------+------------+
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/e3y2hlj0[0m
+Freezing layer 0
+Freezing layer 1
+Freezing layer 2
+Freezing layer 3
+Freezing layer 4
+Freezing layer 5
+Freezing layer 6
+Freezing layer 7
+Freezing layer 8
+Freezing layer 9
+Freezing layer 10
+pos_embedding False
+cls_token False
+to_patch_embedding.1.weight False
+to_patch_embedding.1.bias False
+to_patch_embedding.2.weight False
+to_patch_embedding.2.bias False
+to_patch_embedding.3.weight False
+to_patch_embedding.3.bias False
+transformer.norm.weight True
+transformer.norm.bias True
+transformer.layers.0.0.norm.weight False
+transformer.layers.0.0.norm.bias False
+transformer.layers.0.0.to_qkv.weight False
+transformer.layers.0.0.to_qkv.scale False
+transformer.layers.0.0.to_qkv.rmsnorm.weight False
+transformer.layers.0.0.to_out.0.weight False
+transformer.layers.0.0.to_out.0.bias False
+transformer.layers.0.0.to_out.0.scale False
+transformer.layers.0.0.to_out.0.rmsnorm.weight False
+transformer.layers.0.1.net.0.weight False
+transformer.layers.0.1.net.0.bias False
+transformer.layers.0.1.net.1.weight False
+transformer.layers.0.1.net.1.bias False
+transformer.layers.0.1.net.1.scale False
+transformer.layers.0.1.net.1.rmsnorm.weight False
+transformer.layers.0.1.net.4.weight False
+transformer.layers.0.1.net.4.bias False
+transformer.layers.0.1.net.4.scale False
+transformer.layers.0.1.net.4.rmsnorm.weight False
+transformer.layers.1.0.norm.weight False
+transformer.layers.1.0.norm.bias False
+transformer.layers.1.0.to_qkv.weight False
+transformer.layers.1.0.to_qkv.scale False
+transformer.layers.1.0.to_qkv.rmsnorm.weight False
+transformer.layers.1.0.to_out.0.weight False
+transformer.layers.1.0.to_out.0.bias False
+transformer.layers.1.0.to_out.0.scale False
+transformer.layers.1.0.to_out.0.rmsnorm.weight False
+transformer.layers.1.1.net.0.weight False
+transformer.layers.1.1.net.0.bias False
+transformer.layers.1.1.net.1.weight False
+transformer.layers.1.1.net.1.bias False
+transformer.layers.1.1.net.1.scale False
+transformer.layers.1.1.net.1.rmsnorm.weight False
+transformer.layers.1.1.net.4.weight False
+transformer.layers.1.1.net.4.bias False
+transformer.layers.1.1.net.4.scale False
+transformer.layers.1.1.net.4.rmsnorm.weight False
+transformer.layers.2.0.norm.weight False
+transformer.layers.2.0.norm.bias False
+transformer.layers.2.0.to_qkv.weight False
+transformer.layers.2.0.to_qkv.scale False
+transformer.layers.2.0.to_qkv.rmsnorm.weight False
+transformer.layers.2.0.to_out.0.weight False
+transformer.layers.2.0.to_out.0.bias False
+transformer.layers.2.0.to_out.0.scale False
+transformer.layers.2.0.to_out.0.rmsnorm.weight False
+transformer.layers.2.1.net.0.weight False
+transformer.layers.2.1.net.0.bias False
+transformer.layers.2.1.net.1.weight False
+transformer.layers.2.1.net.1.bias False
+transformer.layers.2.1.net.1.scale False
+transformer.layers.2.1.net.1.rmsnorm.weight False
+transformer.layers.2.1.net.4.weight False
+transformer.layers.2.1.net.4.bias False
+transformer.layers.2.1.net.4.scale False
+transformer.layers.2.1.net.4.rmsnorm.weight False
+transformer.layers.3.0.norm.weight False
+transformer.layers.3.0.norm.bias False
+transformer.layers.3.0.to_qkv.weight False
+transformer.layers.3.0.to_qkv.scale False
+transformer.layers.3.0.to_qkv.rmsnorm.weight False
+transformer.layers.3.0.to_out.0.weight False
+transformer.layers.3.0.to_out.0.bias False
+transformer.layers.3.0.to_out.0.scale False
+transformer.layers.3.0.to_out.0.rmsnorm.weight False
+transformer.layers.3.1.net.0.weight False
+transformer.layers.3.1.net.0.bias False
+transformer.layers.3.1.net.1.weight False
+transformer.layers.3.1.net.1.bias False
+transformer.layers.3.1.net.1.scale False
+transformer.layers.3.1.net.1.rmsnorm.weight False
+transformer.layers.3.1.net.4.weight False
+transformer.layers.3.1.net.4.bias False
+transformer.layers.3.1.net.4.scale False
+transformer.layers.3.1.net.4.rmsnorm.weight False
+transformer.layers.4.0.norm.weight False
+transformer.layers.4.0.norm.bias False
+transformer.layers.4.0.to_qkv.weight False
+transformer.layers.4.0.to_qkv.scale False
+transformer.layers.4.0.to_qkv.rmsnorm.weight False
+transformer.layers.4.0.to_out.0.weight False
+transformer.layers.4.0.to_out.0.bias False
+transformer.layers.4.0.to_out.0.scale False
+transformer.layers.4.0.to_out.0.rmsnorm.weight False
+transformer.layers.4.1.net.0.weight False
+transformer.layers.4.1.net.0.bias False
+transformer.layers.4.1.net.1.weight False
+transformer.layers.4.1.net.1.bias False
+transformer.layers.4.1.net.1.scale False
+transformer.layers.4.1.net.1.rmsnorm.weight False
+transformer.layers.4.1.net.4.weight False
+transformer.layers.4.1.net.4.bias False
+transformer.layers.4.1.net.4.scale False
+transformer.layers.4.1.net.4.rmsnorm.weight False
+transformer.layers.5.0.norm.weight False
+transformer.layers.5.0.norm.bias False
+transformer.layers.5.0.to_qkv.weight False
+transformer.layers.5.0.to_qkv.scale False
+transformer.layers.5.0.to_qkv.rmsnorm.weight False
+transformer.layers.5.0.to_out.0.weight False
+transformer.layers.5.0.to_out.0.bias False
+transformer.layers.5.0.to_out.0.scale False
+transformer.layers.5.0.to_out.0.rmsnorm.weight False
+transformer.layers.5.1.net.0.weight False
+transformer.layers.5.1.net.0.bias False
+transformer.layers.5.1.net.1.weight False
+transformer.layers.5.1.net.1.bias False
+transformer.layers.5.1.net.1.scale False
+transformer.layers.5.1.net.1.rmsnorm.weight False
+transformer.layers.5.1.net.4.weight False
+transformer.layers.5.1.net.4.bias False
+transformer.layers.5.1.net.4.scale False
+transformer.layers.5.1.net.4.rmsnorm.weight False
+transformer.layers.6.0.norm.weight False
+transformer.layers.6.0.norm.bias False
+transformer.layers.6.0.to_qkv.weight False
+transformer.layers.6.0.to_qkv.scale False
+transformer.layers.6.0.to_qkv.rmsnorm.weight False
+transformer.layers.6.0.to_out.0.weight False
+transformer.layers.6.0.to_out.0.bias False
+transformer.layers.6.0.to_out.0.scale False
+transformer.layers.6.0.to_out.0.rmsnorm.weight False
+transformer.layers.6.1.net.0.weight False
+transformer.layers.6.1.net.0.bias False
+transformer.layers.6.1.net.1.weight False
+transformer.layers.6.1.net.1.bias False
+transformer.layers.6.1.net.1.scale False
+transformer.layers.6.1.net.1.rmsnorm.weight False
+transformer.layers.6.1.net.4.weight False
+transformer.layers.6.1.net.4.bias False
+transformer.layers.6.1.net.4.scale False
+transformer.layers.6.1.net.4.rmsnorm.weight False
+transformer.layers.7.0.norm.weight False
+transformer.layers.7.0.norm.bias False
+transformer.layers.7.0.to_qkv.weight False
+transformer.layers.7.0.to_qkv.scale False
+transformer.layers.7.0.to_qkv.rmsnorm.weight False
+transformer.layers.7.0.to_out.0.weight False
+transformer.layers.7.0.to_out.0.bias False
+transformer.layers.7.0.to_out.0.scale False
+transformer.layers.7.0.to_out.0.rmsnorm.weight False
+transformer.layers.7.1.net.0.weight False
+transformer.layers.7.1.net.0.bias False
+transformer.layers.7.1.net.1.weight False
+transformer.layers.7.1.net.1.bias False
+transformer.layers.7.1.net.1.scale False
+transformer.layers.7.1.net.1.rmsnorm.weight False
+transformer.layers.7.1.net.4.weight False
+transformer.layers.7.1.net.4.bias False
+transformer.layers.7.1.net.4.scale False
+transformer.layers.7.1.net.4.rmsnorm.weight False
+transformer.layers.8.0.norm.weight False
+transformer.layers.8.0.norm.bias False
+transformer.layers.8.0.to_qkv.weight False
+transformer.layers.8.0.to_qkv.scale False
+transformer.layers.8.0.to_qkv.rmsnorm.weight False
+transformer.layers.8.0.to_out.0.weight False
+transformer.layers.8.0.to_out.0.bias False
+transformer.layers.8.0.to_out.0.scale False
+transformer.layers.8.0.to_out.0.rmsnorm.weight False
+transformer.layers.8.1.net.0.weight False
+transformer.layers.8.1.net.0.bias False
+transformer.layers.8.1.net.1.weight False
+transformer.layers.8.1.net.1.bias False
+transformer.layers.8.1.net.1.scale False
+transformer.layers.8.1.net.1.rmsnorm.weight False
+transformer.layers.8.1.net.4.weight False
+transformer.layers.8.1.net.4.bias False
+transformer.layers.8.1.net.4.scale False
+transformer.layers.8.1.net.4.rmsnorm.weight False
+transformer.layers.9.0.norm.weight False
+transformer.layers.9.0.norm.bias False
+transformer.layers.9.0.to_qkv.weight False
+transformer.layers.9.0.to_qkv.scale False
+transformer.layers.9.0.to_qkv.rmsnorm.weight False
+transformer.layers.9.0.to_out.0.weight False
+transformer.layers.9.0.to_out.0.bias False
+transformer.layers.9.0.to_out.0.scale False
+transformer.layers.9.0.to_out.0.rmsnorm.weight False
+transformer.layers.9.1.net.0.weight False
+transformer.layers.9.1.net.0.bias False
+transformer.layers.9.1.net.1.weight False
+transformer.layers.9.1.net.1.bias False
+transformer.layers.9.1.net.1.scale False
+transformer.layers.9.1.net.1.rmsnorm.weight False
+transformer.layers.9.1.net.4.weight False
+transformer.layers.9.1.net.4.bias False
+transformer.layers.9.1.net.4.scale False
+transformer.layers.9.1.net.4.rmsnorm.weight False
+transformer.layers.10.0.norm.weight False
+transformer.layers.10.0.norm.bias False
+transformer.layers.10.0.to_qkv.weight False
+transformer.layers.10.0.to_qkv.scale False
+transformer.layers.10.0.to_qkv.rmsnorm.weight False
+transformer.layers.10.0.to_out.0.weight False
+transformer.layers.10.0.to_out.0.bias False
+transformer.layers.10.0.to_out.0.scale False
+transformer.layers.10.0.to_out.0.rmsnorm.weight False
+transformer.layers.10.1.net.0.weight False
+transformer.layers.10.1.net.0.bias False
+transformer.layers.10.1.net.1.weight False
+transformer.layers.10.1.net.1.bias False
+transformer.layers.10.1.net.1.scale False
+transformer.layers.10.1.net.1.rmsnorm.weight False
+transformer.layers.10.1.net.4.weight False
+transformer.layers.10.1.net.4.bias False
+transformer.layers.10.1.net.4.scale False
+transformer.layers.10.1.net.4.rmsnorm.weight False
+transformer.layers.11.0.norm.weight True
+transformer.layers.11.0.norm.bias True
+transformer.layers.11.0.to_qkv.weight True
+transformer.layers.11.0.to_qkv.scale True
+transformer.layers.11.0.to_qkv.rmsnorm.weight True
+transformer.layers.11.0.to_out.0.weight True
+transformer.layers.11.0.to_out.0.bias True
+transformer.layers.11.0.to_out.0.scale True
+transformer.layers.11.0.to_out.0.rmsnorm.weight True
+transformer.layers.11.1.net.0.weight True
+transformer.layers.11.1.net.0.bias True
+transformer.layers.11.1.net.1.weight True
+transformer.layers.11.1.net.1.bias True
+transformer.layers.11.1.net.1.scale True
+transformer.layers.11.1.net.1.rmsnorm.weight True
+transformer.layers.11.1.net.4.weight True
+transformer.layers.11.1.net.4.bias True
+transformer.layers.11.1.net.4.scale True
+transformer.layers.11.1.net.4.rmsnorm.weight True
+
+Results for pitts30k:
++------------------------------------+------------+
+|               Metric               |   Value    |
++------------------------------------+------------+
+|     Pittsburgh30k_val_fp32_R1      |  87.8286   |
+|     Pittsburgh30k_val_fp32_R5      |  96.2014   |
+|     Pittsburgh30k_val_fp32_R10     |  97.4895   |
+| Pittsburgh30k_val_fp32_search_time | 30457.0532 |
+|       Pittsburgh30k_val_q_R1       |  87.0531   |
+|       Pittsburgh30k_val_q_R5       |  95.8859   |
+|      Pittsburgh30k_val_q_R10       |  97.2923   |
+|  Pittsburgh30k_val_q_search_time   |  889.5175  |
++------------------------------------+------------+
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[salad]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/l20bakaf[0m
+==============================================================================
+Running epilogue script on swarma1003.
+
+Submit time  : 2024-12-18T21:53:55
+Start time   : 2024-12-19T03:18:21
+End time     : 2024-12-19T04:14:26
+Elapsed time : 00:56:05 (Timelimit=2-11:00:00)
+
+Job ID: 62290
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: FAILED (exit code 1)
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 03:36:33
+CPU Efficiency: 32.18% of 11:13:00 core-walltime
+Job Wall-clock time: 00:56:05
+Memory Utilized: 35.14 GB
+Memory Efficiency: 27.45% of 128.00 GB
