@@ -3,11 +3,15 @@ import matplotlib.pyplot as plt
 import pandas as pd 
 import sys 
 import argparse
+
+# If you want some of the aesthetic benefits of Seaborn:
+import seaborn as sns
+
+# This is only necessary if you're executing from a script in a subdirectory
+# and want to import local modules.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
 from config import DataConfig
-
 
 DATASET = "tokyo"
 
@@ -17,8 +21,8 @@ args = parser.parse_args()
 
 df = pd.read_csv("data/results.csv")
 df = df.set_index("id")
-print(df.columns)
 df = df[(~df.index.str.contains('vit')) | (df['image_size'] == 322)]
+df = df[(~df.index.str.contains('gem'))]
 
 if "pitts" in DATASET.lower():
     from dataloaders.val.PittsburghDataset import PittsburghDataset30k
@@ -36,18 +40,15 @@ elif "msls" in DATASET.lower():
     ds = MSLS(val_dataset_dir=args.val_dataset_dir, which_set="test")
     ds_len = len(ds)
 
-
-# Calculate the x-axis values based on the presence of 'preset'
+# Calculate the x-axis values based on the presence of 'vit' (binary vs floating descriptor sizes).
 x_values = []
 for idx, row in df.iterrows():
     if 'vit' not in idx:
         x_values.append(row['model_memory'] + ds_len * (row['descriptor_size_floating'] / (1024**2)))
     else:
-        x_values.append(row['model_memory'] + ds_len * (row['descriptor_size_binary'] / (1024**2)))
+        x_values.append(row['model_memory'] + ds_len * (row['descriptor_size_binary']   / (1024**2)))
 
-
-
-# Extract the relevant R@1 values based on the presence of 'preset'
+# Calculate R@1 values based on 'preset' (cosine vs hamming).
 r_at_1_values = []
 for idx, row in df.iterrows():
     if 'preset' in row:
@@ -55,10 +56,7 @@ for idx, row in df.iterrows():
     else:
         r_at_1_values.append(row[f'{dataset_name}_hamming_R@1'])
 
-# Plotting
-plt.figure(figsize=(10, 6))
-
-# Separate the data based on the presence of 'preset'
+# Separate the data for plotting
 preset_x_values = []
 preset_r_at_1_values = []
 non_preset_x_values = []
@@ -66,32 +64,65 @@ non_preset_r_at_1_values = []
 
 for idx, row in df.iterrows():
     if 'vit' not in idx:
+        # Baseline / Preset
         preset_x_values.append(row['model_memory'] + ds_len * (row['descriptor_size_floating'] / (1024**2)))
         preset_r_at_1_values.append(row[f'{dataset_name}_cosine_R@1'])
     else:
+        # Tetra / Non-preset
         non_preset_x_values.append(row['model_memory'])
         non_preset_r_at_1_values.append(row[f'{dataset_name}_hamming_R@1'])
 
-# Plot preset points
-plt.scatter(preset_x_values, preset_r_at_1_values, color='skyblue', label='Preset', marker='o')
+# --- Plotting Section ---
+# Use a Seaborn style for nicer aesthetics
+sns.set_style("whitegrid")
 
-# Plot non-preset points
-plt.scatter(non_preset_x_values, non_preset_r_at_1_values, color='orange', label='Non-Preset', marker='x')
+plt.figure(figsize=(10, 6))
+
+# Plot Baselines
+plt.scatter(
+    preset_x_values,
+    preset_r_at_1_values,
+    color='skyblue',
+    edgecolor='black',
+    alpha=0.8,
+    s=70,
+    label='Baselines',
+    marker='o'
+)
+
+# Plot Tetra
+plt.scatter(
+    non_preset_x_values,
+    non_preset_r_at_1_values,
+    color='orange',
+    edgecolor='black',
+    alpha=0.8,
+    s=70,
+    label='TeTRA',
+    marker='X'
+)
 
 # Add labels for each point
 for i, txt in enumerate(df.index):
+    # Slight offset for annotations so labels don't sit exactly on the points
+    x_offset = 0.5
+    y_offset = 0.001
     if 'vit' not in txt:
-        #continue
-        plt.annotate(txt, (x_values[i], r_at_1_values[i]), fontsize=8, alpha=0.7, color='blue')
-    #else:
-        #plt.annotate(txt, (x_values[i], r_at_1_values[i]), fontsize=8, alpha=0.7, color='red')
+        plt.annotate(
+            txt,
+            (x_values[i], r_at_1_values[i]),
+            xytext=(x_values[i] + x_offset, r_at_1_values[i] + y_offset),
+            fontsize=9, 
+            alpha=0.8, 
+            color='blue' if 'vit' not in txt else 'red',
+            arrowprops=dict(arrowstyle='-', color='gray', lw=0.5),
+        )
 
-plt.xlabel('Sum of Model Memory and Descriptor Size Floating')
-plt.ylabel('R@1')
-plt.title('R@1 vs Sum of Model Memory and Descriptor Size Floating')
-plt.legend()
+plt.xlabel('Memory Consumption (MB)', fontsize=12)
+plt.ylabel('R@1', fontsize=12)
+plt.title('R@1 vs. VPR Memory Consumption', fontsize=14)
+plt.legend(fontsize=11)
+
+# Make layout tight and show grid properly
 plt.tight_layout()
 plt.show()
-
-
-

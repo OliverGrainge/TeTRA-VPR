@@ -166,12 +166,7 @@ def get_model(
     preset=None,
 ):
     if preset is not None:
-        if "EigenPlaces" in preset:
-            module.importlib.import_module(f"models.presets.EigenPlaces")
-        elif "CosPlaces" in preset:
-            module = importlib.import_module(f"models.presets.CosPlaces")
-        else:
-            module = importlib.import_module(f"models.presets.{preset}")
+        module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
         return model()
 

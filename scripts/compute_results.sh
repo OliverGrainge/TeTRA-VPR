@@ -4,7 +4,7 @@
 batch_size=128
 num_workers=12
 val_set_names=("msls" "tokyo" "pitts30k")
-val_set_names=("msls" "tokyo")
+#val_set_names=("msls" "tokyo")
 
 #define the presets to evaluate
 #presets=("CosPlaces" "DinoSalad" "EigenPlaces" "DinoV2_BoQ" "ResNet50_BoQ")
