@@ -53,7 +53,7 @@ def setup_training(args, model):
         scheduler_type=args.quant_schedule,
     )
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"msls_q_R1",
+        monitor=f"MSLS_val_q_R1",
         dirpath=_get_checkpoint_dir(args),
         filename="epoch-{epoch}-msls_q_R1{pitts30k_q_R1:.2f}",
         auto_insert_metric_name=True,

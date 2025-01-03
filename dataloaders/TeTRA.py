@@ -413,17 +413,17 @@ class TeTRA(pl.LightningModule):
                     search_time
                 )
 
-        self.log_dict(
-            full_recalls_dict,
-            logger=True,
-        )
-        table = PrettyTable()
-        table.field_names = ["Metric", "Value"]
-        for metric, value in full_recalls_dict.items():
-            table.add_row([metric, f"{value:.4f}"])
+                self.log_dict(
+                    full_recalls_dict,
+                    logger=True,
+                )
+                table = PrettyTable()
+                table.field_names = ["Metric", "Value"]
+                for metric, value in full_recalls_dict.items():
+                    table.add_row([metric, f"{value:.4f}"])
 
-        print(f"\nResults for {val_set_name}:")
-        print(table)
+                print(f"\nResults for {val_set_name}:")
+                print(table)
         return full_recalls_dict
 
     def state_dict(self):
