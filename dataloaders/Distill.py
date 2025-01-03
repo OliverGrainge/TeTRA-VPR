@@ -213,6 +213,16 @@ class Distill(pl.LightningModule):
                             which_set="val",
                         )
                     )
+                elif "msls" in val_set_name.lower():
+                    from dataloaders.val.MapillaryDataset import MSLS
+
+                    self.val_datasets.append(
+                        MSLS(
+                            val_dataset_dir=self.val_dataset_dir,
+                            input_transform=self.transform,
+                            which_set="test",
+                        )
+                    )
                 else:
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"

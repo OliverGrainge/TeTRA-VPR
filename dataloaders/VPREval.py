@@ -337,7 +337,7 @@ class VPREval(pl.LightningModule):
                         MSLS(
                             val_dataset_dir=self.val_dataset_dir,
                             input_transform=self.transform,
-                            which_set="test",
+                            which_set="val",
                         )
                     )
                 else:

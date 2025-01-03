@@ -82,10 +82,15 @@ class JPGDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx, attempts=0):
         image_path = self.image_paths[idx]
         image = Image.open(image_path)
-        image = image.convert("RGB")
+        try:
+            image = image.convert("RGB")
+        except (OSError, IOError) as e:
+            print(f"Skipping corrupted image at index {idx}")
+            next_idx = (idx + 1) % len(self)
+            return self.__getitem__(next_idx, attempts + 1)
 
         width, height = image.size
         if width > height and width > 2 * height:

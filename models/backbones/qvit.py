@@ -73,7 +73,8 @@ class Transformer(Qmodel):
         ff_layer_type=nn.Linear,
     ):
         super().__init__()
-        self.norm = nn.LayerNorm(dim)
+        self.norm1 = nn.LayerNorm(dim)
+        self.norm2 = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(
@@ -97,7 +98,7 @@ class Transformer(Qmodel):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
-        return self.norm(x)
+        return x
 
 
 class ViT(Qmodel):

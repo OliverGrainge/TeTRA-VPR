@@ -101,12 +101,14 @@ def _load_model_and_transform(args):
     else:
         model = get_model(backbone_arch=args.backbone_arch, agg_arch=args.agg_arch, image_size=args.image_size)
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
-
-    checkpoint_path = _get_checkpoint_path(args)
+    if args.checkpoint != "": 
+        checkpoint_path = args.checkpoint
+    else: 
+        checkpoint_path = _get_checkpoint_path(args)
     state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if "state_dict" in state_dict.keys():
         state_dict = state_dict["state_dict"]
-        model.load_state_dict(state_dict)
+    model.load_state_dict(state_dict)
 
     for param in model.parameters():
         param.requires_grad = False
@@ -130,7 +132,8 @@ def eval(args):
 
     # Initialize a PyTorch Lightning Trainer
     trainer = pl.Trainer(
-        enable_progress_bar=not args.silent,
+        #enable_progress_bar=not args.silent,
+        enable_progress_bar=False,
         accelerator="auto",
         precision="bf16-mixed",
         max_epochs=1,  # Set the number of epochs

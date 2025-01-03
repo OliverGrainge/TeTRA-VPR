@@ -13,4 +13,4 @@
 #SBATCH --partition=swarm_a100
 
 source tetraenv/bin/activate
-python pretrain.py --backbone_arch vit_base_PLRBitLinear --agg_arch BoQ --teacher_preset DinoV2_BoQ --weight_decay_schedule sigmoid --image_size 322 322 --batch_size 32 --accumulate_grad_batches 8 --num_workers 16 --max_epochs 4 --use_attention True --augmentation_level Severe --val_dataset_dir "/scratch/oeg1n18/datasets/vpr/" --train_dataset_dir "/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas"
+python pretrain.py --backbone_arch vit_base_PLRBitLinear --agg_arch BoQ --teacher_preset DinoV2_BoQ --weight_decay_schedule constant --image_size 322 322 --batch_size 32 --accumulate_grad_batches 8 --num_workers 16 --max_epochs 4 --use_attention False --augmentation_level Severe --val_dataset_dir "/scratch/oeg1n18/datasets/vpr/" --train_dataset_dir "/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas"

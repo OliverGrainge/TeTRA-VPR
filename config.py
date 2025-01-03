@@ -6,8 +6,10 @@ from typing import List, Optional, Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    #val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
+    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
+    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -66,6 +68,7 @@ class EvalConfig:
     image_size: Tuple[int] = (224, 224)
     silent: bool = False
     checkpoints_dir: str = "./checkpoints/TeTRA/"
+    checkpoint: str = ""
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -81,6 +84,7 @@ class EvalConfig:
         )
         group.add_argument("--silent", type=bool, default=EvalConfig.silent)
         group.add_argument("--checkpoints_dir", type=str, default=EvalConfig.checkpoints_dir)
+        group.add_argument("--checkpoint", type=str, default=EvalConfig.checkpoint)
         return parent_parser
 
     @classmethod
@@ -96,14 +100,14 @@ class DistillConfig:
     teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
-    lr: float = 0.003
+    lr: float = 0.0007
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 3
 
     # Loss and regularization
     mse_loss_mult: float = 1000
-    weight_decay_init: float = 0.05
+    weight_decay_init: float = 0.00
     weight_decay_schedule: str = "constant"
     use_attention: bool = False
 
@@ -115,7 +119,7 @@ class DistillConfig:
     num_workers: int = 0
     pbar: bool = False
     checkpoint_dir: str = ""
-    val_set_names: Tuple[str] = ("Pitts30k",)
+    val_set_names: Tuple[str] = ("msls","Pitts30k",)
     precision: str = "bf16-mixed"
 
     @staticmethod
@@ -221,7 +225,7 @@ class TeTRAConfig:
     )
 
     # validation set
-    val_set_names: Tuple[str] = ("pitts30k_val",)
+    val_set_names: Tuple[str] = ("msls", "pitts30k_val",)
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
