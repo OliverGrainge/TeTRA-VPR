@@ -52,11 +52,10 @@ def setup_training(args, model):
         lr=args.lr,
         scheduler_type=args.quant_schedule,
     )
-    """
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"pitts30k_q_R1",
+        monitor=f"msls_q_R1",
         dirpath=_get_checkpoint_dir(args),
-        filename="epoch-{epoch}-pitts30k_q_R1{pitts30k_q_R1:.2f}",
+        filename="epoch-{epoch}-msls_q_R1{pitts30k_q_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -68,18 +67,17 @@ def setup_training(args, model):
         project="TeTRA",
         name=_get_wandb_run_name(args),
     )
-    """
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,
+        enable_progress_bar=False,
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        #callbacks=[checkpoint_cb],
+        callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
-        #logger=wandb_logger,
+        logger=wandb_logger,
     )
 
     return trainer, model_module

@@ -1,15 +1,15 @@
-Running SLURM prolog script on swarma1003
+Running SLURM prolog script on swarma1005
 ===============================================================================
-Job started on Thu Dec 19 03:18:21 GMT 2024
-Job ID          : 62292
+Job started on Fri Jan  3 10:42:21 GMT 2025
+Job ID          : 65196
 Job name        : mixvpr
 WorkDir         : /iridisfs/home/oeg1n18/QuantPlaceFinder
-Command         : /iridisfs/home/oeg1n18/QuantPlaceFinder/jobfiles/tetra/mixvpr.slurm
+Command         : /iridisfs/home/oeg1n18/QuantPlaceFinder/jobfiles/finetune/mixvpr.slurm
 Partition       : swarm_a100
 Num hosts       : 1
 Num cores       : 12
 Num of tasks    : 1
-Hosts allocated : swarma1003
+Hosts allocated : swarma1005
 Job Output Follows ...
 ===============================================================================
 Freezing layer 0
@@ -31,8 +31,10 @@ to_patch_embedding.2.weight False
 to_patch_embedding.2.bias False
 to_patch_embedding.3.weight False
 to_patch_embedding.3.bias False
-transformer.norm.weight True
-transformer.norm.bias True
+transformer.norm1.weight True
+transformer.norm1.bias True
+transformer.norm2.weight True
+transformer.norm2.bias True
 transformer.layers.0.0.norm.weight False
 transformer.layers.0.0.norm.bias False
 transformer.layers.0.0.to_qkv.weight False
@@ -266,16 +268,16 @@ Results for pitts30k:
 +------------------------------------+------------+
 |               Metric               |   Value    |
 +------------------------------------+------------+
-|     Pittsburgh30k_val_fp32_R1      |  89.6162   |
-|     Pittsburgh30k_val_fp32_R5      |  97.6604   |
-|     Pittsburgh30k_val_fp32_R10     |  98.6725   |
-| Pittsburgh30k_val_fp32_search_time | 14913.9774 |
-|       Pittsburgh30k_val_q_R1       |  87.7892   |
-|       Pittsburgh30k_val_q_R5       |  97.0426   |
-|      Pittsburgh30k_val_q_R10       |  98.4359   |
-|  Pittsburgh30k_val_q_search_time   |  450.9099  |
+|     Pittsburgh30k_val_fp32_R1      |  90.0499   |
+|     Pittsburgh30k_val_fp32_R5      |  97.9495   |
+|     Pittsburgh30k_val_fp32_R10     |  98.9353   |
+| Pittsburgh30k_val_fp32_search_time | 15003.5338 |
+|       Pittsburgh30k_val_q_R1       |  87.1977   |
+|       Pittsburgh30k_val_q_R5       |  97.2397   |
+|      Pittsburgh30k_val_q_R10       |  98.3833   |
+|  Pittsburgh30k_val_q_search_time   |  460.3148  |
 +------------------------------------+------------+
-[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/v45rttm9[0m
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/2q7nxi3z[0m
 Freezing layer 0
 Freezing layer 1
 Freezing layer 2
@@ -295,8 +297,10 @@ to_patch_embedding.2.weight False
 to_patch_embedding.2.bias False
 to_patch_embedding.3.weight False
 to_patch_embedding.3.bias False
-transformer.norm.weight True
-transformer.norm.bias True
+transformer.norm1.weight True
+transformer.norm1.bias True
+transformer.norm2.weight True
+transformer.norm2.bias True
 transformer.layers.0.0.norm.weight False
 transformer.layers.0.0.norm.bias False
 transformer.layers.0.0.to_qkv.weight False
@@ -530,16 +534,16 @@ Results for pitts30k:
 +------------------------------------+------------+
 |               Metric               |   Value    |
 +------------------------------------+------------+
-|     Pittsburgh30k_val_fp32_R1      |  88.8013   |
-|     Pittsburgh30k_val_fp32_R5      |  97.4238   |
-|     Pittsburgh30k_val_fp32_R10     |  98.3964   |
-| Pittsburgh30k_val_fp32_search_time | 14803.5862 |
-|       Pittsburgh30k_val_q_R1       |  87.0137   |
-|       Pittsburgh30k_val_q_R5       |  96.7928   |
+|     Pittsburgh30k_val_fp32_R1      |  89.9054   |
+|     Pittsburgh30k_val_fp32_R5      |  97.5683   |
+|     Pittsburgh30k_val_fp32_R10     |  98.5016   |
+| Pittsburgh30k_val_fp32_search_time | 15117.3422 |
+|       Pittsburgh30k_val_q_R1       |  86.6456   |
+|       Pittsburgh30k_val_q_R5       |  96.7666   |
 |      Pittsburgh30k_val_q_R10       |  98.0810   |
-|  Pittsburgh30k_val_q_search_time   |  446.5237  |
+|  Pittsburgh30k_val_q_search_time   |  473.0341  |
 +------------------------------------+------------+
-[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/fgfh4swi[0m
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_base_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/txn4s4jm[0m
 Freezing layer 0
 Freezing layer 1
 Freezing layer 2
@@ -559,8 +563,10 @@ to_patch_embedding.2.weight False
 to_patch_embedding.2.bias False
 to_patch_embedding.3.weight False
 to_patch_embedding.3.bias False
-transformer.norm.weight True
-transformer.norm.bias True
+transformer.norm1.weight True
+transformer.norm1.bias True
+transformer.norm2.weight True
+transformer.norm2.bias True
 transformer.layers.0.0.norm.weight False
 transformer.layers.0.0.norm.bias False
 transformer.layers.0.0.to_qkv.weight False
@@ -794,16 +800,16 @@ Results for pitts30k:
 +------------------------------------+------------+
 |               Metric               |   Value    |
 +------------------------------------+------------+
-|     Pittsburgh30k_val_fp32_R1      |  86.2119   |
-|     Pittsburgh30k_val_fp32_R5      |  96.3985   |
-|     Pittsburgh30k_val_fp32_R10     |  97.8049   |
-| Pittsburgh30k_val_fp32_search_time | 14961.7782 |
-|       Pittsburgh30k_val_q_R1       |  85.5152   |
-|       Pittsburgh30k_val_q_R5       |  96.2145   |
-|      Pittsburgh30k_val_q_R10       |  97.6472   |
-|  Pittsburgh30k_val_q_search_time   |  449.5854  |
+|     Pittsburgh30k_val_fp32_R1      |  52.6157   |
+|     Pittsburgh30k_val_fp32_R5      |  74.4348   |
+|     Pittsburgh30k_val_fp32_R10     |  82.4658   |
+| Pittsburgh30k_val_fp32_search_time | 15054.9493 |
+|       Pittsburgh30k_val_q_R1       |  49.8817   |
+|       Pittsburgh30k_val_q_R5       |  72.7261   |
+|      Pittsburgh30k_val_q_R10       |  80.9805   |
+|  Pittsburgh30k_val_q_search_time   |  457.1614  |
 +------------------------------------+------------+
-[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/toztnird[0m
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[322x322][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/e4pamnpp[0m
 Freezing layer 0
 Freezing layer 1
 Freezing layer 2
@@ -823,8 +829,10 @@ to_patch_embedding.2.weight False
 to_patch_embedding.2.bias False
 to_patch_embedding.3.weight False
 to_patch_embedding.3.bias False
-transformer.norm.weight True
-transformer.norm.bias True
+transformer.norm1.weight True
+transformer.norm1.bias True
+transformer.norm2.weight True
+transformer.norm2.bias True
 transformer.layers.0.0.norm.weight False
 transformer.layers.0.0.norm.bias False
 transformer.layers.0.0.to_qkv.weight False
@@ -1058,32 +1066,32 @@ Results for pitts30k:
 +------------------------------------+------------+
 |               Metric               |   Value    |
 +------------------------------------+------------+
-|     Pittsburgh30k_val_fp32_R1      |  82.9653   |
-|     Pittsburgh30k_val_fp32_R5      |  95.0447   |
-|     Pittsburgh30k_val_fp32_R10     |  97.0557   |
-| Pittsburgh30k_val_fp32_search_time | 14887.5134 |
-|       Pittsburgh30k_val_q_R1       |  80.7834   |
-|       Pittsburgh30k_val_q_R5       |  93.8880   |
-|      Pittsburgh30k_val_q_R10       |  96.3460   |
-|  Pittsburgh30k_val_q_search_time   |  448.2400  |
+|     Pittsburgh30k_val_fp32_R1      |  41.3249   |
+|     Pittsburgh30k_val_fp32_R5      |  64.2482   |
+|     Pittsburgh30k_val_fp32_R10     |  73.3833   |
+| Pittsburgh30k_val_fp32_search_time | 15159.6098 |
+|       Pittsburgh30k_val_q_R1       |  37.5526   |
+|       Pittsburgh30k_val_q_R5       |  61.7376   |
+|      Pittsburgh30k_val_q_R10       |  71.2539   |
+|  Pittsburgh30k_val_q_search_time   |  455.7736  |
 +------------------------------------+------------+
-[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/bn32yeab[0m
+[1;34mwandb[0m: 🚀 View run [33mbackbone[vit_small_plrbitlinear]_agg[mixvpr]_aug[lightaugment]_quant_schedule[sigmoid]_res[224x224][0m at: [34mhttps://wandb.ai/vpr_minds/tetra/runs/3x3dn3pe[0m
 ==============================================================================
-Running epilogue script on swarma1003.
+Running epilogue script on swarma1005.
 
-Submit time  : 2024-12-18T21:54:06
-Start time   : 2024-12-19T03:18:21
-End time     : 2024-12-19T04:13:09
-Elapsed time : 00:54:48 (Timelimit=2-11:00:00)
+Submit time  : 2025-01-03T10:42:20
+Start time   : 2025-01-03T10:42:21
+End time     : 2025-01-03T11:38:23
+Elapsed time : 00:56:02 (Timelimit=2-11:00:00)
 
-Job ID: 62292
+Job ID: 65196
 Cluster: iridis_x
 User/Group: oeg1n18/
 State: FAILED (exit code 1)
 Nodes: 1
 Cores per node: 12
-CPU Utilized: 03:32:11
-CPU Efficiency: 32.27% of 10:57:36 core-walltime
-Job Wall-clock time: 00:54:48
-Memory Utilized: 32.23 GB
-Memory Efficiency: 25.18% of 128.00 GB
+CPU Utilized: 03:59:35
+CPU Efficiency: 35.63% of 11:12:24 core-walltime
+Job Wall-clock time: 00:56:02
+Memory Utilized: 32.04 GB
+Memory Efficiency: 25.03% of 128.00 GB

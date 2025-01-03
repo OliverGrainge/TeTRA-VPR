@@ -179,7 +179,7 @@ class TeTRAConfig:
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 100
-    max_epochs: int = 8
+    max_epochs: int = 12
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
