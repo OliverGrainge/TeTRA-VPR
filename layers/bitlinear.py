@@ -38,10 +38,11 @@ def weight_quant_real(w):
 
 
 class BitLinear(nn.Module):
-    def __init__(self, in_features, out_features, bias=True):
+    def __init__(self, in_features, out_features, bias=True, sequence_length=None):
         super(BitLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
+        self.sequence_length = sequence_length
         assert torch.cuda.is_available(), "CUDA is not available"
 
         self.weight = nn.Parameter(torch.randn(out_features, in_features).cuda())
@@ -50,24 +51,7 @@ class BitLinear(nn.Module):
             self.bias = nn.Parameter(torch.randn(out_features).cuda())
         else:
             self.register_parameter("bias", None)       
-        print("=======================================", 1, self.out_features, self.in_features)
-        """
-        self.matmul_config = bitblas.MatmulConfig(
-            M=1,
-            N=out_features,
-            K=in_features,
-            A_dtype="int8",
-            W_dtype="int2",
-            accum_dtype="int32",
-            out_dtype="int32",
-            layout="nt",
-            with_bias=False,
-            group_size=None,
-            with_scaling=False,
-            with_zeros=False,
-            zeros_mode=None,
-        )
-        """
+        
         self.deployed = False
 
     def forward(self, x):
@@ -88,11 +72,7 @@ class BitLinear(nn.Module):
 
     def infer_forward(self, x):
         qx, act_scale = activation_quant_real(x)
-        if qx.dtype == torch.int8:
-            out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
-            out = torch.matmul(qx.float(), self.qweight.T.float())
-        else:
-            out = torch.matmul(qx, self.qweight.T)
+        out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
         out = out / act_scale / self.scale
         if self.bias is not None:
             out += self.bias.to(out.dtype)
@@ -101,11 +81,39 @@ class BitLinear(nn.Module):
     @torch.inference_mode()
     def deploy_forward(self, x):
         qx, act_scale = activation_quant_real(x)
+
+        if qx.ndim == 3:
+            B, T, D = qx.shape
+            qx = qx.view(B * T, D)
+            assert B * T == self.sequence_length, "Sequence length mismatch, for deployment batch size must be 1 and correct sequence length"
+            reshape_output = True
+        else:
+            reshape_output = False
+
+        if qx.dtype == torch.int8:
+            print("=====================   deploy forward")
+            out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
+        else:
+            out = torch.matmul(qx, self.qweight.T)
+        
+        # Reshape output back to 3D if needed
+        if reshape_output:
+            out = out.view(B, T, -1)
+        
+        # Apply scaling and bias
+        out = out / act_scale / self.scale
+        if self.bias is not None:
+            out += self.bias.to(out.dtype)
+        
+        return out
+        """
+        qx, act_scale = activation_quant_real(x)
         out = self.deploy_matmul(qx, self.qweight)
         out = out / act_scale / self.scale
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
+        """
 
     def train(self, mode=True):
         if mode:
@@ -125,11 +133,31 @@ class BitLinear(nn.Module):
 
     def deploy(self):
         self.eval()
-        print("--------------------------------", 1, self.out_features, self.in_features)
-        #self.deploy_matmul = bitblas.Matmul(config=self.matmul_config)
-        #self.qweight = self.deploy_matmul.transform_weight(self.qweight)
+        if not hasattr(self, "T"): 
+            raise ValueError("You must run a forward pass in eval or train modebefore deploying")
+        """
+        matmul_config = bitblas.MatmulConfig(
+            M=self.sequence_length,
+            N=self.out_features,
+            K=self.in_features,
+            A_dtype="int8",
+            W_dtype="int2",
+            accum_dtype="int32",
+            out_dtype="int32",
+            layout="nt",
+            with_bias=False,
+            group_size=None,
+            with_scaling=False,
+            with_zeros=False,
+            zeros_mode=None,
+        )
+        
+        self.deploy_matmul = bitblas.Matmul(config=matmul_config)
+        self.qweight = self.deploy_matmul.transform_weight(self.qweight)
+        """
         del self.weight
         self.deployed = True
+
 
     def load_state_dict(self, state_dict, strict=True):
         if "qweight" in state_dict.keys():
@@ -156,14 +184,14 @@ class BitLinear(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0):
+    def __init__(self, dim, hidden_dim, dropout=0.0, sequence_length=None):
         super().__init__()
         self.net = nn.Sequential(
             nn.LayerNorm(dim),
-            BitLinear(dim, hidden_dim),
+            BitLinear(dim, hidden_dim, sequence_length=sequence_length),
             nn.GELU(),
             nn.Dropout(dropout),
-            BitLinear(hidden_dim, dim),
+            BitLinear(hidden_dim, dim, sequence_length=sequence_length),
             nn.Dropout(dropout),
         )
 
@@ -172,7 +200,7 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0, sequence_length=None):
         super().__init__()
         inner_dim = dim_head * heads
         self.heads = heads
@@ -180,8 +208,8 @@ class Attention(nn.Module):
         self.norm = nn.LayerNorm(dim)
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
-        self.to_out = nn.Sequential(BitLinear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False, sequence_length=sequence_length)
+        self.to_out = nn.Sequential(BitLinear(inner_dim, dim, sequence_length=sequence_length), nn.Dropout(dropout))
 
     def forward(self, x):
         x = self.norm(x)
@@ -204,6 +232,7 @@ class Transformer(nn.Module):
         dim_head,
         mlp_dim,
         dropout=0.0,
+        sequence_length=None
     ):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
@@ -217,9 +246,10 @@ class Transformer(nn.Module):
                             heads=heads,
                             dim_head=dim_head,
                             dropout=dropout,
+                            sequence_length=sequence_length,
                         ),
                         FeedForward(
-                            dim, mlp_dim, dropout=dropout
+                            dim, mlp_dim, dropout=dropout, sequence_length=sequence_length,
                         ),
                     ]
                 )
@@ -252,6 +282,7 @@ class ViT(nn.Module):
         patch_height, patch_width = patch_size, patch_size
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
+        sequence_legnth = num_patches + 1
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
                 "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
@@ -272,6 +303,7 @@ class ViT(nn.Module):
             dim_head,
             mlp_dim,
             dropout,
+            sequence_length=sequence_legnth,
         )
 
     def freeze_all_except_last_n(self, n):
@@ -365,7 +397,3 @@ if __name__ == "__main__":
     model = model.cuda()
     model.train()
     out = model(input)
-    model.deploy()
-    out2 = model(input)
-    print(out.flatten()[:5])
-    print(out2.flatten()[:5])

@@ -1087,3 +1087,22 @@ CPU Efficiency: 32.27% of 10:57:36 core-walltime
 Job Wall-clock time: 00:54:48
 Memory Utilized: 32.23 GB
 Memory Efficiency: 25.18% of 128.00 GB
+==============================================================================
+Running epilogue script on swarma1003.
+
+Submit time  : 2025-01-03T19:54:28
+Start time   : 2025-01-03T19:54:29
+End time     : 2025-01-03T20:19:40
+Elapsed time : 00:25:11 (Timelimit=2-11:00:00)
+
+Job ID: 65319
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: FAILED (exit code 1)
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 01:17:52
+CPU Efficiency: 25.77% of 05:02:12 core-walltime
+Job Wall-clock time: 00:25:11
+Memory Utilized: 32.18 GB
+Memory Efficiency: 25.14% of 128.00 GB

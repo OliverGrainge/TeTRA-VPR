@@ -11,3 +11,22 @@ CPU Efficiency: 6.63% of 04:07:00 core-walltime
 Job Wall-clock time: 00:20:35
 Memory Utilized: 66.65 GB
 Memory Efficiency: 52.07% of 128.00 GB
+==============================================================================
+Running epilogue script on rose02.
+
+Submit time  : 2025-01-03T19:54:38
+Start time   : 2025-01-03T19:54:39
+End time     : 2025-01-03T19:57:22
+Elapsed time : 00:02:43 (Timelimit=2-11:00:00)
+
+Job ID: 65321
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: FAILED (exit code 1)
+Nodes: 1
+Cores per node: 12
+CPU Utilized: 00:01:31
+CPU Efficiency: 4.65% of 00:32:36 core-walltime
+Job Wall-clock time: 00:02:43
+Memory Utilized: 847.29 MB
+Memory Efficiency: 0.65% of 128.00 GB
