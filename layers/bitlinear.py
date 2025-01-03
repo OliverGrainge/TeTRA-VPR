@@ -49,8 +49,8 @@ class BitLinear(nn.Module):
         if bias:
             self.bias = nn.Parameter(torch.randn(out_features).cuda())
         else:
-            self.register_parameter("bias", None)
-
+            self.register_parameter("bias", None)       
+        print("=======================================", 1, self.out_features, self.in_features)
         self.matmul_config = bitblas.MatmulConfig(
             M=1,
             N=out_features,
@@ -124,6 +124,7 @@ class BitLinear(nn.Module):
 
     def deploy(self):
         self.eval()
+        print("--------------------------------", 1, self.out_features, self.in_features)
         self.deploy_matmul = bitblas.Matmul(config=self.matmul_config)
         self.qweight = self.deploy_matmul.transform_weight(self.qweight)
         del self.weight
@@ -357,7 +358,8 @@ def ViT_Large(image_size=[224, 224]):
 
 
 if __name__ == "__main__":
-    model = ViT_Small(image_size=[224, 224])
+    bitblas.set_log_level("Info")
+    model = ViT_Base(image_size=[224, 224])
     input = torch.randn(1, 3, 224, 224).cuda()
     model = model.cuda()
     model.train()
