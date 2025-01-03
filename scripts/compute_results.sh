@@ -52,23 +52,23 @@ echo " "
 echo "================================================================================="
 echo "=============================== TeTRA models ==================================="
 echo "================================================================================="
-#for backbone in "${backbone_archs[@]}"; do
-#    for agg_arch in "${agg_archs[@]}"; do
-#        for size in "${image_size[@]}"; do  # Fixed naming to avoid shadowing issues
-#            for val_set in "${val_set_names[@]}"; do
-#                echo "========================================"
-#                echo "Running evaluation for model:"
-#                echo "  BACKBONE_ARCH: $backbone"
-#                echo "  AGG_ARCH: $agg_arch"
-#                echo "  IMAGE_SIZE: $size x $size"
-#                echo "  VAL SET: $val_set"
-#                echo "========================================"
-#                python eval.py --backbone_arch $backbone --agg_arch $agg_arch --image_size "$size" "$size" \
-#                    --batch_size $batch_size --num_workers $num_workers --val_set_names $val_set --silent True
-#            done
-#        done
-#    done
-#done
+for backbone in "${backbone_archs[@]}"; do
+    for agg_arch in "${agg_archs[@]}"; do
+        for size in "${image_size[@]}"; do  # Fixed naming to avoid shadowing issues
+            for val_set in "${val_set_names[@]}"; do
+                echo "========================================"
+                echo "Running evaluation for model:"
+                echo "  BACKBONE_ARCH: $backbone"
+                echo "  AGG_ARCH: $agg_arch"
+                echo "  IMAGE_SIZE: $size x $size"
+                echo "  VAL SET: $val_set"
+                echo "========================================"
+                python eval.py --backbone_arch $backbone --agg_arch $agg_arch --image_size "$size" "$size" \
+                    --batch_size $batch_size --num_workers $num_workers --val_set_names $val_set --silent True
+            done
+        done
+    done
+done
 
 
 
