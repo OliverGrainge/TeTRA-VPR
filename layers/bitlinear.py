@@ -84,7 +84,6 @@ class BitLinear(nn.Module):
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
-    
 
     def infer_forward(self, x):
         qx, act_scale = activation_quant_real(x)
@@ -97,7 +96,6 @@ class BitLinear(nn.Module):
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
-    
 
     @torch.inference_mode()
     def deploy_forward(self, x):
@@ -364,7 +362,7 @@ if __name__ == "__main__":
     model = model.cuda()
     model.train()
     out = model(input)
-    model.eval()
+    model.deploy()
     out2 = model(input)
     print(out.flatten()[:5])
     print(out2.flatten()[:5])
