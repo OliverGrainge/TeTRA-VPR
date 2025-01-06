@@ -108,11 +108,13 @@ class ViT(nn.Module):
         ff_layer_type=nn.Linear,
     ):
         super().__init__()
+        self.image_size = image_size
         self.patch_size = patch_size
         image_height, image_width = image_size, image_size
         patch_height, patch_width = patch_size, patch_size
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
+        self.dim = dim
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
                 "b c (h p1) (w p2) -> b (h w) (p1 p2 c)",
@@ -137,27 +139,6 @@ class ViT(nn.Module):
             ff_layer_type=ff_layer_type,
         )
 
-    def freeze_all_except_last_n(self, n):
-        # Freeze patch embedding components
-        for module in self.to_patch_embedding.modules():
-            if isinstance(module, nn.Parameter):
-                module.requires_grad = False
-
-        # Freeze positional embeddings and cls token
-        self.pos_embedding.requires_grad = False
-        self.cls_token.requires_grad = False
-
-        # Freeze transformer layers except last n
-        n_layers = len(self.transformer.layers)
-        layers_to_freeze = (
-            self.transformer.layers[:-n] if n > 0 else self.transformer.layers
-        )
-
-        for idx, layer in enumerate(layers_to_freeze):
-            for module in layer.modules():
-                if isinstance(module, nn.Parameter):
-                    module.requires_grad = False
-
     def forward(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
@@ -167,9 +148,13 @@ class ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
+    
+    def __str__(self): 
+        model_type = "Vitsmall" if self.dim == 384 else "Vitbase" if self.dim == 768 else "Vit"
+        return f"{model_type}{self.image_size}"
 
 
-def ViT_Small(image_size=[224, 224], layer_type=nn.Linear):
+def Vitsmall(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
@@ -187,7 +172,7 @@ def ViT_Small(image_size=[224, 224], layer_type=nn.Linear):
     )
 
 
-def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
+def Vitbase(image_size=[224, 224], layer_type=nn.Linear):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
@@ -204,20 +189,3 @@ def ViT_Base(image_size=[224, 224], layer_type=nn.Linear):
         ff_layer_type=layer_type,
     )
 
-
-def ViT_Large(image_size=[224, 224], layer_type=nn.Linear):
-    return ViT(
-        image_size=image_size[0],  # Smaller image size for reduced complexity
-        patch_size=16,
-        dim=1024,
-        depth=24,
-        heads=16,
-        mlp_dim=4096,
-        dropout=0.1,
-        emb_dropout=0.1,
-        channels=3,
-        dim_head=64,  # Usually dim_head = dim // heads
-        patch_layer_type=nn.Linear,
-        attention_layer_type=layer_type,
-        ff_layer_type=layer_type,
-    )

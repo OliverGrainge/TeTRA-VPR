@@ -144,3 +144,6 @@ class SALAD(nn.Module):
             dim=-1,
         )
         return f
+    
+    def __str__(self): 
+        return "SALAD"

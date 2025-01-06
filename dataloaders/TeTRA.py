@@ -118,17 +118,6 @@ class TeTRA(pl.LightningModule):
                             which_set="val",
                         )
                     )
-                elif "pitts250k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset250k
-
-                    self.val_datasets.append(
-                        PittsburghDataset250k(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
                 elif "msls" in val_set_name.lower():
                     from dataloaders.val.MapillaryDataset import MSLS
 
@@ -139,70 +128,9 @@ class TeTRA(pl.LightningModule):
                             which_set="val",
                         )
                     )
-                elif "nordland" in val_set_name.lower():
-                    from dataloaders.val.NordlandDataset import NordlandDataset
-
-                    self.val_datasets.append(
-                        NordlandDataset(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "sped" in val_set_name.lower():
-                    from dataloaders.val.SPEDDataset import SPEDDataset
-
-                    self.val_datasets.append(
-                        SPEDDataset(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "essex" in val_set_name.lower():
-                    from dataloaders.val.EssexDataset import EssexDataset
-
-                    self.val_datasets.append(
-                        EssexDataset(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "sanfrancicscosmall" in val_set_name.lower():
-                    from dataloaders.val.SanFranciscoDataset import SanFranciscoSmall
-
-                    self.val_datasets.append(
-                        SanFranciscoSmall(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "tokyo" in val_set_name.lower():
-                    from dataloaders.val.Tokyo247Dataset import Tokyo247
-
-                    self.val_datasets.append(
-                        Tokyo247(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "cross" in val_set_name.lower():
-                    from dataloaders.val.CrossSeasonDataset import \
-                        CrossSeasonDataset
-
-                    self.val_datasets.append(
-                        CrossSeasonDataset(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
                 else:
                     raise NotImplementedError(
-                        f"Validation set {val_set_name} not implemented"
+                        f"Evaluation set {val_set_name} not implemented"
                     )
 
     def _setup_schedulers(self):
@@ -309,33 +237,15 @@ class TeTRA(pl.LightningModule):
         split_size = images.shape[0] // 2
         descriptors1 = self(images[:split_size])
         descriptors2 = self(images[split_size:])
-        descriptors = {
-            "global_desc": torch.cat(
-                [descriptors1["global_desc"], descriptors2["global_desc"]], dim=0
+        descriptors = torch.cat(
+                [descriptors1, descriptors2], dim=0
             )
-        }
-        # descriptors = self(images)
+    
 
-        desc = descriptors["global_desc"]
         labels = labels.view(-1)
-        # ============================================================
-        """
-        desc_sample = desc[:2]
-        labels_sample = labels[:2]
 
-        qdesc_sample = binarize(desc_sample)
-        print(qdesc_sample)
-
-        qdesc_sample = desc_sample = torch.tensor([[1., 1., 1., 0.9], [1., -1., -1., -1.]])
-
-        cosine_dist = 1 - (desc_sample[0] @ desc_sample[1].T / (torch.norm(desc_sample[0]) * torch.norm(desc_sample[1])))
-        hamming_dist = 2 * ((qdesc_sample[0] != qdesc_sample[1]).sum() / qdesc_sample.shape[1])
-        print(f"cosine_dist: {cosine_dist}, hamming_dist: {hamming_dist} error: {((torch.abs(hamming_dist - cosine_dist))/cosine_dist)*100}")
-        """
-        # ============================================================
-
-        fp_loss = self._fp_loss_func(descriptors["global_desc"], labels)
-        q_loss = self._q_loss_func(descriptors["global_desc"], labels)
+        fp_loss = self._fp_loss_func(descriptors, labels)
+        q_loss = self._q_loss_func(descriptors, labels)
 
         q_lambda = self.schedulers["quant"].get_last_lr()[0]
         loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
@@ -362,7 +272,7 @@ class TeTRA(pl.LightningModule):
             self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
                 value.detach().cpu()
             )
-        return descriptors["global_desc"].detach().cpu()
+        return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""

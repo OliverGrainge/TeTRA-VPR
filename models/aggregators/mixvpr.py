@@ -84,3 +84,6 @@ class MixVPR(nn.Module):
         x = self.row_proj(x)
         x = F.normalize(x.flatten(1), p=2, dim=-1)
         return x
+    
+    def __str__(self): 
+        return "MixVPR"

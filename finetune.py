@@ -17,7 +17,6 @@ def load_model(args):
         args.image_size,
         args.backbone_arch,
         args.agg_arch,
-        normalize_output=True,
     )
 
     if args.weights_path is not None:
@@ -31,12 +30,9 @@ def load_model(args):
             if k.startswith("backbone.")
         }
 
-        # load_state_dict returns a NamedTuple with missing_keys and unexpected_keys
         model.backbone.load_state_dict(backbone_sd, strict=True)
-        # for param in model.backbone.parameters():
-        #    param.requires_grad = False
-        # model.backbone.freeze()
-        model.backbone.freeze_all_except_last_n(1)
+        for param in model.backbone.parameters():
+            param.requires_grad = False
     return model
 
 
@@ -52,10 +48,10 @@ def setup_training(args, model):
         lr=args.lr,
         scheduler_type=args.quant_schedule,
     )
-    """
+    
     checkpoint_cb = ModelCheckpoint(
         monitor=f"pitts30k_q_R1",
-        dirpath=_get_checkpoint_dir(args),
+        dirpath=f"./checkpoints/TeTRA/{str(model)}",
         filename="epoch-{epoch}-pitts30k_q_R1{pitts30k_q_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -65,10 +61,10 @@ def setup_training(args, model):
     )
 
     wandb_logger = WandbLogger(
-        project="TeTRA",
-        name=_get_wandb_run_name(args),
+        project="TeTRA-finetune",
+        name=f"{str(model)}",
     )
-    """
+    
 
     trainer = pl.Trainer(
         enable_progress_bar=True,
@@ -77,20 +73,12 @@ def setup_training(args, model):
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        #callbacks=[checkpoint_cb],
+        callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
-        #logger=wandb_logger,
+        logger=wandb_logger,
     )
 
     return trainer, model_module
-
-
-def _get_checkpoint_dir(args):
-    return f"./checkpoints/TeTRA/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
-
-
-def _get_wandb_run_name(args):
-    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_aug[{args.augment_level.lower()}]_quant_schedule[{args.quant_schedule}]_res[{args.image_size[0]}x{args.image_size[1]}]"
 
 
 if __name__ == "__main__":

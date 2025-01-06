@@ -1,5 +1,3 @@
-# layer.py
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -76,10 +74,10 @@ class BitLinear(nn.Module):
     def forward(self, x):
         if self.deployed:
             return self.deploy_forward(x)
-        if self.training:
+        elif self.training:
             return self.train_forward(x)
         else:
-            return self.infer_forward(x)
+            return self.eval_forward(x)
 
     def train_forward(self, x):
         dqx = x + (activation_quant_fake(x)[0] - x).detach()
@@ -89,7 +87,8 @@ class BitLinear(nn.Module):
             out += self.bias.to(out.dtype)
         return out
 
-    def infer_forward(self, x):
+    @torch.no_grad()
+    def eval_forward(self, x):
         qx, act_scale = activation_quant_real(x)
         out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
         out = out / act_scale / self.scale
@@ -97,7 +96,7 @@ class BitLinear(nn.Module):
             out += self.bias.to(out.dtype)
         return out
 
-    @torch.inference_mode()
+    @torch.no_grad()
     def deploy_forward(self, x):
         qx, act_scale = activation_quant_real(x)
         if qx.ndim == 3:
@@ -118,13 +117,11 @@ class BitLinear(nn.Module):
 
     def train(self, mode=True):
         if mode:
-            # layer.train()
             self._buffers.clear()
             self.weight.data = self.weight.data.cuda()
             if self.bias is not None:
                 self.bias.data = self.bias.data.cuda()
         else: 
-            # layer.eval()
             qweight, scale = weight_quant_real(self.weight)
             self.weight.data = self.weight.data.cpu()
             if self.bias is not None:
@@ -139,6 +136,7 @@ class BitLinear(nn.Module):
         try:
             import bitblas
             matmul_config = bitblas.MatmulConfig(
+                M = [256, 512, 1024, 2048],
                 N=self.out_features,
                 K=self.in_features,
                 A_dtype="int8",
@@ -155,39 +153,15 @@ class BitLinear(nn.Module):
             self.deploy_matmul = bitblas.Matmul(config=matmul_config)
             self.qweight = self.deploy_matmul.transform_weight(self.qweight)
             self.deployed = True
+
         except ImportError as e:
-            # Log the error instead of raising a warning
             import logging
             logging.warning("bitblas not installed, deploying in evaluation mode: %s", e)
         except Exception as e:
-            # Catch other exceptions and log them
             import logging
             logging.error("An error occurred during deployment: %s", e)
         finally:
-            # Ensure weight is deleted regardless of success or failure
             del self.weight
-        
-
-
-    def load_state_dict(self, state_dict, strict=True):
-        if "qweight" in state_dict.keys():
-            if (
-                state_dict["qweight"].shape[0] == self.out_features
-                and state_dict["qweight"].shape[1] < self.in_features
-            ):
-                print("loading in deployed mode")
-                self.deploy()  # load the layer in deployed mode
-            else:
-                print("loading in eval mode")
-                self.eval()  # load the
-        else:
-            print("loading in train mode")
-
-        super(BitLinear, self).load_state_dict(state_dict, strict=strict)
-
-
-
-
 
 
 
@@ -199,12 +173,12 @@ class FeedForward(nn.Module):
         self.net = nn.Sequential(
             Normalize(dim),
             BitLinear(dim, hidden_dim),
-	    LayerScale(hidden_dim),
+            LayerScale(hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-	    Normalize(hidden_dim),
+            Normalize(hidden_dim),
             BitLinear(hidden_dim, dim),
-	    LayerScale(dim),
+            LayerScale(dim),
             nn.Dropout(dropout),
         )
 
@@ -218,29 +192,42 @@ class Attention(nn.Module):
         inner_dim = dim_head * heads
         self.heads = heads
         self.scale = dim_head**-0.5
-        self.norm_in = Normalize(dim)
-        self.layerscale_in = LayerScale(dim)
+
+        # Normalization layers
+        self.norm1 = Normalize(dim)
+        self.norm2 = Normalize(inner_dim)
+
+        # Layer scaling
+        self.layerscale1 = LayerScale(inner_dim * 3)
+        self.layerscale2 = LayerScale(dim)
+
+        # Attention mechanism
+        self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
-        self.norm_out = Normalize(inner_dim)
-        self.layerscale_out = LayerScale(inner_dim)
+
+        # Output transformation
         self.to_out = nn.Sequential(BitLinear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
-        x = self.norm_in(x)
+        # compute q, k, v
+        x = self.norm1(x)
         qkv = self.to_qkv(x)
-        qkv = self.layerscale_in(x)
+        qkv = self.layerscale1(qkv)
         qkv = qkv.chunk(3, dim=-1)
         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), qkv)
+
+        # attention
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
         attn = self.attend(dots)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
-        out = self.norm_out(out)
+
+        # out projection 
+        out = self.norm2(out)
         out = self.to_out(out)
-        out = self.layerscale_out(out)
+        out = self.layerscale2(out)
         return out
 
 
@@ -297,6 +284,8 @@ class ViT(nn.Module):
     ):
         super().__init__()
         self.patch_size = patch_size
+        self.dim = dim 
+        self.image_size = image_size
         image_height, image_width = image_size, image_size
         patch_height, patch_width = patch_size, patch_size
         num_patches = (image_height // patch_height) * (image_width // patch_width)
@@ -323,27 +312,6 @@ class ViT(nn.Module):
             dropout,
         )
 
-    def freeze_all_except_last_n(self, n):
-        # Freeze patch embedding components
-        for module in self.to_patch_embedding.modules():
-            if isinstance(module, nn.Parameter):
-                module.requires_grad = False
-
-        # Freeze positional embeddings and cls token
-        self.pos_embedding.requires_grad = False
-        self.cls_token.requires_grad = False
-
-        # Freeze transformer layers except last n
-        n_layers = len(self.transformer.layers)
-        layers_to_freeze = (
-            self.transformer.layers[:-n] if n > 0 else self.transformer.layers
-        )
-
-        for idx, layer in enumerate(layers_to_freeze):
-            for module in layer.modules():
-                if isinstance(module, nn.Parameter):
-                    module.requires_grad = False
-
     def forward(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
@@ -360,28 +328,33 @@ class ViT(nn.Module):
             if isinstance(module, BitLinear):
                 module.deploy()
 
+    def __str__(self): 
+        model_type = "VitsmallST" if self.dim == 384 else "VitbaseST" if self.dim == 768 else "Vit"
+        return f"{model_type}{self.image_size}"
 
-def ViT_Small(image_size=[224, 224]):
+
+
+def VitsmallST(image_size=[224, 224]):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=12,  # Fewer transformer layers
+        depth=1,  # Fewer transformer layers 12
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
-        dim_head=96,  # Dimension of each attention head
+        dim_head=98,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
     )
 
 
-def ViT_Base(image_size=[224, 224]):
+def VitbaseST(image_size=[224, 224]):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=12,
+        depth=1, # 12 
         heads=12,
         mlp_dim=3072,
         dropout=0.1,
@@ -389,58 +362,3 @@ def ViT_Base(image_size=[224, 224]):
         channels=3,
         dim_head=64,  # Usually dim_head = dim // heads
     )
-
-
-def ViT_Large(image_size=[224, 224]):
-    return ViT(
-        image_size=image_size[0],  # Smaller image size for reduced complexity
-        patch_size=16,
-        dim=1024,
-        depth=24,
-        heads=16,
-        mlp_dim=4096,
-        dropout=0.1,
-        emb_dropout=0.1,
-        channels=3,
-        dim_head=64,  # Usually dim_head = dim // heads
-    )
-
-
-
-if __name__ == "__main__":
-
-    model = ViT_Base(image_size=[224, 224])
-    model = model.cuda()
-    input = torch.randn(1, 3, 224, 224).cuda()
-    out = model(input)
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print(" ")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    print("=================================================")
-    input = torch.randn(1, 3, 224, 224).cuda()
-    out = model(input)
-    print(out.shape, out.dtype)
-    input = torch.randn(16, 3, 224, 224).cuda()
-    out = model(input)
-    print(out.shape, out.dtype)
-    input = torch.randn(64, 3, 224, 224).cuda()
-    out = model(input)
-    print(out.shape, out.dtype)
-    input = torch.randn(15, 3, 224, 224).cuda()
-    out = model(input)
-    print(out.shape, out.dtype)

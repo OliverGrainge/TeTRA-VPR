@@ -102,19 +102,16 @@ class DistillConfig:
     max_epochs: int = 3
 
     # Loss and regularization
-    mse_loss_mult: float = 1000
-    weight_decay_init: float = 0.05
-    weight_decay_schedule: str = "constant"
-    use_attention: bool = False
+    weight_decay: float = 0.01
+    use_attention: bool = True
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
-    augmentation_level: str = "Moderate"
+    augmentation_level: str = "Severe"
 
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    checkpoint_dir: str = ""
     val_set_names: Tuple[str] = ("Pitts30k",)
     precision: str = "bf16-mixed"
 
@@ -133,15 +130,7 @@ class DistillConfig:
         )
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
         group.add_argument(
-            "--mse_loss_mult", type=float, default=DistillConfig.mse_loss_mult
-        )
-        group.add_argument(
-            "--weight_decay_init", type=float, default=DistillConfig.weight_decay_init
-        )
-        group.add_argument(
-            "--weight_decay_schedule",
-            type=str,
-            default=DistillConfig.weight_decay_schedule,
+            "--weight_decay", type=float, default=DistillConfig.weight_decay_init
         )
         group.add_argument(
             "--use_attention", type=bool, default=DistillConfig.use_attention
@@ -154,9 +143,6 @@ class DistillConfig:
         )
         group.add_argument("--num_workers", type=int, default=DistillConfig.num_workers)
         group.add_argument("--pbar", type=bool, default=DistillConfig.pbar)
-        group.add_argument(
-            "--checkpoint_dir", type=str, default=DistillConfig.checkpoint_dir
-        )
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=DistillConfig.val_set_names
         )

@@ -13,30 +13,35 @@ import yaml
 
 from config import DataConfig, DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
-
+from models.helper import get_model
 
 def setup_training(args):
+    student_model = get_model(
+        backbone_arch=args.backbone_arch,
+        agg_arch=args.agg_arch,
+        image_size=args.image_size,
+    )
+
+    teacher_model = get_model(
+        preset="DinoSalad",
+    )
+
     model_module = Distill(
+        student_model = student_model,
+        teacher_model = teacher_model,
         train_dataset_dir=args.train_dataset_dir,
         val_dataset_dir=args.val_dataset_dir,
-        student_backbone_arch=args.backbone_arch,
-        student_agg_arch=args.agg_arch,
-        teacher_preset=args.teacher_preset,
         lr=args.lr,
-        mse_loss_mult=args.mse_loss_mult,
         batch_size=args.batch_size,
-        weight_decay_init=args.weight_decay_init,
-        weight_decay_schedule=args.weight_decay_schedule,
-        use_attention=args.use_attention,
+        weight_decay=args.weight_decay,
         image_size=args.image_size,
-        augmentation_level=args.augmentation_level,
         num_workers=args.num_workers,
         val_set_names=args.val_set_names,
     )
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
-        dirpath=_get_checkpoint_dir(args),
+        dirpath=f"./checkpoints/TeTRA-pretrain/{str(student_model)}",
         filename="{epoch}-{" + args.val_set_names[0] + "_R1:.2f}",
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
@@ -46,8 +51,8 @@ def setup_training(args):
     )
 
     wandb_logger = WandbLogger(
-        project="Distill",
-        name=_get_wandb_run_name(args),
+        project="TeTRA-pretrain",
+        name=f"{str(student_model)}",
     )
 
     trainer = pl.Trainer(
@@ -67,14 +72,6 @@ def setup_training(args):
     )
 
     return trainer, model_module
-
-
-def _get_checkpoint_dir(args):
-    return f"./checkpoints/Distill/backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augmentation_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
-
-
-def _get_wandb_run_name(args):
-    return f"backbone[{args.backbone_arch.lower()}]_agg[{args.agg_arch.lower()}]_teacher[{args.teacher_preset.lower()}]_res[{args.image_size[0]}x{args.image_size[1]}]_aug[{args.augmentation_level.lower()}]_decay[{args.weight_decay_schedule.lower()}]"
 
 
 if __name__ == "__main__":

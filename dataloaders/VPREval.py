@@ -132,7 +132,7 @@ def get_floating_descriptor_size(model, inputs):
     model.eval()
     with torch.no_grad():
         descriptor = model(inputs)
-        descriptor = descriptor["global_desc"]
+        descriptor = descriptor
     # descriptor is a torch.Tensor
     size_in_bytes = descriptor.numel() * descriptor.element_size()
     return size_in_bytes
@@ -142,7 +142,6 @@ def get_binary_descriptor_size(model, inputs):
     model.eval()
     with torch.no_grad():
         descriptor = model(inputs)
-        descriptor = descriptor["global_desc"]
     # descriptor is a torch.Tensor
     size_in_bytes = (descriptor.numel() * descriptor.element_size()) / 8
     return size_in_bytes
@@ -152,7 +151,6 @@ def get_descriptor_dim(model, inputs):
     model.eval()
     with torch.no_grad():
         descriptor = model(inputs)
-        descriptor = descriptor["global_desc"]
     # Assuming descriptor is 1D or has a single trailing dimension that represents the embedding dimension
     # If the output shape is something like (batch_size, D), we take D
     dim = descriptor.shape[-1]
@@ -380,7 +378,7 @@ class VPREval(pl.LightningModule):
             self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
                 value.detach().cpu()
             )
-        return descriptors["global_desc"].detach().cpu()
+        return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
