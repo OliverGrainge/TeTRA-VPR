@@ -1,10 +1,14 @@
-import torch
-import io 
 import contextlib
+import io
+
+import torch
+
 
 def CosPlacesR18D32():
     # Suppress both stdout and stderr
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
         model = torch.hub.load(
             "gmberton/cosplace",
             "get_trained_model",

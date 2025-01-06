@@ -6,18 +6,18 @@ from einops import rearrange
 from einops.layers.torch import Rearrange
 
 
-
-class Normalize(nn.Module): 
+class Normalize(nn.Module):
     def __init__(self, eps=1e-05):
         super().__init__()
         self.eps = eps
 
     def forward(self, x):
-        return ((x - x.mean(dim=-1, keepdim=True)) / (x.var(dim=-1, keepdim=True) + self.eps)**0.5)
-    
+        return (x - x.mean(dim=-1, keepdim=True)) / (
+            x.var(dim=-1, keepdim=True) + self.eps
+        ) ** 0.5
 
 
-class LayerScale(nn.Module): 
+class LayerScale(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(dim))
@@ -67,8 +67,8 @@ class BitLinear(nn.Module):
         if bias:
             self.bias = nn.Parameter(torch.randn(out_features).cuda())
         else:
-            self.register_parameter("bias", None)       
-        
+            self.register_parameter("bias", None)
+
         self.deployed = False
 
     def forward(self, x):
@@ -108,12 +108,11 @@ class BitLinear(nn.Module):
         out = self.deploy_matmul(qx, self.qweight)
         if reshape_output:
             out = out.view(B, T, -1)
-        out = out / act_scale / self.scale 
+        out = out / act_scale / self.scale
 
-        if self.bias is not None: 
+        if self.bias is not None:
             out += self.bias.to(out.dtype)
-        return out 
-
+        return out
 
     def train(self, mode=True):
         if mode:
@@ -121,13 +120,13 @@ class BitLinear(nn.Module):
             self.weight.data = self.weight.data.cuda()
             if self.bias is not None:
                 self.bias.data = self.bias.data.cuda()
-        else: 
+        else:
             qweight, scale = weight_quant_real(self.weight)
             self.weight.data = self.weight.data.cpu()
             if self.bias is not None:
                 self.bias.data = self.bias.data.cuda()
             self.register_buffer("qweight", qweight.cuda())
-            self.register_buffer("scale", scale.cuda()) 
+            self.register_buffer("scale", scale.cuda())
         self = super().train(mode)
         return self
 
@@ -135,8 +134,9 @@ class BitLinear(nn.Module):
         self.eval()
         try:
             import bitblas
+
             matmul_config = bitblas.MatmulConfig(
-                M = [256, 512, 1024, 2048],
+                M=[256, 512, 1024, 2048],
                 N=self.out_features,
                 K=self.in_features,
                 A_dtype="int8",
@@ -156,15 +156,16 @@ class BitLinear(nn.Module):
 
         except ImportError as e:
             import logging
-            logging.warning("bitblas not installed, deploying in evaluation mode: %s", e)
+
+            logging.warning(
+                "bitblas not installed, deploying in evaluation mode: %s", e
+            )
         except Exception as e:
             import logging
+
             logging.error("An error occurred during deployment: %s", e)
         finally:
             del self.weight
-
-
-
 
 
 class FeedForward(nn.Module):
@@ -224,7 +225,7 @@ class Attention(nn.Module):
         out = torch.matmul(attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
 
-        # out projection 
+        # out projection
         out = self.norm2(out)
         out = self.to_out(out)
         out = self.layerscale2(out)
@@ -255,7 +256,9 @@ class Transformer(nn.Module):
                             dropout=dropout,
                         ),
                         FeedForward(
-                            dim, mlp_dim, dropout=dropout, 
+                            dim,
+                            mlp_dim,
+                            dropout=dropout,
                         ),
                     ]
                 )
@@ -284,7 +287,7 @@ class ViT(nn.Module):
     ):
         super().__init__()
         self.patch_size = patch_size
-        self.dim = dim 
+        self.dim = dim
         self.image_size = image_size
         image_height, image_width = image_size, image_size
         patch_height, patch_width = patch_size, patch_size
@@ -321,17 +324,19 @@ class ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-    
 
     def deploy(self):
         for module in self.modules():
             if isinstance(module, BitLinear):
                 module.deploy()
 
-    def __str__(self): 
-        model_type = "VitsmallST" if self.dim == 384 else "VitbaseST" if self.dim == 768 else "Vit"
+    def __str__(self):
+        model_type = (
+            "VitsmallST"
+            if self.dim == 384
+            else "VitbaseST" if self.dim == 768 else "Vit"
+        )
         return f"{model_type}{self.image_size}"
-
 
 
 def VitsmallST(image_size=[224, 224]):
@@ -354,7 +359,7 @@ def VitbaseST(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=1, # 12 
+        depth=1,  # 12
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

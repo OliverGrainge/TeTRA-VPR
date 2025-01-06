@@ -186,8 +186,7 @@ class VPREval(pl.LightningModule):
             self.val_datasets = []
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -197,8 +196,7 @@ class VPREval(pl.LightningModule):
                         )
                     )
                 elif "pitts250k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset250k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset250k
 
                     self.val_datasets.append(
                         PittsburghDataset250k(
@@ -268,8 +266,7 @@ class VPREval(pl.LightningModule):
                         )
                     )
                 elif "cross" in val_set_name.lower():
-                    from dataloaders.val.CrossSeasonDataset import \
-                        CrossSeasonDataset
+                    from dataloaders.val.CrossSeasonDataset import CrossSeasonDataset
 
                     self.val_datasets.append(
                         CrossSeasonDataset(
@@ -310,6 +307,7 @@ class VPREval(pl.LightningModule):
                     )
                 elif "svox" in val_set_name.lower():
                     from dataloaders.val.SVOXDataset import SVOX
+
                     if "svox" == val_set_name.lower():
                         self.val_datasets.append(
                             SVOX(
@@ -318,7 +316,7 @@ class VPREval(pl.LightningModule):
                                 which_set="test",
                             )
                         )
-                    else: 
+                    else:
                         condition = val_set_name.split("_")[1]
                         self.val_datasets.append(
                             SVOX(
@@ -397,10 +395,7 @@ class VPREval(pl.LightningModule):
         resource_table.align["Unit"] = "l"
 
         # Initialize results dictionary
-        results = {
-            "accuracy": [],
-            "resources": {}
-        }
+        results = {"accuracy": [], "resources": {}}
 
         # Iterate through each validation set
         accuracy_results = {}
@@ -432,7 +427,6 @@ class VPREval(pl.LightningModule):
                 [dataset_name, "Cosine", f"{fp_recalls_dict['R1']:.1f}"]
             )
 
-
             # Perform hamming distance matching
             q_recalls_dict, _, hamming_search_time = match_hamming(
                 **set_outputs,
@@ -449,10 +443,9 @@ class VPREval(pl.LightningModule):
             # Add hamming results to dictionary
             accuracy_results = accuracy_results | {
                 "dataset": dataset_name,
-                f'{dataset_name}_hamming_R@1': q_recalls_dict["R1"],
-                f'{dataset_name}_cosine_R@1': fp_recalls_dict["R1"],
+                f"{dataset_name}_hamming_R@1": q_recalls_dict["R1"],
+                f"{dataset_name}_cosine_R@1": fp_recalls_dict["R1"],
             }
-            
 
         # Generate a dummy input image and transform it
         img = torch.randint(0, 255, size=(224, 224, 3), dtype=torch.uint8).numpy()

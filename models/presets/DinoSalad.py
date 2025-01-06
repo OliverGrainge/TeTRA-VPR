@@ -1,10 +1,10 @@
+import contextlib
+import io
 import math
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import contextlib 
-import io
 
 from models import helper
 
@@ -289,7 +289,9 @@ def DinoSalad(
         "cluster_dim": 128,
         "token_dim": 256,
     }
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
         model = VPRModel(
             backbone_arch=backbone,
             backbone_config=backbone_args,

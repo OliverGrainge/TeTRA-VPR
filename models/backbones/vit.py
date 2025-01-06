@@ -148,9 +148,11 @@ class ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-    
-    def __str__(self): 
-        model_type = "Vitsmall" if self.dim == 384 else "Vitbase" if self.dim == 768 else "Vit"
+
+    def __str__(self):
+        model_type = (
+            "Vitsmall" if self.dim == 384 else "Vitbase" if self.dim == 768 else "Vit"
+        )
         return f"{model_type}{self.image_size}"
 
 
@@ -188,4 +190,3 @@ def Vitbase(image_size=[224, 224], layer_type=nn.Linear):
         attention_layer_type=layer_type,
         ff_layer_type=layer_type,
     )
-

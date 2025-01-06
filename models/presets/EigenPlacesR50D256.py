@@ -1,9 +1,13 @@
-import torch
-import io 
 import contextlib
+import io
+
+import torch
+
 
 def EigenPlacesR50D256():
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
         model = torch.hub.load(
             "gmberton/eigenplaces",
             "get_trained_model",

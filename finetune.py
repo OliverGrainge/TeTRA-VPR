@@ -3,7 +3,6 @@ import os
 
 import pytorch_lightning as pl
 import torch
-import yaml
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
@@ -24,7 +23,6 @@ def load_model(args):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
         sd = torch.load(args.weights_path, weights_only=False)["state_dict"]
-        print("=============================================================================")
         for k, v in sd.items():
             print(k, v.shape)
         backbone_sd = {
@@ -51,7 +49,7 @@ def setup_training(args, model):
         lr=args.lr,
         scheduler_type=args.quant_schedule,
     )
-    
+
     checkpoint_cb = ModelCheckpoint(
         monitor=f"pitts30k_q_R1",
         dirpath=f"./checkpoints/TeTRA/{str(model)}",
@@ -67,7 +65,6 @@ def setup_training(args, model):
         project="TeTRA-finetune",
         name=f"{str(model)}",
     )
-    
 
     trainer = pl.Trainer(
         enable_progress_bar=True,

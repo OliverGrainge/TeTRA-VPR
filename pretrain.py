@@ -9,24 +9,13 @@ torch.set_float32_matmul_precision("medium")
 import argparse
 import os
 
-import yaml
 
 from config import DataConfig, DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
-from models.helper import get_model
+
 
 def setup_training(args):
-    student_model = get_model(
-        backbone_arch=args.backbone_arch,
-        agg_arch=args.agg_arch,
-        image_size=args.image_size,
-    )
-
-    teacher_model = get_model(
-        preset=args.teacher_preset,
-    )
-
-    model_module = Distill(#
+    model_module = Distill(  #
         student_model_backbone_arch=args.backbone_arch,
         student_model_agg_arch=args.agg_arch,
         student_model_image_size=args.image_size,
@@ -41,10 +30,9 @@ def setup_training(args):
         val_set_names=args.val_set_names,
     )
 
-
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
-        dirpath=f"./checkpoints/TeTRA-pretrain/{str(student_model)}",
+        dirpath=f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}",
         filename="{epoch}-{" + args.val_set_names[0] + "_R1:.2f}",
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
@@ -55,11 +43,11 @@ def setup_training(args):
 
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
-        name=f"{str(student_model)}",
+        name=f"{str(model_module.student)}",
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,#args.pbar,
+        enable_progress_bar=True,  # args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",

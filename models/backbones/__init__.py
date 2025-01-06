@@ -1,2 +1,2 @@
-from .vit import Vitsmall, Vitbase
-from .vitst import VitsmallST, VitbaseST
+from .vit import Vitbase, Vitsmall
+from .vitst import VitbaseST, VitsmallST

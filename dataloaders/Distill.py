@@ -11,17 +11,13 @@ from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
 
-from dataloaders.train.DistillDataset import (DistillDataset, JPGDataset,
-                                              TarImageDataset)
+from dataloaders.train.DistillDataset import DistillDataset, JPGDataset, TarImageDataset
 from dataloaders.utils.Distill.attention import get_attn, remove_hooks
-from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
-                                             get_feature_dim)
-from dataloaders.utils.Distill.schedulers import (QuantScheduler,
-                                                  WeightDecayScheduler)
+from dataloaders.utils.Distill.funcs import L2Norm, freeze_model, get_feature_dim
+from dataloaders.utils.Distill.schedulers import QuantScheduler, WeightDecayScheduler
 from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
-
 
 
 class Distill(pl.LightningModule):
@@ -44,7 +40,7 @@ class Distill(pl.LightningModule):
         val_set_names=["pitts30k_val"],
     ):
         super().__init__()
-         # Model-related attributes
+        # Model-related attributes
         self.teacher = get_model(
             preset=teacher_model_preset,
         )
@@ -82,8 +78,7 @@ class Distill(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -117,9 +112,11 @@ class Distill(pl.LightningModule):
         # Calculate the total number of training steps
         num_training_steps = self.trainer.max_epochs * len(self.train_dataloader())
         scheduler = get_cosine_schedule_with_warmup(
-            optimizer, 
-            num_warmup_steps=int(0.05 * num_training_steps),  # You can adjust this based on your needs
-            num_training_steps=num_training_steps
+            optimizer,
+            num_warmup_steps=int(
+                0.05 * num_training_steps
+            ),  # You can adjust this based on your needs
+            num_training_steps=num_training_steps,
         )
         return [optimizer], [scheduler]
 
@@ -133,7 +130,9 @@ class Distill(pl.LightningModule):
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
 
-            assert teacher_features.shape == student_features.shape, "teacher and student features must have the same shape"
+            assert (
+                teacher_features.shape == student_features.shape
+            ), "teacher and student features must have the same shape"
 
             # B * D, H, N, N
             teacher_attn = teacher_attn.view(
@@ -165,7 +164,9 @@ class Distill(pl.LightningModule):
             student_attn = None
             teacher_attn = None
 
-            assert teacher_features.shape == student_features.shape, "teacher and student features must have the same shape"
+            assert (
+                teacher_features.shape == student_features.shape
+            ), "teacher and student features must have the same shape"
 
             return (
                 student_features,
@@ -283,7 +284,7 @@ class Distill(pl.LightningModule):
         self.validation_outputs = {}
         for name in self.val_set_names:
             self.validation_outputs[name] = []
-            
+
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         descriptors = self(places)
@@ -323,9 +324,9 @@ class Distill(pl.LightningModule):
         return full_recalls_dict
 
     def state_dict(self):
-        #Override the state_dict method to return only the student model's state dict
+        # Override the state_dict method to return only the student model's state dict
         print("=========================================")
-        #self.student.train() # remove the qweight buffers
+        # self.student.train() # remove the qweight buffers
         sd = self.student.state_dict()
         for key, value in sd.items():
             print(key, value.shape)

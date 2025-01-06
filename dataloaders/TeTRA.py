@@ -108,8 +108,7 @@ class TeTRA(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -237,10 +236,7 @@ class TeTRA(pl.LightningModule):
         split_size = images.shape[0] // 2
         descriptors1 = self(images[:split_size])
         descriptors2 = self(images[split_size:])
-        descriptors = torch.cat(
-                [descriptors1, descriptors2], dim=0
-            )
-    
+        descriptors = torch.cat([descriptors1, descriptors2], dim=0)
 
         labels = labels.view(-1)
 

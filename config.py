@@ -1,15 +1,16 @@
 from argparse import ArgumentParser
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Tuple, Union
 
 
 @dataclass
 class DataConfig:
     # dataset directories
     val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-
+    # train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    train_dataset_dir: str = (
+        "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
+    )
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -80,7 +81,9 @@ class EvalConfig:
             "--image_size", type=int, nargs=2, default=EvalConfig.image_size
         )
         group.add_argument("--silent", type=bool, default=EvalConfig.silent)
-        group.add_argument("--checkpoints_dir", type=str, default=EvalConfig.checkpoints_dir)
+        group.add_argument(
+            "--checkpoints_dir", type=str, default=EvalConfig.checkpoints_dir
+        )
         return parent_parser
 
     @classmethod
@@ -112,7 +115,7 @@ class DistillConfig:
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    val_set_names: Tuple[str] = ("Pitts30k", )
+    val_set_names: Tuple[str] = ("Pitts30k",)
     precision: str = "bf16-mixed"
 
     @staticmethod

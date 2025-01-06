@@ -1,20 +1,20 @@
 import argparse
+import logging
+import os
+import re
 
+import pandas as pd
 import pytorch_lightning as pl
 import torch
-from tabulate import tabulate
 
 from config import DataConfig, EvalConfig, ModelConfig
 from dataloaders.VPREval import VPREval
 from models.helper import get_model
 from models.transforms import get_transform
-import pandas as pd
-import os
-import logging
-import re
 
 RESULTS_FILE = "data/results.csv"
 os.makedirs(os.path.dirname(RESULTS_FILE), exist_ok=True)
+
 
 def save_results(accuracy_results, resource_results):
     """
@@ -25,7 +25,9 @@ def save_results(accuracy_results, resource_results):
     combined_results = {**accuracy_results, **resource_results}
 
     # Create a DataFrame from the results
-    new_df = pd.DataFrame([combined_results])  # Wrap in a list to ensure it's a single row
+    new_df = pd.DataFrame(
+        [combined_results]
+    )  # Wrap in a list to ensure it's a single row
 
     if os.path.exists(RESULTS_FILE):
         # Load the existing results file
@@ -39,16 +41,21 @@ def save_results(accuracy_results, resource_results):
         # Check if the `id` exists in the current results
         if combined_results["id"] in existing_df["id"].values:
             # Find the row index for the existing entry
-            row_index = existing_df[existing_df["id"] == combined_results["id"]].index[0]
+            row_index = existing_df[existing_df["id"] == combined_results["id"]].index[
+                0
+            ]
 
             # Merge the new results into the existing row
             for key, value in combined_results.items():
                 if key in existing_df.columns:  # Check if column exists
-                    if pd.isna(existing_df.at[row_index, key]) or existing_df.at[row_index, key] == "":
+                    if (
+                        pd.isna(existing_df.at[row_index, key])
+                        or existing_df.at[row_index, key] == ""
+                    ):
                         existing_df.at[row_index, key] = value
         else:
             # Remove empty or all-NA columns from new_df before concatenation
-            new_df = new_df.dropna(axis=1, how='all')
+            new_df = new_df.dropna(axis=1, how="all")
             # Append the new results to the existing DataFrame
             existing_df = pd.concat([existing_df, new_df], ignore_index=True)
     else:
@@ -59,19 +66,23 @@ def save_results(accuracy_results, resource_results):
     existing_df.to_csv(RESULTS_FILE, index=False)
 
 
-def _get_checkpoint_path(args): 
-    if args.checkpoints_dir is not None: 
+def _get_checkpoint_path(args):
+    if args.checkpoints_dir is not None:
         model_folders = os.listdir(args.checkpoints_dir)
         selected_folder = None
-        for folder in model_folders: 
-            if (args.backbone_arch.lower() in folder.lower() and 
-                args.agg_arch.lower() in folder.lower() and 
-                str(args.image_size[0]) in folder.lower()):  # Convert to string
-                selected_folder = folder 
-                break 
+        for folder in model_folders:
+            if (
+                args.backbone_arch.lower() in folder.lower()
+                and args.agg_arch.lower() in folder.lower()
+                and str(args.image_size[0]) in folder.lower()
+            ):  # Convert to string
+                selected_folder = folder
+                break
         if selected_folder is None:
-            raise ValueError(f"Checkpoint path for {args.backbone_arch} {args.agg_arch} {args.image_size[0]} not found")
-    
+            raise ValueError(
+                f"Checkpoint path for {args.backbone_arch} {args.agg_arch} {args.image_size[0]} not found"
+            )
+
     recall_scores = []
     model_dir = os.path.join(args.checkpoints_dir, selected_folder)
     model_paths = os.listdir(model_dir)
@@ -83,10 +94,12 @@ def _get_checkpoint_path(args):
             match = re.search(r"R1=([0-9.]+)", filename)
             if match:
                 recall = float(match.group(1))  # Convert to float
-                recall_scores.append((filename+".ckpt", recall))
+                recall_scores.append((filename + ".ckpt", recall))
 
     if not recall_scores:
-        raise ValueError("No valid checkpoint files found with recall scores in the specified directory.")
+        raise ValueError(
+            "No valid checkpoint files found with recall scores in the specified directory."
+        )
 
     model_path = sorted(recall_scores, key=lambda x: x[1], reverse=True)[0][0]
     return os.path.join(args.checkpoints_dir, selected_folder, model_path)
@@ -99,7 +112,11 @@ def _load_model_and_transform(args):
 
         return model, transform
     else:
-        model = get_model(backbone_arch=args.backbone_arch, agg_arch=args.agg_arch, image_size=args.image_size)
+        model = get_model(
+            backbone_arch=args.backbone_arch,
+            agg_arch=args.agg_arch,
+            image_size=args.image_size,
+        )
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
 
     checkpoint_path = _get_checkpoint_path(args)
@@ -125,7 +142,7 @@ def eval(args):
         val_dataset_dir=args.val_dataset_dir,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        silent=args.silent
+        silent=args.silent,
     )
 
     # Initialize a PyTorch Lightning Trainer
@@ -141,13 +158,13 @@ def eval(args):
     trainer.validate(module)
     return module.results
 
+
 if __name__ == "__main__":
     torch.set_float32_matmul_precision("high")
     parser = argparse.ArgumentParser()
     for config in [DataConfig, ModelConfig, EvalConfig]:
         parser = config.add_argparse_args(parser)
     args = parser.parse_args()
-
 
     if args.silent:
         logging.getLogger("pytorch_lightning").setLevel(logging.CRITICAL)
@@ -156,17 +173,22 @@ if __name__ == "__main__":
     resource_results = results["resources"]
 
     if args.preset is not None:
-        accuracy_results["id"] = args.preset 
-        accuracy_results["preset"] = args.preset 
+        accuracy_results["id"] = args.preset
+        accuracy_results["preset"] = args.preset
         accuracy_results["backbone_arch"] = None
         accuracy_results["agg_arch"] = None
         accuracy_results["image_size"] = args.image_size[0]
 
-    else: 
-        accuracy_results["id"] = args.backbone_arch + "_" + args.agg_arch + "_" + str(args.image_size[0])
+    else:
+        accuracy_results["id"] = (
+            args.backbone_arch + "_" + args.agg_arch + "_" + str(args.image_size[0])
+        )
         accuracy_results["preset"] = None
         accuracy_results["backbone_arch"] = args.backbone_arch
         accuracy_results["agg_arch"] = args.agg_arch
         accuracy_results["image_size"] = args.image_size[0]
-    print("==============================================================", accuracy_results["id"])
+    print(
+        "==============================================================",
+        accuracy_results["id"],
+    )
     save_results(accuracy_results, resource_results)

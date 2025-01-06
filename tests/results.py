@@ -1,5 +1,4 @@
-import pandas as pd 
-
+import pandas as pd
 
 BACKBONES = ["vit_small_PLRBitLinear"]
 AGG = ["salad", "gem"]
@@ -14,5 +13,3 @@ for backbone in BACKBONES:
             id = f"{backbone}_{agg}_{res}"
             if not id in df["id"].values:
                 print(f"Model {id} not found in results.csv")
-
-

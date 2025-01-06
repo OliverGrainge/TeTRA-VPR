@@ -1,12 +1,15 @@
-import torch
-import sys
 import contextlib
 import io
+import sys
+
+import torch
 
 
 def CosPlaces():
     # Suppress both stdout and stderr
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
         model = torch.hub.load(
             "gmberton/cosplace",
             "get_trained_model",
@@ -21,8 +24,3 @@ def CosPlaces():
 
     model.forward = new_forward
     return model
-
-
-
-
-

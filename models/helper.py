@@ -1,20 +1,18 @@
 import importlib
 
-
 import torch
 import torch.nn as nn
-
 
 from . import aggregators, backbones
 
 
-def get_backbone(backbone_arch, image_size): 
+def get_backbone(backbone_arch, image_size):
     if "vitsmall" == backbone_arch.lower():
         return backbones.Vitsmall(image_size=image_size)
     elif "vitbase" == backbone_arch.lower():
         return backbones.Vitbase(image_size=image_size)
     elif "vitsmallst" == backbone_arch.lower():
-        
+
         return backbones.VitsmallST(image_size=image_size)
     elif "vitbasest" == backbone_arch.lower():
         return backbones.VitbaseST(image_size=image_size)
@@ -53,7 +51,7 @@ def get_aggregator(agg_arch, features_dim, image_size):
         config["image_size"] = image_size
         config["in_chanels"] = features_dim[1]
         config["proj_channels"] = 512
-        config["num_queries"] = 64 
+        config["num_queries"] = 64
         config["row_dim"] = 12288 // 512
         return aggregators.BoQ(**config)
 
@@ -68,12 +66,12 @@ class VPRModel(nn.Module):
         x = self.backbone(x)
         x = self.aggreagtion(x)
         return x
-    
+
     def deploy(self):
-        if hasattr(self.backbone, "deploy"): 
+        if hasattr(self.backbone, "deploy"):
             self.backbone.deploy()
 
-    def __str__(self): 
+    def __str__(self):
         return f"{str(self.backbone)}_{str(self.aggreagtion)}"
 
 
