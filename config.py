@@ -7,7 +7,9 @@ from typing import List, Optional, Tuple, Union
 class DataConfig:
     # dataset directories
     val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
+
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -30,9 +32,8 @@ class DataConfig:
 @dataclass
 class ModelConfig:
     # training model
-    backbone_arch: str = "ResNet50"
-    agg_arch: str = "MixVPR"
-    out_dim: int = 2048
+    backbone_arch: str = "Vitsmall"
+    agg_arch: str = "salad"
     weights_path: Union[str, None] = None
 
     @staticmethod
@@ -42,7 +43,6 @@ class ModelConfig:
             "--backbone_arch", type=str, default=ModelConfig.backbone_arch
         )
         group.add_argument("--agg_arch", type=str, default=ModelConfig.agg_arch)
-        group.add_argument("--out_dim", type=int, default=ModelConfig.out_dim)
         group.add_argument("--weights_path", type=str, default=ModelConfig.weights_path)
         return parent_parser
 
@@ -112,7 +112,7 @@ class DistillConfig:
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    val_set_names: Tuple[str] = ("Pitts30k",)
+    val_set_names: Tuple[str] = ("Pitts30k", )
     precision: str = "bf16-mixed"
 
     @staticmethod
@@ -130,7 +130,7 @@ class DistillConfig:
         )
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
         group.add_argument(
-            "--weight_decay", type=float, default=DistillConfig.weight_decay_init
+            "--weight_decay", type=float, default=DistillConfig.weight_decay
         )
         group.add_argument(
             "--use_attention", type=bool, default=DistillConfig.use_attention

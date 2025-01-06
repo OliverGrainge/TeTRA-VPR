@@ -23,12 +23,14 @@ def setup_training(args):
     )
 
     teacher_model = get_model(
-        preset="DinoSalad",
+        preset=args.teacher_preset,
     )
 
-    model_module = Distill(
-        student_model = student_model,
-        teacher_model = teacher_model,
+    model_module = Distill(#
+        student_model_backbone_arch=args.backbone_arch,
+        student_model_agg_arch=args.agg_arch,
+        student_model_image_size=args.image_size,
+        teacher_model_preset=args.teacher_preset,
         train_dataset_dir=args.train_dataset_dir,
         val_dataset_dir=args.val_dataset_dir,
         lr=args.lr,
@@ -39,6 +41,7 @@ def setup_training(args):
         val_set_names=args.val_set_names,
     )
 
+
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
         dirpath=f"./checkpoints/TeTRA-pretrain/{str(student_model)}",
@@ -46,7 +49,7 @@ def setup_training(args):
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
         save_weights_only=True,
-        save_top_k=3,
+        save_top_k=1,
         mode="max",
     )
 
@@ -56,7 +59,7 @@ def setup_training(args):
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=args.pbar,
+        enable_progress_bar=True,#args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
@@ -65,7 +68,6 @@ def setup_training(args):
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
-        val_check_interval=0.05,
         log_every_n_steps=1,
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,

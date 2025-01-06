@@ -23,7 +23,10 @@ def load_model(args):
         if not os.path.exists(args.weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
-        sd = torch.load(args.weights_path)["state_dict"]
+        sd = torch.load(args.weights_path, weights_only=False)["state_dict"]
+        print("=============================================================================")
+        for k, v in sd.items():
+            print(k, v.shape)
         backbone_sd = {
             k.replace("backbone.", ""): v
             for k, v in sd.items()

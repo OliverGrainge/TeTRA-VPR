@@ -27,8 +27,10 @@ from models.transforms import get_transform
 class Distill(pl.LightningModule):
     def __init__(
         self,
-        student_model, 
-        teacher_model,
+        student_model_backbone_arch,
+        student_model_agg_arch,
+        student_model_image_size,
+        teacher_model_preset,
         train_dataset_dir,
         val_dataset_dir,
         augmentation_level="Severe",
@@ -43,8 +45,14 @@ class Distill(pl.LightningModule):
     ):
         super().__init__()
          # Model-related attributes
-        self.teacher = teacher_model
-        self.student = student_model
+        self.teacher = get_model(
+            preset=teacher_model_preset,
+        )
+        self.student = get_model(
+            backbone_arch=student_model_backbone_arch,
+            agg_arch=student_model_agg_arch,
+            image_size=student_model_image_size,
+        )
 
         # Dataset and data-related attributes
         self.train_dataset_dir = train_dataset_dir
@@ -62,7 +70,7 @@ class Distill(pl.LightningModule):
         self.weight_decay = weight_decay
 
         freeze_model(self.teacher)
-        print(self.student)
+        print(repr(self.student))
         self.save_hyperparameters()
 
     def setup(self, stage=None):
@@ -125,6 +133,8 @@ class Distill(pl.LightningModule):
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
 
+            assert teacher_features.shape == student_features.shape, "teacher and student features must have the same shape"
+
             # B * D, H, N, N
             teacher_attn = teacher_attn.view(
                 B,
@@ -154,6 +164,8 @@ class Distill(pl.LightningModule):
             student_features = self(student_images)
             student_attn = None
             teacher_attn = None
+
+            assert teacher_features.shape == student_features.shape, "teacher and student features must have the same shape"
 
             return (
                 student_features,
@@ -270,26 +282,25 @@ class Distill(pl.LightningModule):
     def on_validation_epoch_start(self):
         self.validation_outputs = {}
         for name in self.val_set_names:
-            self.validation_outputs[name] = defaultdict(list)
-
+            self.validation_outputs[name] = []
+            
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
         descriptors = self(places)
-        for key, value in descriptors.items():
-            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
-                value.detach().cpu()
-            )
+
+        self.validation_outputs[self.val_set_names[dataloader_idx]].append(
+            descriptors.detach().cpu()
+        )
         return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):
         full_recalls_dict = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
-            for key, value in set_outputs.items():
-                set_outputs[key] = torch.concat(value, dim=0)
+            descriptors = torch.concat(set_outputs, dim=0)
 
             recalls_dict, _, _ = match_cosine(
-                **set_outputs,
+                descriptors,
                 num_references=val_dataset.num_references,
                 ground_truth=val_dataset.ground_truth,
             )
@@ -312,6 +323,10 @@ class Distill(pl.LightningModule):
         return full_recalls_dict
 
     def state_dict(self):
-        # Override the state_dict method to return only the student model's state dict
-        self.student.train() # remove the qweight buffers
-        return self.student.state_dict()
+        #Override the state_dict method to return only the student model's state dict
+        print("=========================================")
+        #self.student.train() # remove the qweight buffers
+        sd = self.student.state_dict()
+        for key, value in sd.items():
+            print(key, value.shape)
+        return sd
