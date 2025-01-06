@@ -51,8 +51,8 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"pitts30k_q_R1",
-        dirpath=f"./checkpoints/TeTRA/{str(model)}",
+        monitor=f"Pittsburgh30k_val_q_R1",
+        dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}",
         filename="epoch-{epoch}-pitts30k_q_R1{pitts30k_q_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -76,6 +76,7 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
+        limit_train_batches=10,
     )
 
     return trainer, model_module

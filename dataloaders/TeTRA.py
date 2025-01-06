@@ -255,7 +255,7 @@ class TeTRA(pl.LightningModule):
         # Initialize or reset the list to store validation outputs
         self.validation_outputs = {}
         for name in self.val_set_names:
-            self.validation_outputs[name] = defaultdict(list)
+            self.validation_outputs[name] = []
 
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
@@ -264,10 +264,7 @@ class TeTRA(pl.LightningModule):
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        for key, value in descriptors.items():
-            self.validation_outputs[self.val_set_names[dataloader_idx]][key].append(
-                value.detach().cpu()
-            )
+        self.validation_outputs[self.val_set_names[dataloader_idx]].append(descriptors.detach().cpu())
         return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):
@@ -276,49 +273,47 @@ class TeTRA(pl.LightningModule):
         full_recalls_dict = {}
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
-            for key, value in set_outputs.items():
-                set_outputs[key] = torch.concat(value, dim=0)
+            descriptors = torch.concat(set_outputs, dim=0)
 
-                fp_recalls_dict, _, search_time = match_cosine(
-                    **set_outputs,
-                    num_references=val_dataset.num_references,
-                    ground_truth=val_dataset.ground_truth,
-                    k_values=[1, 5, 10],
-                )
+            fp_recalls_dict, _, search_time = match_cosine(
+                descriptors,
+                num_references=val_dataset.num_references,
+                ground_truth=val_dataset.ground_truth,
+                k_values=[1, 5, 10],
+            )
 
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = (
-                    fp_recalls_dict["R1"]
-                )
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = (
-                    fp_recalls_dict["R5"]
-                )
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = (
-                    fp_recalls_dict["R10"]
-                )
-                full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = (
-                    search_time
-                )
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = (
+                fp_recalls_dict["R1"]
+            )
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = (
+                fp_recalls_dict["R5"]
+            )
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = (
+                fp_recalls_dict["R10"]
+            )
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = (
+                search_time
+            )
 
-                q_recalls_dict, _, search_time = match_hamming(
-                    **set_outputs,
-                    num_references=val_dataset.num_references,
-                    ground_truth=val_dataset.ground_truth,
-                    k_values=[1, 5, 10],
-                )
+            q_recalls_dict, _, search_time = match_hamming(
+                descriptors,
+                num_references=val_dataset.num_references,
+                ground_truth=val_dataset.ground_truth,
+                k_values=[1, 5, 10],
+            )
 
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict[
-                    "R1"
-                ]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict[
-                    "R5"
-                ]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict[
-                    "R10"
-                ]
-                full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = (
-                    search_time
-                )
-
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict[
+                "R1"
+            ]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict[
+                "R5"
+            ]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict[
+                "R10"
+            ]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = (
+                search_time
+            )
         self.log_dict(
             full_recalls_dict,
             logger=True,
