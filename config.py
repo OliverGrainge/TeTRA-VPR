@@ -106,7 +106,7 @@ class DistillConfig:
 
     # Loss and regularization
     weight_decay: float = 0.05
-    use_attention: bool = True
+    use_attention: bool = False
 
     # Data processing
     image_size: Tuple[int] = (224, 224)

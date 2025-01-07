@@ -61,29 +61,20 @@ class BitLinear(nn.Linear):
         super(BitLinear, self).__init__(in_features, out_features, bias)
         assert torch.cuda.is_available(), "CUDA is not available"
         self.to("cuda")
-        # Initialize weights using Kaiming initialization
-        self.weight = nn.Parameter(
-            torch.empty(out_features, in_features).cuda()
-        )
-
-        if bias:
-            # Initialize bias with small constant
-            self.bias = nn.Parameter(
-                torch.zeros(out_features).cuda()
-            )
-        else:
-            self.register_parameter("bias", None)
-
         self.reset_parameters()
         self.deployed = False
 
     def forward(self, x):
         if self.deployed:
             return self.deploy_forward(x)
+        else: 
+            return self.train_forward(x)
+        """
         elif self.training:
             return self.train_forward(x)
         else:
             return self.eval_forward(x)
+        """
         
     def train_forward(self, x):
         dqx = x + (activation_quant_fake(x)[0] - x).detach()
@@ -120,6 +111,7 @@ class BitLinear(nn.Linear):
             out += self.bias.to(out.dtype)
         return out
 
+    """
     def train(self, mode=True):
         if mode:
             self._buffers.clear()
@@ -133,6 +125,7 @@ class BitLinear(nn.Linear):
             
         self = super().train(mode)
         return self
+    """
 
     def deploy(self):
         self.eval()
