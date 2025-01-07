@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import wandb
 from prettytable import PrettyTable
 from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import CosineSimilarity
@@ -131,6 +132,9 @@ class TeTRA(pl.LightningModule):
                     raise NotImplementedError(
                         f"Evaluation set {val_set_name} not implemented"
                     )
+                
+                for val_set_name in self.val_set_names:
+                    wandb.define_metric(f"{val_set_name}_R1", summary="max")
 
     def _setup_schedulers(self):
         self.schedulers = {

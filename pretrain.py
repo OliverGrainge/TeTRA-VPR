@@ -27,7 +27,7 @@ def setup_training(args):
         weight_decay=args.weight_decay,
         image_size=args.image_size,
         num_workers=args.num_workers,
-        val_set_names=["Pitts30k"],#args.val_set_names,
+        val_set_names=args.val_set_names,
     )
 
     checkpoint_cb = ModelCheckpoint(
@@ -49,7 +49,7 @@ def setup_training(args):
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,#args.pbar,  # args.pbar,
+        enable_progress_bar=args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
@@ -58,11 +58,10 @@ def setup_training(args):
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb, learning_rate_cb],
         reload_dataloaders_every_n_epochs=1,
-        #val_check_interval=0.05,
+        val_check_interval=0.05,
         log_every_n_steps=1,
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
-        limit_train_batches=10
     )
 
     return trainer, model_module

@@ -8,8 +8,8 @@
 #SBATCH --time=59:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --mem=128G
-#SBATCH --output=jobfiles/pretrain/salad/logs/vitbase_322_sigmoid.log
-#SBATCH --error=jobfiles/pretrain/salad/logs/vitbase_322_sigmoid.err
+#SBATCH --output=jobfiles/pretrain/salad/logs/vitbase_322.log
+#SBATCH --error=jobfiles/pretrain/salad/logs/vitbase_322.err
 #SBATCH --partition=swarm_a100
 
 source tetraenv/bin/activate

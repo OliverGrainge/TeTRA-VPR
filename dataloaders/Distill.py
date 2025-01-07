@@ -50,6 +50,8 @@ class Distill(pl.LightningModule):
             agg_arch=student_model_agg_arch,
             image_size=student_model_image_size,
         )
+        self.student = self.student.to('cuda')
+        self.teacher = self.teacher.to('cuda')
 
         # Dataset and data-related attributes
         self.train_dataset_dir = train_dataset_dir
@@ -106,6 +108,10 @@ class Distill(pl.LightningModule):
                     )
             for val_set_name in self.val_set_names:
                 wandb.define_metric(f"{val_set_name}_R1", summary="max")
+            wandb.define_metric(f"Cosine Loss", summary="min")
+            wandb.define_metric(f"Euclidian Loss", summary="min")
+            wandb.define_metric(f"Attention Loss", summary="min")
+            wandb.define_metric(f"Total Loss", summary="min")
 
     def forward(self, x):
         return self.student(x)
@@ -118,9 +124,7 @@ class Distill(pl.LightningModule):
         num_training_steps = self.trainer.max_epochs * len(self.train_dataloader())
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=int(
-                0.05 * num_training_steps
-            ),  # You can adjust this based on your needs
+            num_warmup_steps=0,  # You can adjust this based on your needs
             num_training_steps=num_training_steps,
         )
         return [optimizer], [scheduler]

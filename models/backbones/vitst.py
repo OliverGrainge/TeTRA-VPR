@@ -4,7 +4,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
-
+import math 
+import torch.nn.init as init
 
 class Normalize(nn.Module):
     def __init__(self, eps=1e-05):
@@ -55,20 +56,25 @@ def weight_quant_real(w):
     return qw, scale
 
 
-class BitLinear(nn.Module):
+class BitLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True):
-        super(BitLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
+        super(BitLinear, self).__init__(in_features, out_features, bias)
         assert torch.cuda.is_available(), "CUDA is not available"
-
-        self.weight = nn.Parameter(torch.randn(out_features, in_features).cuda())
+        self.to("cuda")
+        # Initialize weights using Kaiming initialization
+        self.weight = nn.Parameter(
+            torch.empty(out_features, in_features).cuda()
+        )
 
         if bias:
-            self.bias = nn.Parameter(torch.randn(out_features).cuda())
+            # Initialize bias with small constant
+            self.bias = nn.Parameter(
+                torch.zeros(out_features).cuda()
+            )
         else:
             self.register_parameter("bias", None)
 
+        self.reset_parameters()
         self.deployed = False
 
     def forward(self, x):
@@ -78,11 +84,11 @@ class BitLinear(nn.Module):
             return self.train_forward(x)
         else:
             return self.eval_forward(x)
-
+        
     def train_forward(self, x):
         dqx = x + (activation_quant_fake(x)[0] - x).detach()
         dqw = self.weight + (weight_quant_fake(self.weight)[0] - self.weight).detach()
-        out = F.linear(dqx, dqw)
+        out = F.linear(dqx, dqw.to(dqx.device))
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
@@ -122,11 +128,9 @@ class BitLinear(nn.Module):
                 self.bias.data = self.bias.data.cuda()
         else:
             qweight, scale = weight_quant_real(self.weight)
-            self.weight.data = self.weight.data.cpu()
-            if self.bias is not None:
-                self.bias.data = self.bias.data.cuda()
             self.register_buffer("qweight", qweight.cuda())
             self.register_buffer("scale", scale.cuda())
+            
         self = super().train(mode)
         return self
 
@@ -166,6 +170,8 @@ class BitLinear(nn.Module):
             logging.error("An error occurred during deployment: %s", e)
         finally:
             del self.weight
+
+
 
 
 class FeedForward(nn.Module):
@@ -344,7 +350,7 @@ def VitsmallST(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=1,  # Fewer transformer layers 12
+        depth=12,  # Fewer transformer layers 12
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
@@ -359,7 +365,7 @@ def VitbaseST(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=1,  # 12
+        depth=12,  # 12
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

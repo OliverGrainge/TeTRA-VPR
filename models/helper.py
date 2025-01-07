@@ -12,10 +12,13 @@ def get_backbone(backbone_arch, image_size):
     elif "vitbase" == backbone_arch.lower():
         return backbones.Vitbase(image_size=image_size)
     elif "vitsmallst" == backbone_arch.lower():
-
         return backbones.VitsmallST(image_size=image_size)
     elif "vitbasest" == backbone_arch.lower():
         return backbones.VitbaseST(image_size=image_size)
+    elif "vitsmallt" == backbone_arch.lower():
+        return backbones.VitsmallT(image_size=image_size)
+    elif "vitbaset" == backbone_arch.lower():
+        return backbones.VitbaseT(image_size=image_size)
     else:
         raise Exception(f"Backbone {backbone_arch} not available")
 
