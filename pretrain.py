@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
 torch.set_float32_matmul_precision("medium")
@@ -27,7 +27,7 @@ def setup_training(args):
         weight_decay=args.weight_decay,
         image_size=args.image_size,
         num_workers=args.num_workers,
-        val_set_names=args.val_set_names,
+        val_set_names=["Pitts30k"],#args.val_set_names,
     )
 
     checkpoint_cb = ModelCheckpoint(
@@ -41,24 +41,28 @@ def setup_training(args):
         mode="max",
     )
 
+    learning_rate_cb = LearningRateMonitor(logging_interval="step")
+
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
         name=f"{str(model_module.student)}",
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,  # args.pbar,
+        enable_progress_bar=True,#args.pbar,  # args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[checkpoint_cb],
+        callbacks=[checkpoint_cb, learning_rate_cb],
         reload_dataloaders_every_n_epochs=1,
+        #val_check_interval=0.05,
         log_every_n_steps=1,
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
+        limit_train_batches=10
     )
 
     return trainer, model_module

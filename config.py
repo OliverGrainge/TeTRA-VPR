@@ -99,13 +99,13 @@ class DistillConfig:
     teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
-    lr: float = 0.003
+    lr: float = 0.0007
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 3
 
     # Loss and regularization
-    weight_decay: float = 0.01
+    weight_decay: float = 0.05
     use_attention: bool = True
 
     # Data processing

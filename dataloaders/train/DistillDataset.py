@@ -82,11 +82,23 @@ class JPGDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
-    def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        image = Image.open(image_path)
-        image = image.convert("RGB")
+    def __getitem__(self, idx, max_retries=10):
+        retries = 0
+        while retries < max_retries:
+            image_path = self.image_paths[idx]
+            try:
+                image = Image.open(image_path)
+                image = image.convert("RGB")
+                break  # Exit the loop if image loading is successful
+            except OSError as e:
+                print(f"Skipping corrupted image at {image_path}. Retrying...")
+                idx = (idx + 1) % len(self.image_paths)
+                retries += 1
+        else:
+            # If max retries exceeded, raise an exception or return a placeholder
+            raise RuntimeError(f"Too many corrupted images encountered at index {idx}")
 
+        # Continue processing the image as usual
         width, height = image.size
         if width > height and width > 2 * height:
             height, height = 512, 512

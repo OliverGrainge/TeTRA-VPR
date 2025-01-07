@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import wandb 
 from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
@@ -65,6 +66,8 @@ class Distill(pl.LightningModule):
         self.use_attention = use_attention
         self.weight_decay = weight_decay
 
+        
+
         freeze_model(self.teacher)
         print(repr(self.student))
         self.save_hyperparameters()
@@ -101,6 +104,8 @@ class Distill(pl.LightningModule):
                     raise NotImplementedError(
                         f"Validation set {val_set_name} not implemented"
                     )
+            for val_set_name in self.val_set_names:
+                wandb.define_metric(f"{val_set_name}_R1", summary="max")
 
     def forward(self, x):
         return self.student(x)
@@ -325,7 +330,6 @@ class Distill(pl.LightningModule):
 
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
-        print("=========================================")
         # self.student.train() # remove the qweight buffers
         sd = self.student.state_dict()
         for key, value in sd.items():
