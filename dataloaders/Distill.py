@@ -377,6 +377,4 @@ class Distill(pl.LightningModule):
         # Override the state_dict method to return only the student model's state dict
         # self.student.train() # remove the qweight buffers
         sd = self.student.state_dict()
-        for key, value in sd.items():
-            print(key, value.shape)
         return sd

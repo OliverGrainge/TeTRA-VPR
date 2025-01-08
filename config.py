@@ -9,7 +9,7 @@ class DataConfig:
     val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
     #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
     train_dataset_dir: str = (
-        "/home/oliver/datasets_drive/vpr_datasets/sf_xl/processed/test/database/37.70"
+        "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
     )
 
     @staticmethod
