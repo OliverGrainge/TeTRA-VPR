@@ -4,28 +4,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
-import math 
-import torch.nn.init as init
-
-class Normalize(nn.Module):
-    def __init__(self, eps=1e-05):
-        super().__init__()
-        self.eps = eps
-
-    def forward(self, x):
-        return (x - x.mean(dim=-1, keepdim=True)) / (
-            x.var(dim=-1, keepdim=True) + self.eps
-        ) ** 0.5
-
-
-class LayerScale(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(dim))
-        self.bias = nn.Parameter(torch.zeros(dim))
-
-    def forward(self, x):
-        return x * self.weight + self.bias
 
 
 @torch.no_grad()
@@ -59,27 +37,23 @@ def weight_quant_real(w):
 class BitLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True):
         super(BitLinear, self).__init__(in_features, out_features, bias)
+        self.in_features = in_features
+        self.out_features = out_features
         assert torch.cuda.is_available(), "CUDA is not available"
-        self.to("cuda")
-        self.reset_parameters()
         self.deployed = False
 
     def forward(self, x):
         if self.deployed:
             return self.deploy_forward(x)
-        else: 
-            return self.train_forward(x)
-        """
         elif self.training:
             return self.train_forward(x)
         else:
             return self.eval_forward(x)
-        """
-        
+
     def train_forward(self, x):
         dqx = x + (activation_quant_fake(x)[0] - x).detach()
         dqw = self.weight + (weight_quant_fake(self.weight)[0] - self.weight).detach()
-        out = F.linear(dqx, dqw.to(dqx.device))
+        out = F.linear(dqx, dqw)
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
@@ -111,7 +85,6 @@ class BitLinear(nn.Linear):
             out += self.bias.to(out.dtype)
         return out
 
-    """
     def train(self, mode=True):
         if mode:
             self._buffers.clear()
@@ -122,10 +95,8 @@ class BitLinear(nn.Linear):
             qweight, scale = weight_quant_real(self.weight)
             self.register_buffer("qweight", qweight.cuda())
             self.register_buffer("scale", scale.cuda())
-            
         self = super().train(mode)
         return self
-    """
 
     def deploy(self):
         self.eval()
@@ -165,20 +136,16 @@ class BitLinear(nn.Linear):
             del self.weight
 
 
-
-
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0):
         super().__init__()
         self.net = nn.Sequential(
-            Normalize(dim),
+            nn.LayerNorm(dim),
             BitLinear(dim, hidden_dim),
-            LayerScale(hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            Normalize(hidden_dim),
+            nn.LayerNorm(hidden_dim),
             BitLinear(hidden_dim, dim),
-            LayerScale(dim),
             nn.Dropout(dropout),
         )
 
@@ -194,12 +161,8 @@ class Attention(nn.Module):
         self.scale = dim_head**-0.5
 
         # Normalization layers
-        self.norm1 = Normalize(dim)
-        self.norm2 = Normalize(inner_dim)
-
-        # Layer scaling
-        self.layerscale1 = LayerScale(inner_dim * 3)
-        self.layerscale2 = LayerScale(dim)
+        self.norm1 = nn.LayerNorm(dim)
+        self.norm2 = nn.LayerNorm(inner_dim)
 
         # Attention mechanism
         self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
@@ -213,7 +176,6 @@ class Attention(nn.Module):
         # compute q, k, v
         x = self.norm1(x)
         qkv = self.to_qkv(x)
-        qkv = self.layerscale1(qkv)
         qkv = qkv.chunk(3, dim=-1)
         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), qkv)
 
@@ -227,7 +189,6 @@ class Attention(nn.Module):
         # out projection
         out = self.norm2(out)
         out = self.to_out(out)
-        out = self.layerscale2(out)
         return out
 
 
@@ -331,14 +292,14 @@ class ViT(nn.Module):
 
     def __str__(self):
         model_type = (
-            "VitsmallST"
+            "VitsmallT"
             if self.dim == 384
-            else "VitbaseST" if self.dim == 768 else "Vit"
+            else "VitbaseT" if self.dim == 768 else "Vit"
         )
         return f"{model_type}{self.image_size}"
 
 
-def VitsmallST(image_size=[224, 224]):
+def VitsmallT(image_size=[224, 224]):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
@@ -353,7 +314,7 @@ def VitsmallST(image_size=[224, 224]):
     )
 
 
-def VitbaseST(image_size=[224, 224]):
+def VitbaseT(image_size=[224, 224]):
     return ViT(
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
