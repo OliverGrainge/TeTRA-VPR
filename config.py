@@ -7,10 +7,10 @@ from typing import Tuple, Union
 class DataConfig:
     # dataset directories
     val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
-    #train_dataset_dir: str = (
-    #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-    #)
+    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    train_dataset_dir: str = (
+        "/home/oliver/datasets_drive/vpr_datasets/sf_xl/processed/test/database/37.70"
+    )
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -99,7 +99,7 @@ class DistillConfig:
     teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
-    lr: float = 0.0007
+    lr: float = 0.003
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 3
@@ -107,6 +107,7 @@ class DistillConfig:
     # Loss and regularization
     weight_decay: float = 0.05
     use_attention: bool = False
+    use_progressive_quant: bool = False
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
@@ -136,7 +137,14 @@ class DistillConfig:
             "--weight_decay", type=float, default=DistillConfig.weight_decay
         )
         group.add_argument(
-            "--use_attention", type=bool, default=DistillConfig.use_attention
+            "--use_attention", 
+            action='store_true', 
+            help="Use Attention"
+        )
+        group.add_argument(
+            "--use_progressive_quant", 
+            action='store_true', 
+            help="Enable progressive quantization"
         )
         group.add_argument(
             "--image_size", type=int, nargs=2, default=DistillConfig.image_size

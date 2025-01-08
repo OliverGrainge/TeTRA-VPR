@@ -28,11 +28,13 @@ def setup_training(args):
         image_size=args.image_size,
         num_workers=args.num_workers,
         val_set_names=args.val_set_names,
+        use_attention=args.use_attention,
+        use_progressive_quant=args.use_progressive_quant,
     )
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
-        dirpath=f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}",
+        dirpath=f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-ProgressiveQuant[{str(args.use_progressive_quant)}]",
         filename="{epoch}-{" + args.val_set_names[0] + "_R1:.2f}",
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
@@ -43,20 +45,21 @@ def setup_training(args):
 
     learning_rate_cb = LearningRateMonitor(logging_interval="step")
 
+    
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
         name=f"{str(model_module.student)}",
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=args.pbar,
+        enable_progress_bar=True,#args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[checkpoint_cb, learning_rate_cb],
+        callbacks=[learning_rate_cb, checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=0.05,
         log_every_n_steps=1,

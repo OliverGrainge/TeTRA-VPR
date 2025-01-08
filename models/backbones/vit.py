@@ -167,7 +167,7 @@ def Vitsmall(image_size=[224, 224], layer_type=nn.Linear):
         dropout=0.1,  # Regularization via dropout
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
-        dim_head=96,  # Dimension of each attention head
+        dim_head=98,  # Dimension of each attention head
         patch_layer_type=nn.Linear,
         attention_layer_type=layer_type,
         ff_layer_type=layer_type,
