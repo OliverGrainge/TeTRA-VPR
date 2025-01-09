@@ -99,7 +99,7 @@ class DistillConfig:
     teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
-    lr: float = 0.003
+    lr: float = 0.0007
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 3
@@ -116,7 +116,7 @@ class DistillConfig:
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    val_set_names: Tuple[str] = ("Pitts30k",)
+    val_set_names: Tuple[str] = ("msls","Pitts30k",)
     precision: str = "bf16-mixed"
 
     @staticmethod
@@ -171,6 +171,7 @@ class DistillConfig:
 class TeTRAConfig:
     # Training hyperparameters
     lr: float = 0.0001
+
     batch_size: int = 100
     max_epochs: int = 8
     precision: str = "bf16-mixed"

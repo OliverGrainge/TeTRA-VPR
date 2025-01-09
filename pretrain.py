@@ -9,7 +9,6 @@ torch.set_float32_matmul_precision("medium")
 import argparse
 import os
 
-
 from config import DataConfig, DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
 
@@ -44,7 +43,7 @@ def setup_training(args):
         save_on_train_epoch_end=False,
         auto_insert_metric_name=True,
         save_weights_only=True,
-        save_top_k=-1,
+        save_top_k=1,
         mode="max",
     )
 
@@ -57,7 +56,7 @@ def setup_training(args):
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=True,#args.pbar,
+        enable_progress_bar=args.pbar,
         devices=1,
         strategy="auto",
         accelerator="auto",
@@ -66,12 +65,11 @@ def setup_training(args):
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb,learning_rate_cb],
         reload_dataloaders_every_n_epochs=1,
-        val_check_interval=0.5,#0.05,
-        log_every_n_steps=1,
+        val_check_interval=1.0,
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
+        log_every_n_steps=200,
     )
-
     return trainer, model_module
 
 

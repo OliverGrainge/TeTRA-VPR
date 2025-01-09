@@ -39,7 +39,7 @@ class Distill(pl.LightningModule):
         num_workers=4,
         image_size=224,
         lr=1e-3,
-        mse_loss_mult=1000,
+        mse_loss_mult=250,
         val_set_names=["pitts30k_val"],
         
     ):
