@@ -7,10 +7,10 @@ from typing import Tuple, Union
 class DataConfig:
     # dataset directories
     val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
-    train_dataset_dir: str = (
-        "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-    )
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    #train_dataset_dir: str = (
+    #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
+    #)
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:

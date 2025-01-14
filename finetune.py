@@ -29,6 +29,7 @@ def _get_weights_path(backbone_arch, image_size):
                 print(f"No weights available for {backbone_arch} {image_size}")
     return None
 
+
 def load_model(args):
     model = get_model(
         args.image_size,
@@ -39,11 +40,13 @@ def load_model(args):
 
     weights_path = _get_weights_path(args.backbone_arch, args.image_size)
 
+    model.backbone.eval()
+
     if weights_path is not None:
         if not os.path.exists(weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
-        sd = torch.load(args.weights_path, weights_only=False)["state_dict"]
+        sd = torch.load(weights_path, weights_only=False)["state_dict"]
         for k, v in sd.items():
             print(k, v.shape)
         backbone_sd = {
@@ -55,6 +58,7 @@ def load_model(args):
         model.backbone.load_state_dict(backbone_sd, strict=True)
         for param in model.backbone.parameters():
             param.requires_grad = False
+    model.train()
     return model
 
 
@@ -72,9 +76,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"msls_val_q_R1",
-        dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}",
-        filename="epoch-{epoch}-msls_q_R1{msls_q_R1:.2f}",
+        monitor=f"Pittsburgh30k_val_q_R1", #msls_val_q_R1
+        dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}-DescDividerFactor[{args.desc_divider_factor}]",
+        filename="epoch-{epoch}-msls_q_R1{Pittsburgh30k_val_q_R1:.2f}", #msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -97,6 +101,7 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
+        limit_train_batches=10,
     )
 
     return trainer, model_module

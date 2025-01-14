@@ -180,7 +180,8 @@ class TeTRA(pl.LightningModule):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
 
         total_steps = self.trainer.estimated_stepping_batches
-        warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
+        #warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
+        warmup_steps = 0
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
         )
