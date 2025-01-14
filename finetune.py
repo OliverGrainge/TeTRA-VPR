@@ -11,15 +11,36 @@ from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 
 
+def _get_weights_path(backbone_arch, image_size):
+    folders = os.listdir("checkpoints/TeTRA-pretrain")
+    for folder in folders: 
+        if backbone_arch.lower() + str(image_size[0]) in folder.lower() and "progressivequant" in folder.lower():
+            weights_folder = os.path.join("checkpoints/TeTRA-pretrain", folder)
+            weights_avail = os.listdir(weights_folder)
+            if len(weights_avail) > 0: 
+                if len(weights_avail) > 1: 
+                    print(f"Multiple weights available for {backbone_arch} {image_size}. Using latest.")
+                    return os.path.join(weights_folder, weights_avail[0])
+                elif len(weights_avail) == 1: 
+                    return os.path.join(weights_folder, weights_avail[0])
+                else: 
+                    print(f"No weights available for {backbone_arch} {image_size}")
+            else: 
+                print(f"No weights available for {backbone_arch} {image_size}")
+    return None
+
 def load_model(args):
     model = get_model(
         args.image_size,
         args.backbone_arch,
         args.agg_arch,
+        desc_divider_factor=args.desc_divider_factor
     )
 
-    if args.weights_path is not None:
-        if not os.path.exists(args.weights_path):
+    weights_path = _get_weights_path(args.backbone_arch, args.image_size)
+
+    if weights_path is not None:
+        if not os.path.exists(weights_path):
             raise ValueError(f"Checkpoint {args.weights_path} does not exist")
 
         sd = torch.load(args.weights_path, weights_only=False)["state_dict"]
@@ -51,9 +72,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"Pittsburgh30k_val_q_R1",
+        monitor=f"msls_val_q_R1",
         dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}",
-        filename="epoch-{epoch}-pitts30k_q_R1{pitts30k_q_R1:.2f}",
+        filename="epoch-{epoch}-msls_q_R1{msls_q_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
