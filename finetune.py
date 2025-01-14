@@ -76,7 +76,6 @@ def setup_training(args, model):
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
-        limit_train_batches=10,
     )
 
     return trainer, model_module

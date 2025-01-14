@@ -5,7 +5,7 @@ import sys
 import os 
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models.backbones.vitst import BitLinear, activation_quant_real, weight_quant_real
+from models.backbones.vitT import BitLinear, activation_quant_real, weight_quant_real
 
 # Constants as fixtures
 @pytest.fixture
