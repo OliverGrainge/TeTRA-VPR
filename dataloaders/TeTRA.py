@@ -236,13 +236,8 @@ class TeTRA(pl.LightningModule):
         BS, N, ch, h, w = places.shape
 
         images = places.view(BS * N, ch, h, w)
-        # n_images = imagage.
         labels = labels.view(-1)
-        split_size = images.shape[0] // 2
-        descriptors1 = self(images[:split_size])
-        descriptors2 = self(images[split_size:])
-        descriptors = torch.cat([descriptors1, descriptors2], dim=0)
-
+        descriptors = self(images)
         labels = labels.view(-1)
 
         fp_loss = self._fp_loss_func(descriptors, labels)
