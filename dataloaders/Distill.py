@@ -39,7 +39,7 @@ class Distill(pl.LightningModule):
         num_workers=4,
         image_size=224,
         lr=1e-3,
-        mse_loss_mult=250,
+        mse_loss_mult=500,
         val_set_names=["pitts30k_val"],
         
     ):
@@ -83,7 +83,6 @@ class Distill(pl.LightningModule):
 
         freeze_model(self.teacher)
         print(repr(self.student))
-        self.save_hyperparameters()
 
     def setup(self, stage=None):
         # Setup for 'fit' or 'validate'self
@@ -287,9 +286,7 @@ class Distill(pl.LightningModule):
                     break
 
         total_loss = euc_loss + cos_loss + attn_loss
-
         
-
         self.log("Cosine Loss", cos_loss, on_step=True)
         self.log("Euclidian Loss", euc_loss, on_step=True)
         self.log("Attention Loss", attn_loss, on_step=True)

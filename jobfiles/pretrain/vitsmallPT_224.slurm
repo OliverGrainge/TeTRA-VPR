@@ -9,7 +9,7 @@
 #SBATCH --mem=64G
 #SBATCH --output=jobfiles/pretrain/logs/vitsmallPT_224.log
 #SBATCH --error=jobfiles/pretrain/logs/vitsmallPT_224.err
-#SBATCH --partition=swarm_a100
+#SBATCH --partition=a100
 
 source tetraenv/bin/activate
 export WANDB_MODE=offline
