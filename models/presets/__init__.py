@@ -12,4 +12,21 @@ from .EigenPlacesR18D512 import EigenPlacesR18D512
 from .EigenPlacesR50D128 import EigenPlacesR50D128
 from .EigenPlacesR50D256 import EigenPlacesR50D256
 from .EigenPlacesR50D512 import EigenPlacesR50D512
-from .EigenPlacesR50D1024 import EigenPlacesR50D1024
+
+
+PRESET_NAMES = [
+    "CosPlaces",
+    "CosPlacesR18D32",
+    "CosPlacesR18D64",
+    "CosPlacesR18D128",
+    "CosPlacesR50D32",
+    "CosPlacesR50D64",
+    "CosPlacesR50D128",
+    "DinoSalad",
+    "EigenPlaces",
+    "EigenPlacesR18D256",
+    "EigenPlacesR18D512",
+    "EigenPlacesR50D128",
+    "EigenPlacesR50D256",
+    "EigenPlacesR50D512",
+]

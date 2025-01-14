@@ -15,11 +15,4 @@ def EigenPlacesR18D512():
             fc_output_dim=512,
         )
 
-    original_forward = model.forward
-
-    def new_forward(x):
-        desc = original_forward(x)
-        return {"global_desc": desc}
-
-    model.forward = new_forward
     return model

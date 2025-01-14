@@ -14,14 +14,4 @@ def DinoV2_BoQ():
             backbone_name="dinov2",
             output_dim=12288,
         )
-
-    # Modify the forward method to return only the first element of the tuple
-    original_forward = model.forward
-
-    def new_forward(x):
-        desc, attn = original_forward(x)
-        return {"global_desc": desc}
-
-    model.forward = new_forward
-
     return model

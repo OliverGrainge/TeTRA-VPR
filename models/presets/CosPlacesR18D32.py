@@ -15,11 +15,4 @@ def CosPlacesR18D32():
             backbone="ResNet18",
             fc_output_dim=32,
         )
-    original_forward = model.forward
-
-    def new_forward(x):
-        desc = original_forward(x)
-        return {"global_desc": desc}
-
-    model.forward = new_forward
     return model

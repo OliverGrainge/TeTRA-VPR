@@ -14,12 +14,4 @@ def ResNet50_BoQ():
             backbone_name="resnet50",
             output_dim=16384,
         )
-
-    original_forward = model.forward
-
-    def new_forward(x):
-        desc, attn = original_forward(x)
-        return {"global_desc": desc}
-
-    model.forward = new_forward
     return model
