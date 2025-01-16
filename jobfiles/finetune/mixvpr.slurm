@@ -9,10 +9,10 @@
 #SBATCH --mem=128G
 #SBATCH --output=jobfiles/finetune/logs/mixvpr.log
 #SBATCH --error=jobfiles/finetune/logs/mixvpr.err
-#SBATCH --partition=a100
+#SBATCH --partition=swarm_a100
 
 source tetraenv/bin/activate
-
+export WANDB_MODE=offline
 python finetune.py --agg_arch mixvpr --backbone_arch vitbaset --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 1
 
 python finetune.py --agg_arch mixvpr --backbone_arch vitbaset --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 1

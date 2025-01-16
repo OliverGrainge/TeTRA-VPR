@@ -6,8 +6,9 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    #val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
+    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
+    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
     #train_dataset_dir: str = (
     #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
     #)
@@ -173,7 +174,7 @@ class TeTRAConfig:
     lr: float = 0.0001
     desc_divider_factor: int = 1
     batch_size: int = 100
-    max_epochs: int = 8
+    max_epochs: int = 4
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
@@ -219,7 +220,7 @@ class TeTRAConfig:
     )
 
     # validation set
-    val_set_names: Tuple[str] = ("pitts30k",)
+    val_set_names: Tuple[str] = ("msls","Pitts30k",)
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
