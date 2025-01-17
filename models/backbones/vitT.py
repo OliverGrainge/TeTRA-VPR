@@ -328,7 +328,7 @@ def VitsmallT(image_size=[224, 224]):
         dropout=0.1,  # Regularization via dropout
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
-        dim_head=96,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
+        dim_head=98,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
     )
 
 
@@ -337,7 +337,7 @@ def VitbaseT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=1,#12,  # 12
+        depth=12,#12,  # 12
         heads=12,
         mlp_dim=3072,
         dropout=0.1,
