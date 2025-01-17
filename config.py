@@ -71,6 +71,7 @@ class EvalConfig:
     eval_feature_extraction_latency: bool = True
     eval_retrieval_latency: bool = True
     eval_dataset_retrieval_latency: bool = True
+    compile: bool = False
 
     # evaluation runtime
     batch_size: int = 32
@@ -92,6 +93,7 @@ class EvalConfig:
         group.add_argument("--eval_feature_extraction_latency", type=bool, default=EvalConfig.eval_feature_extraction_latency)
         group.add_argument("--eval_retrieval_latency", type=bool, default=EvalConfig.eval_retrieval_latency)
         group.add_argument("--eval_dataset_retrieval_latency", type=bool, default=EvalConfig.eval_dataset_retrieval_latency)
+        group.add_argument("--compile", type=bool, default=EvalConfig.compile)
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
         group.add_argument(

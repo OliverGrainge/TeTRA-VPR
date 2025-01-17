@@ -18,18 +18,13 @@ RESULTS_FILE = "data/results.csv"
 os.makedirs(os.path.dirname(RESULTS_FILE), exist_ok=True)
 
 
-def save_results(accuracy_results, resource_results):
+def save_results(results):
     """
     Save results to the CSV file. Merge results if an entry with the same `id` already exists,
     and handle new columns dynamically.
     """
-    # Combine accuracy and resource results into a single dictionary
-    combined_results = {**accuracy_results, **resource_results}
-
     # Create a DataFrame from the results
-    new_df = pd.DataFrame(
-        [combined_results]
-    )  # Wrap in a list to ensure it's a single row
+    new_df = pd.DataFrame([results])  # Wrap in a list to ensure it's a single row
 
     if os.path.exists(RESULTS_FILE):
         # Load the existing results file
@@ -41,19 +36,14 @@ def save_results(accuracy_results, resource_results):
                 existing_df[col] = None
 
         # Check if the `id` exists in the current results
-        if combined_results["id"] in existing_df["id"].values:
+        if results["id"] in existing_df["id"].values:
             # Find the row index for the existing entry
-            row_index = existing_df[existing_df["id"] == combined_results["id"]].index[
-                0
-            ]
+            row_index = existing_df[existing_df["id"] == results["id"]].index[0]
 
             # Merge the new results into the existing row
-            for key, value in combined_results.items():
+            for key, value in results.items():
                 if key in existing_df.columns:  # Check if column exists
-                    if (
-                        pd.isna(existing_df.at[row_index, key])
-                        or existing_df.at[row_index, key] == ""
-                    ):
+                    if pd.isna(existing_df.at[row_index, key]) or existing_df.at[row_index, key] == "":
                         existing_df.at[row_index, key] = value
         else:
             # Remove empty or all-NA columns from new_df before concatenation
@@ -114,6 +104,11 @@ def _load_model_and_transform(args):
 
     return model, transform
 
+def _get_model_id(args): 
+    if args.preset is not None: 
+        return args.preset 
+    else: 
+        return f"{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DescDividerFactor[{args.desc_divider_factor}]"
 
 def eval(args):
     model, transform = _load_model_and_transform(args)
@@ -122,7 +117,17 @@ def eval(args):
     if torch.cuda.is_available():
         example_input = example_input.cuda()
         model = model.cuda()
+
+    model.eval()
+
+    if args.compile: 
+        if hasattr(model, "deploy"): 
+            model.deploy()
+            
     results = evaluate(args, model, example_input)
+
+    results["id"] = _get_model_id(args)
+    save_results(results)
 
 
 

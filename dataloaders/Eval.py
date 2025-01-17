@@ -84,6 +84,7 @@ def evaluate(args, model, example_input):
         results["retrieval_latency_ms"] = get_latency_fn(results["descriptor_dim"])
 
     # Accuracy evaluations
+    k_values = [1, 5, 10]
     if args.val_set_names:
         transform = get_eval_transform(args)
         for val_set_name in args.val_set_names:
@@ -92,7 +93,7 @@ def evaluate(args, model, example_input):
             
             recalls = accuracy.get_recall_at_k(desc, dataset, precision=precision)
             for idx, k in enumerate(recalls):
-                results[f"{repr(dataset)}_R@{k}"] = recalls[idx]
+                results[f"{repr(dataset)}_R@{k_values[idx]}"] = recalls[idx]
 
             if args.eval_dataset_retrieval_latency == 1:
                 get_latency_fn = latency.get_binary_retrieval_latency if is_binary else latency.get_floating_retrieval_latency
