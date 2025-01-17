@@ -8,9 +8,11 @@ import pytorch_lightning as pl
 import torch
 
 from config import DataConfig, EvalConfig, ModelConfig
-from dataloaders.VPREval import VPREval
+from dataloaders.Eval import evaluate
 from models.helper import get_model
 from models.transforms import get_transform
+from PIL import Image 
+import numpy as np
 
 RESULTS_FILE = "data/results.csv"
 os.makedirs(os.path.dirname(RESULTS_FILE), exist_ok=True)
@@ -66,43 +68,23 @@ def save_results(accuracy_results, resource_results):
     existing_df.to_csv(RESULTS_FILE, index=False)
 
 
-def _get_checkpoint_path(args):
-    if args.checkpoints_dir is not None:
-        model_folders = os.listdir(args.checkpoints_dir)
-        selected_folder = None
-        for folder in model_folders:
-            if (
-                args.backbone_arch.lower() in folder.lower()
-                and args.agg_arch.lower() in folder.lower()
-                and str(args.image_size[0]) in folder.lower()
-            ):  # Convert to string
-                selected_folder = folder
-                break
-        if selected_folder is None:
-            raise ValueError(
-                f"Checkpoint path for {args.backbone_arch} {args.agg_arch} {args.image_size[0]} not found"
-            )
-
-    recall_scores = []
-    model_dir = os.path.join(args.checkpoints_dir, selected_folder)
-    model_paths = os.listdir(model_dir)
-    for filename in os.listdir(model_dir):
-        # Check if the file matches the expected pattern
-        if filename.endswith(".ckpt"):
-            # Use a regex to extract the Recall@1 score
-            filename = filename.replace(".ckpt", "")
-            match = re.search(r"R1=([0-9.]+)", filename)
-            if match:
-                recall = float(match.group(1))  # Convert to float
-                recall_scores.append((filename + ".ckpt", recall))
-
-    if not recall_scores:
-        raise ValueError(
-            "No valid checkpoint files found with recall scores in the specified directory."
-        )
-
-    model_path = sorted(recall_scores, key=lambda x: x[1], reverse=True)[0][0]
-    return os.path.join(args.checkpoints_dir, selected_folder, model_path)
+def _get_weights_path(backbone_arch, agg_arch, image_size, desc_divider_factor):
+    folders = os.listdir("checkpoints/TeTRA-finetune")
+    for folder in folders: 
+        if backbone_arch.lower() + str(image_size[0]) in folder.lower() and agg_arch.lower() in folder.lower() and f"descdividerfactor[{desc_divider_factor}]" in folder.lower():
+            weights_folder = os.path.join("checkpoints/TeTRA-finetune", folder)
+            weights_avail = os.listdir(weights_folder)
+            if len(weights_avail) > 0: 
+                if len(weights_avail) > 1: 
+                    print(f"Multiple weights available for {backbone_arch} {image_size}. Using latest.")
+                    return os.path.join(weights_folder, weights_avail[0])
+                elif len(weights_avail) == 1: 
+                    return os.path.join(weights_folder, weights_avail[0])
+                else: 
+                    print(f"No weights available for {backbone_arch} {image_size}")
+            else: 
+                print(f"No weights available for {backbone_arch} {image_size}")
+    return None
 
 
 def _load_model_and_transform(args):
@@ -116,10 +98,12 @@ def _load_model_and_transform(args):
             backbone_arch=args.backbone_arch,
             agg_arch=args.agg_arch,
             image_size=args.image_size,
+            desc_divider_factor=args.desc_divider_factor,
         )
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
 
-    checkpoint_path = _get_checkpoint_path(args)
+    model.eval()
+    checkpoint_path = _get_weights_path(args.backbone_arch, args.agg_arch, args.image_size, args.desc_divider_factor)
     state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if "state_dict" in state_dict.keys():
         state_dict = state_dict["state_dict"]
@@ -128,67 +112,25 @@ def _load_model_and_transform(args):
     for param in model.parameters():
         param.requires_grad = False
 
-    if hasattr(model, "freeze"):
-        model.freeze()
     return model, transform
 
 
 def eval(args):
     model, transform = _load_model_and_transform(args)
-    module = VPREval(
-        model=model,
-        transform=transform,
-        val_set_names=args.val_set_names,
-        val_dataset_dir=args.val_dataset_dir,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        silent=args.silent,
-    )
-
-    # Initialize a PyTorch Lightning Trainer
-    trainer = pl.Trainer(
-        enable_progress_bar=not args.silent,
-        accelerator="auto",
-        precision="bf16-mixed",
-        max_epochs=1,  # Set the number of epochs
-        logger=False,  # Disable logging if not needed
-    )
-
-    # Use the trainer to validate the module
-    trainer.validate(module)
-    return module.results
+    img = Image.fromarray(np.zeros((256, 256, 3), dtype=np.uint8))
+    example_input = transform(img).unsqueeze(0)
+    if torch.cuda.is_available():
+        example_input = example_input.cuda()
+        model = model.cuda()
+    results = evaluate(args, model, example_input)
 
 
-if __name__ == "__main__":
-    torch.set_float32_matmul_precision("high")
+
+
+if __name__ == "__main__": 
     parser = argparse.ArgumentParser()
     for config in [DataConfig, ModelConfig, EvalConfig]:
         parser = config.add_argparse_args(parser)
     args = parser.parse_args()
 
-    if args.silent:
-        logging.getLogger("pytorch_lightning").setLevel(logging.CRITICAL)
-    results = eval(args)
-    accuracy_results = results["accuracy"]
-    resource_results = results["resources"]
-
-    if args.preset is not None:
-        accuracy_results["id"] = args.preset
-        accuracy_results["preset"] = args.preset
-        accuracy_results["backbone_arch"] = None
-        accuracy_results["agg_arch"] = None
-        accuracy_results["image_size"] = args.image_size[0]
-
-    else:
-        accuracy_results["id"] = (
-            args.backbone_arch + "_" + args.agg_arch + "_" + str(args.image_size[0])
-        )
-        accuracy_results["preset"] = None
-        accuracy_results["backbone_arch"] = args.backbone_arch
-        accuracy_results["agg_arch"] = args.agg_arch
-        accuracy_results["image_size"] = args.image_size[0]
-    print(
-        "==============================================================",
-        accuracy_results["id"],
-    )
-    save_results(accuracy_results, resource_results)
+    eval(args)

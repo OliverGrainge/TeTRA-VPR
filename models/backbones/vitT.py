@@ -5,6 +5,13 @@ import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from einops import rearrange
+from einops.layers.torch import Rearrange
+
 
 @torch.no_grad()
 def activation_quant_fake(x):
@@ -34,14 +41,14 @@ def weight_quant_real(w):
     return qw, scale
 
 
+
 class BitLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True):
         super(BitLinear, self).__init__(in_features, out_features, bias)
         self.in_features = in_features
         self.out_features = out_features
-        assert torch.cuda.is_available(), "CUDA is not available"
         self.deployed = False
-        self.qfactor = 1.0
+        self.qfactor = 1
 
     def forward(self, x):
         if self.deployed:
@@ -61,6 +68,7 @@ class BitLinear(nn.Linear):
 
     @torch.no_grad()
     def eval_forward(self, x):
+        print("eval forward")
         qx, act_scale = activation_quant_real(x)
         out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
         out = out / act_scale / self.scale
@@ -77,7 +85,7 @@ class BitLinear(nn.Linear):
             reshape_output = True
         else:
             reshape_output = False
-        out = self.deploy_matmul(qx, self.qweight)
+        out = self.deploy_matmul(qx, self.weight)
         if reshape_output:
             out = out.view(B, T, -1)
         out = out / act_scale / self.scale
@@ -93,52 +101,53 @@ class BitLinear(nn.Linear):
     def train(self, mode=True):
         if mode:
             self._buffers.clear()
-            self.weight.data = self.weight.data.cuda()
-            if self.bias is not None:
-                self.bias.data = self.bias.data.cuda()
         else:
             qweight, scale = weight_quant_real(self.weight)
-            self.register_buffer("qweight", qweight.cuda())
-            self.register_buffer("scale", scale.cuda())
+            self.qweight = qweight
+            self.scale = scale
         self = super().train(mode)
-        return self
 
-    def deploy(self):
-        self.eval()
-        try:
-            import bitblas
+    def deploy(self, opt_M=None):
+        import bitblas
+        assert torch.cuda.is_available(), "CUDA is not available"
+        matmul_config = bitblas.MatmulConfig(
+            M=[256, 512, 1024, 2048] if opt_M is None else opt_M,
+            N=self.out_features,
+            K=self.in_features,
+            A_dtype="int8",
+            W_dtype="int2",
+            accum_dtype="int32",
+            out_dtype="int32",
+            layout="nt",
+            with_bias=False,
+            group_size=None,
+            with_scaling=False,
+            with_zeros=False,
+            zeros_mode=None,
+        )
+        
+        qweight, scale = weight_quant_real(self.weight)
+        del self.weight
+        if hasattr(self, "qweight"): 
+            del self.qweight
+            del self.scale
+        self.deploy_matmul = bitblas.Matmul(config=matmul_config)
+        qweight = self.deploy_matmul.transform_weight(qweight)
+        self.register_buffer("weight", qweight.cuda())
+        self.register_buffer("scale", scale.cuda().half())
+        if self.bias is not None:
+            self.bias.data = self.bias.data.cuda().half()
+        self.deployed = True
 
-            matmul_config = bitblas.MatmulConfig(
-                M=[256, 512, 1024, 2048],
-                N=self.out_features,
-                K=self.in_features,
-                A_dtype="int8",
-                W_dtype="int2",
-                accum_dtype="int32",
-                out_dtype="int32",
-                layout="nt",
-                with_bias=False,
-                group_size=None,
-                with_scaling=False,
-                with_zeros=False,
-                zeros_mode=None,
-            )
-            self.deploy_matmul = bitblas.Matmul(config=matmul_config)
-            self.qweight = self.deploy_matmul.transform_weight(self.qweight)
-            self.deployed = True
+    def state_dict(self, *args, **kwargs):
+        if hasattr(self, "qweight"): 
+            del self.qweight 
+            del self.scale
+        sd = super().state_dict(*args, **kwargs)
+        return sd
 
-        except ImportError as e:
-            import logging
 
-            logging.warning(
-                "bitblas not installed, deploying in evaluation mode: %s", e
-            )
-        except Exception as e:
-            import logging
 
-            logging.error("An error occurred during deployment: %s", e)
-        finally:
-            del self.weight
 
 
 class FeedForward(nn.Module):
@@ -313,13 +322,13 @@ def VitsmallT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=12,  # Fewer transformer layers 12
+        depth=12,#12,  # Fewer transformer layers 12
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
-        dim_head=98,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
+        dim_head=96,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
     )
 
 
@@ -328,7 +337,7 @@ def VitbaseT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=12,  # 12
+        depth=1,#12,  # 12
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

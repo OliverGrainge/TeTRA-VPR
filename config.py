@@ -6,8 +6,8 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    #val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
+    #val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
     train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
     #train_dataset_dir: str = (
     #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
@@ -37,6 +37,7 @@ class ModelConfig:
     backbone_arch: str = "Vitsmall"
     agg_arch: str = "salad"
     weights_path: Union[str, None] = None
+    desc_divider_factor: int = 1
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -46,6 +47,7 @@ class ModelConfig:
         )
         group.add_argument("--agg_arch", type=str, default=ModelConfig.agg_arch)
         group.add_argument("--weights_path", type=str, default=ModelConfig.weights_path)
+        group.add_argument("--desc_divider_factor", type=int, default=ModelConfig.desc_divider_factor)
         return parent_parser
 
     @classmethod
@@ -62,6 +64,14 @@ class EvalConfig:
     # evaluation dataset
     val_set_names: Tuple[str] = ("sped", "essex")
 
+    # which evals to run 
+    eval_model_memory: bool = True
+    eval_runtime_memory: bool = True
+    eval_descriptor_size: bool = True
+    eval_feature_extraction_latency: bool = True
+    eval_retrieval_latency: bool = True
+    eval_dataset_retrieval_latency: bool = True
+
     # evaluation runtime
     batch_size: int = 32
     num_workers: int = 4
@@ -76,6 +86,12 @@ class EvalConfig:
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
         )
+        group.add_argument("--eval_model_memory", type=bool, default=EvalConfig.eval_model_memory)
+        group.add_argument("--eval_runtime_memory", type=bool, default=EvalConfig.eval_runtime_memory)
+        group.add_argument("--eval_descriptor_size", type=bool, default=EvalConfig.eval_descriptor_size)
+        group.add_argument("--eval_feature_extraction_latency", type=bool, default=EvalConfig.eval_feature_extraction_latency)
+        group.add_argument("--eval_retrieval_latency", type=bool, default=EvalConfig.eval_retrieval_latency)
+        group.add_argument("--eval_dataset_retrieval_latency", type=bool, default=EvalConfig.eval_dataset_retrieval_latency)
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
         group.add_argument(

@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config import DataConfig
 
-DATASET = "tokyo"
+DATASET = "pitts"
 
 parser = argparse.ArgumentParser()
 parser = DataConfig.add_argparse_args(parser)
@@ -22,8 +22,8 @@ args = parser.parse_args()
 
 df = pd.read_csv("data/results.csv")
 df = df.set_index("id")
-df = df[(~df.index.str.contains("vit")) | (df["image_size"] == 322)]
-df = df[(~df.index.str.contains("gem"))]
+df = df[(~df.index.str.contains("vitsmallt")) | (df["image_size"] == 322)]
+df = df[(~df.index.str.contains("salad"))]
 
 if "pitts" in DATASET.lower():
     from dataloaders.val.PittsburghDataset import PittsburghDataset30k
@@ -49,11 +49,11 @@ x_values = []
 for idx, row in df.iterrows():
     if "vit" not in idx:
         x_values.append(
-            row["model_memory"] + ds_len * (row["descriptor_size_floating"] / (1024**2))
+            (ds_len * (row["descriptor_size_floating"] / (1024**2)))# + row["model_memory"])
         )
     else:
         x_values.append(
-            row["model_memory"] + ds_len * (row["descriptor_size_binary"] / (1024**2))
+           (ds_len * (row["descriptor_size_binary"] / (1024**2))) #+  row["model_memory"] 
         )
 
 # Calculate R@1 values based on 'preset' (cosine vs hamming).
@@ -82,14 +82,18 @@ for idx, row in df.iterrows():
         non_preset_x_values.append(row["model_memory"])
         non_preset_r_at_1_values.append(row[f"{dataset_name}_hamming_R@1"])
 
+from brokenaxes import brokenaxes
+
 # --- Plotting Section ---
 # Use a Seaborn style for nicer aesthetics
 sns.set_style("whitegrid")
 
-plt.figure(figsize=(10, 6))
+# Create a broken x-axis
+#bax = brokenaxes(xlims=((0, 1000), (3800, max(x_values) + 100)), hspace=.05)
+bax = brokenaxes(xlims=((0, 1000), (3800, 4000)), hspace=.05)
 
 # Plot Baselines
-plt.scatter(
+bax.scatter(
     preset_x_values,
     preset_r_at_1_values,
     color="skyblue",
@@ -101,7 +105,7 @@ plt.scatter(
 )
 
 # Plot Tetra
-plt.scatter(
+bax.scatter(
     non_preset_x_values,
     non_preset_r_at_1_values,
     color="orange",
@@ -118,7 +122,7 @@ for i, txt in enumerate(df.index):
     x_offset = 0.5
     y_offset = 0.001
     if "vit" not in txt:
-        plt.annotate(
+        bax.annotate(
             txt,
             (x_values[i], r_at_1_values[i]),
             xytext=(x_values[i] + x_offset, r_at_1_values[i] + y_offset),
@@ -128,10 +132,10 @@ for i, txt in enumerate(df.index):
             arrowprops=dict(arrowstyle="-", color="gray", lw=0.5),
         )
 
-plt.xlabel("Memory Consumption (MB)", fontsize=12)
-plt.ylabel("R@1", fontsize=12)
-plt.title("R@1 vs. VPR Memory Consumption", fontsize=14)
-plt.legend(fontsize=11)
+bax.set_xlabel("Memory Consumption (MB)", fontsize=12)
+bax.set_ylabel("R@1", fontsize=12)
+bax.set_title("R@1 vs. VPR Memory Consumption", fontsize=14)
+bax.legend(fontsize=11)
 
 # Make layout tight and show grid properly
 plt.tight_layout()

@@ -24,6 +24,8 @@ PRESET_NAMES = [
     "CosPlacesR50D128",
     "DinoSalad",
     "EigenPlaces",
+    "DinoV2_BoQ",
+    "ResNet50_BoQ",
     "EigenPlacesR18D256",
     "EigenPlacesR18D512",
     "EigenPlacesR50D128",
