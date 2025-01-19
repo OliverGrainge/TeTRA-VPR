@@ -75,7 +75,7 @@ def compute_descriptors(
 
     all_desc = []
     device = next(model.parameters()).device
-    for batch in tqdm.tqdm(dataloader, desc=f"Computing Descriptors: {str(dataset)}"):
+    for batch in tqdm.tqdm(dataloader, desc=f"Computing Descriptors: {str(dataset).replace('_test', '')}"):
         imgs, _ = batch
         imgs = imgs.to(device)  # Move images to correct device
         with torch.no_grad():

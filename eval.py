@@ -131,8 +131,8 @@ def _get_example_input(args, transform):
 def _prepare_model(args, model):
     model.to(args.device)
     if args.compile:
-        if hasattr(model, "deploy"):
-            model.deploy()
+        if hasattr(model.backbone, "deploy"):
+            model.backbone.deploy()
     else:
         model.eval()
     return model

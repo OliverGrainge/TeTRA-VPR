@@ -87,6 +87,7 @@ def evaluate(args, model, example_input):
             latency.get_model_inference_latency_ms(model, example_input)
         )
 
+    # 
     if args.retrieval_latency:
         get_latency_fn = (
             latency.get_binary_retrieval_latency
@@ -97,21 +98,26 @@ def evaluate(args, model, example_input):
 
     # Accuracy evaluations
     k_values = [1]
-    if args.accuracy and len(args.val_set_names) > 0:
+    if len(args.val_set_names) > 0:
         transform = get_eval_transform(args)
         for val_set_name in args.val_set_names:
-            dataset = accuracy.get_val_dataset(
-                val_set_name, args.val_dataset_dir, transform
-            )
-            desc = accuracy.compute_descriptors(
-                model, dataset, batch_size=args.batch_size, num_workers=args.num_workers
-            )
 
-            recalls = accuracy.get_recall_at_k(
-                desc, dataset, precision=precision, k_values=k_values
-            )
-            for idx, k in enumerate(recalls):
-                results[f"{repr(dataset)}_R@{k_values[idx]}"] = recalls[idx]
+            dataset = accuracy.get_val_dataset(
+                    val_set_name, args.val_dataset_dir, transform
+                )
+            dataset_name = repr(dataset).replace("_test", "")
+
+            if args.accuracy:
+                desc = accuracy.compute_descriptors(
+                    model, dataset, batch_size=args.batch_size, num_workers=args.num_workers
+                )
+
+                recalls = accuracy.get_recall_at_k(
+                    desc, dataset, precision=precision, k_values=k_values
+                )
+                for idx, k in enumerate(recalls):
+                    
+                    results[f"{dataset_name}_R@{k_values[idx]}"] = recalls[idx]
 
             if args.dataset_retrieval_latency == 1:
                 get_latency_fn = (
@@ -119,7 +125,7 @@ def evaluate(args, model, example_input):
                     if is_binary
                     else latency.get_floating_retrieval_latency
                 )
-                results[f"{repr(dataset)}_retrieval_latency"] = get_latency_fn(
+                results[f"{dataset_name}_retrieval_latency"] = get_latency_fn(
                     results["descriptor_dim"], ref_n=len(dataset)
                 )
     return results

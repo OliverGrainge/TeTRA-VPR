@@ -5,10 +5,10 @@ import numpy as np
 
 
 def match_hamming(
-    desc: np.ndarray,
+    desc: "torch.Tensor",
     num_references: int,
     ground_truth: np.ndarray,
-    k_values: list[int] = [1, 5, 10],
+    k_values: list[int] = [1],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Match descriptors using Hamming distance with Faiss.
 
