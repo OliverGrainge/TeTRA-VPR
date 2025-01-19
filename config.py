@@ -76,6 +76,8 @@ class EvalConfig:
     feature_extraction_latency: bool = False
     retrieval_latency: bool = False
     dataset_retrieval_latency: bool = False
+    dataset_descriptor_memory: bool = False
+    dataset_total_memory: bool = False
     compile: bool = False
 
     # evaluation runtime
@@ -94,6 +96,12 @@ class EvalConfig:
         )
         group.add_argument(
             "--accuracy", action="store_true", help="Run accuracy evaluation"
+        )
+        group.add_argument(
+            "--dataset_descriptor_memory", action="store_true", help="Run dataset descriptor memory evaluation"
+        )
+        group.add_argument(
+            "--dataset_total_memory", action="store_true", help="Run dataset total memory evaluation"
         )
         group.add_argument(
             "--model_memory", action="store_true", help="Run model memory evaluation"

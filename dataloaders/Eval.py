@@ -128,4 +128,21 @@ def evaluate(args, model, example_input):
                 results[f"{dataset_name}_retrieval_latency"] = get_latency_fn(
                     results["descriptor_dim"], ref_n=len(dataset)
                 )
+
+            if args.dataset_descriptor_memory: 
+                desc_dim = results["descriptor_dim"]
+                if repr(model).endswith("t"):
+                    # measure descriptor in mb and binary precision
+                    results[f"{dataset_name}_descriptor_memory_mb"] = ((desc_dim/8) * dataset.num_references) / (1024 * 1024)
+                else:
+                    # measure descriptor in mb and fp16 precision
+                    results[f"{dataset_name}_descriptor_memory_mb"] = (desc_dim * dataset.num_references * 2) / (1024 * 1024)
+
+            if args.dataset_total_memory: 
+                desc_dim = results["descriptor_dim"]
+                if repr(model).endswith("t"):
+                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + ((desc_dim/8) * dataset.num_references) / (1024 * 1024)
+                else:
+                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (desc_dim * dataset.num_references * 2) / (1024 * 1024)
     return results
+
