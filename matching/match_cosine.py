@@ -8,7 +8,7 @@ def match_cosine(
     desc: "torch.Tensor",
     num_references: int,
     ground_truth: "np.ndarray",
-    k_values: list[int] = [1, 5, 10]
+    k_values: list[int] = [1]
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute cosine similarity matching accuracy using FAISS.
 
@@ -43,6 +43,7 @@ def match_cosine(
     index.add(reference_desc)
     
     # Perform similarity search
+   
     max_k = max(k_values)
     dist, predictions = index.search(query_desc, max_k)
     

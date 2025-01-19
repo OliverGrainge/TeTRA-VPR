@@ -72,10 +72,7 @@ def compute_descriptors(
     )
     
     all_desc = []
-    if torch.cuda.is_available():
-        device = "cuda" 
-    else: 
-        device = "cpu"
+    device = next(model.parameters()).device
     for batch in tqdm.tqdm(dataloader, desc=f"Computing Descriptors: {str(dataset)}"):
         imgs, _ = batch
         imgs = imgs.to(device)  # Move images to correct device
@@ -91,7 +88,7 @@ def get_recall_at_k(
     desc: Tensor,
     dataset: Dataset,
     k_values: Union[List[int], tuple[int, ...]] = [1, 5, 10],
-    precision: str = "float32"
+    precision: str = "float32", 
 ) -> List[float]:
     """Calculate recall@k metrics for the given descriptors.
     
@@ -118,13 +115,13 @@ def get_recall_at_k(
     
     if precision not in matching_fn:
         raise ValueError(f"Unsupported precision type: {precision}. Must be one of {list(matching_fn.keys())}")
+    
     correct_at_k, _ = matching_fn[precision](
         desc,
         num_references=dataset.num_references,
         ground_truth=dataset.ground_truth,
         k_values=k_values,
     )
-    
     return correct_at_k
 
 

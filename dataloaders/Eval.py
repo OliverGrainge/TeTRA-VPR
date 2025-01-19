@@ -65,37 +65,37 @@ def evaluate(args, model, example_input):
     precision = "binary" if is_binary else "float32"
 
     # Memory evaluations
-    if args.eval_model_memory:
+    if args.model_memory:
         results["model_memory_mb"] = memory.get_model_memory_mb(model)
     
-    if args.eval_runtime_memory:
+    if args.runtime_memory:
         results["runtime_memory_mb"] = memory.get_runtime_memory_mb(model, example_input)
     
-    if args.eval_descriptor_size:
+    if args.descriptor_size:
         get_size_fn = memory.get_binary_descriptor_size_bytes if is_binary else memory.get_floating_descriptor_size_bytes
         results["descriptor_size_bytes"] = get_size_fn(model, example_input)
 
     # Latency evaluations  
-    if args.eval_feature_extraction_latency:
+    if args.feature_extraction_latency:
         results["feature_extraction_latency_ms"] = latency.get_model_inference_latency_ms(model, example_input)
     
-    if args.eval_retrieval_latency:
+    if args.retrieval_latency:
         get_latency_fn = latency.get_binary_retrieval_latency if is_binary else latency.get_floating_retrieval_latency
         results["retrieval_latency_ms"] = get_latency_fn(results["descriptor_dim"])
 
     # Accuracy evaluations
-    k_values = [1, 5, 10]
-    if args.val_set_names:
+    k_values = [1]
+    if args.accuracy and len(args.val_set_names) > 0:
         transform = get_eval_transform(args)
         for val_set_name in args.val_set_names:
             dataset = accuracy.get_val_dataset(val_set_name, args.val_dataset_dir, transform)
             desc = accuracy.compute_descriptors(model, dataset, batch_size=args.batch_size, num_workers=args.num_workers)
             
-            recalls = accuracy.get_recall_at_k(desc, dataset, precision=precision)
+            recalls = accuracy.get_recall_at_k(desc, dataset, precision=precision, k_values=k_values)
             for idx, k in enumerate(recalls):
                 results[f"{repr(dataset)}_R@{k_values[idx]}"] = recalls[idx]
 
-            if args.eval_dataset_retrieval_latency == 1:
+            if args.dataset_retrieval_latency == 1:
                 get_latency_fn = latency.get_binary_retrieval_latency if is_binary else latency.get_floating_retrieval_latency
                 results[f"{repr(dataset)}_retrieval_latency"] = get_latency_fn(
                     results["descriptor_dim"], 

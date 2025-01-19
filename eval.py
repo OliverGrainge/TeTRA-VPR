@@ -81,7 +81,6 @@ def _load_model_and_transform(args):
     if args.preset is not None:
         model = get_model(preset=args.preset)
         transform = get_transform(preset=args.preset)
-
         return model, transform
     else:
         model = get_model(
@@ -110,25 +109,37 @@ def _get_model_id(args):
     else: 
         return f"{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DescDividerFactor[{args.desc_divider_factor}]"
 
-def eval(args):
-    model, transform = _load_model_and_transform(args)
+def _get_example_input(args, transform): 
     img = Image.fromarray(np.zeros((256, 256, 3), dtype=np.uint8))
     example_input = transform(img).unsqueeze(0)
-    if torch.cuda.is_available():
-        example_input = example_input.cuda()
-        model = model.cuda()
+    return example_input.to(args.device)
 
-    model.eval()
 
+def _prepare_model(args, model): 
+    model.to(args.device)
     if args.compile: 
         if hasattr(model, "deploy"): 
             model.deploy()
-            
-    results = evaluate(args, model, example_input)
+    else: 
+        model.eval()
+    return model
 
+def _detect_device(): 
+    if torch.backends.mps.is_available(): 
+        return "mps"
+    elif torch.cuda.is_available(): 
+            return "cuda"
+    else: 
+        return "cpu"
+
+def eval(args):
+    args.device = _detect_device()
+    model, transform = _load_model_and_transform(args)
+    example_input = _get_example_input(args, transform)
+    model = _prepare_model(args, model)
+    results = evaluate(args, model, example_input)
     results["id"] = _get_model_id(args)
     save_results(results)
-
 
 
 

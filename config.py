@@ -6,8 +6,10 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"
-    #val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr"
+    #val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
+    #val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC 
+    val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets" # Laptop
+    
     train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
     #train_dataset_dir: str = (
     #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
@@ -65,12 +67,13 @@ class EvalConfig:
     val_set_names: Tuple[str] = ("sped", "essex")
 
     # which evals to run 
-    eval_model_memory: bool = True
-    eval_runtime_memory: bool = True
-    eval_descriptor_size: bool = True
-    eval_feature_extraction_latency: bool = True
-    eval_retrieval_latency: bool = True
-    eval_dataset_retrieval_latency: bool = True
+    accuracy: bool = False
+    model_memory: bool = False
+    runtime_memory: bool = False
+    descriptor_size: bool = False
+    feature_extraction_latency: bool = False
+    retrieval_latency: bool = False
+    dataset_retrieval_latency: bool = False
     compile: bool = False
 
     # evaluation runtime
@@ -87,13 +90,14 @@ class EvalConfig:
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
         )
-        group.add_argument("--eval_model_memory", type=bool, default=EvalConfig.eval_model_memory)
-        group.add_argument("--eval_runtime_memory", type=bool, default=EvalConfig.eval_runtime_memory)
-        group.add_argument("--eval_descriptor_size", type=bool, default=EvalConfig.eval_descriptor_size)
-        group.add_argument("--eval_feature_extraction_latency", type=bool, default=EvalConfig.eval_feature_extraction_latency)
-        group.add_argument("--eval_retrieval_latency", type=bool, default=EvalConfig.eval_retrieval_latency)
-        group.add_argument("--eval_dataset_retrieval_latency", type=bool, default=EvalConfig.eval_dataset_retrieval_latency)
-        group.add_argument("--compile", type=bool, default=EvalConfig.compile)
+        group.add_argument("--accuracy", action='store_true', help="Run accuracy evaluation")
+        group.add_argument("--model_memory", action='store_true', help="Run model memory evaluation")
+        group.add_argument("--runtime_memory", action='store_true', help="Run runtime memory evaluation")
+        group.add_argument("--descriptor_size", action='store_true', help="Run descriptor size evaluation")
+        group.add_argument("--feature_extraction_latency", action='store_true', help="Run feature extraction latency evaluation")
+        group.add_argument("--retrieval_latency", action='store_true', help="Run retrieval latency evaluation")
+        group.add_argument("--dataset_retrieval_latency", action='store_true', help="Run dataset retrieval latency evaluation")
+        group.add_argument("--compile", action='store_true', help="Run compilation")
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
         group.add_argument(
