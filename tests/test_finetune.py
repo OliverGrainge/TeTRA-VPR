@@ -1,23 +1,23 @@
-import pytest
-import torch 
-import torch.nn as nn 
-import sys 
-import os 
-from PIL import Image
 import argparse
-import numpy as np 
-import pytorch_lightning as pl 
+import os
+import sys
+
+import numpy as np
+import pytest
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
+from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.helper import get_model 
+from models.helper import get_model
 
 
-
-def test_finetune(): 
-    from dataloaders.TeTRA import TeTRA 
-    from models.helper import get_model 
-    from config import DataConfig, ModelConfig, TeTRAConfig 
+def test_finetune():
+    from config import DataConfig, ModelConfig, TeTRAConfig
+    from dataloaders.TeTRA import TeTRA
+    from models.helper import get_model
 
     torch.set_float32_matmul_precision("medium")
 
@@ -25,7 +25,9 @@ def test_finetune():
     modelconfig = ModelConfig()
     tetraconfig = TeTRAConfig()
 
-    model = get_model(tetraconfig.image_size, modelconfig.backbone_arch, modelconfig.agg_arch)
+    model = get_model(
+        tetraconfig.image_size, modelconfig.backbone_arch, modelconfig.agg_arch
+    )
 
     model_module = TeTRA(
         model,
@@ -38,7 +40,7 @@ def test_finetune():
         lr=tetraconfig.lr,
         scheduler_type="sigmoid",
     )
-    
+
     pl.Trainer(
         enable_progress_bar=tetraconfig.pbar,
         strategy="auto",
@@ -47,6 +49,5 @@ def test_finetune():
         precision=tetraconfig.precision,
         max_epochs=tetraconfig.max_epochs,
         reload_dataloaders_every_n_epochs=1,
-        fast_dev_run=True
+        fast_dev_run=True,
     )
-

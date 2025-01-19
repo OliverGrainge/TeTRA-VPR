@@ -5,12 +5,18 @@ import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-
 from models.helper import get_model
 
-
-sd = torch.load("checkpoints/TeTRA-finetune/VitbaseT224_GeM-DescDividerFactor[2]/epoch=3-MSLS_val_q_R1=65.27.ckpt", weights_only=True)
-model = get_model(backbone_arch="vitbaset", agg_arch="gem", image_size=(224, 224), desc_divider_factor=2)
+sd = torch.load(
+    "checkpoints/TeTRA-finetune/VitbaseT224_GeM-DescDividerFactor[2]/epoch=3-MSLS_val_q_R1=65.27.ckpt",
+    weights_only=True,
+)
+model = get_model(
+    backbone_arch="vitbaset",
+    agg_arch="gem",
+    image_size=(224, 224),
+    desc_divider_factor=2,
+)
 model.eval()
 
 

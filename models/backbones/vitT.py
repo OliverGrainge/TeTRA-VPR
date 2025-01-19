@@ -5,13 +5,6 @@ import torch.optim as optim
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from einops import rearrange
-from einops.layers.torch import Rearrange
-
 
 @torch.no_grad()
 def activation_quant_fake(x):
@@ -41,7 +34,6 @@ def weight_quant_real(w):
     return qw, scale
 
 
-
 class BitLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True):
         super(BitLinear, self).__init__(in_features, out_features, bias)
@@ -60,7 +52,10 @@ class BitLinear(nn.Linear):
 
     def train_forward(self, x):
         dqx = x + self.qfactor * (activation_quant_fake(x)[0] - x).detach()
-        dqw = self.weight + self.qfactor * (weight_quant_fake(self.weight)[0] - self.weight).detach()
+        dqw = (
+            self.weight
+            + self.qfactor * (weight_quant_fake(self.weight)[0] - self.weight).detach()
+        )
         out = F.linear(dqx, dqw)
         if self.bias is not None:
             out += self.bias.to(out.dtype)
@@ -93,10 +88,10 @@ class BitLinear(nn.Linear):
         if self.bias is not None:
             out += self.bias.to(out.dtype)
         return out
-    
-    def set_qfactor(self, qfactor): 
+
+    def set_qfactor(self, qfactor):
         assert qfactor >= 0.0 and qfactor <= 1.0, "qfactor must be between 0.0 and 1.0"
-        self.qfactor = qfactor 
+        self.qfactor = qfactor
 
     def train(self, mode=True):
         if mode:
@@ -109,6 +104,7 @@ class BitLinear(nn.Linear):
 
     def deploy(self, opt_M=None):
         import bitblas
+
         assert torch.cuda.is_available(), "CUDA is not available"
         matmul_config = bitblas.MatmulConfig(
             M=[256, 512, 1024, 2048] if opt_M is None else opt_M,
@@ -125,10 +121,10 @@ class BitLinear(nn.Linear):
             with_zeros=False,
             zeros_mode=None,
         )
-        
+
         qweight, scale = weight_quant_real(self.weight)
         del self.weight
-        if hasattr(self, "qweight"): 
+        if hasattr(self, "qweight"):
             del self.qweight
             del self.scale
         self.deploy_matmul = bitblas.Matmul(config=matmul_config)
@@ -140,14 +136,11 @@ class BitLinear(nn.Linear):
         self.deployed = True
 
     def state_dict(self, *args, **kwargs):
-        if hasattr(self, "qweight"): 
-            del self.qweight 
+        if hasattr(self, "qweight"):
+            del self.qweight
             del self.scale
         sd = super().state_dict(*args, **kwargs)
         return sd
-
-
-
 
 
 class FeedForward(nn.Module):
@@ -303,16 +296,14 @@ class ViT(nn.Module):
             if isinstance(module, BitLinear):
                 module.deploy()
 
-    def set_qfactor(self, qfactor): 
-        for module in self.modules(): 
-            if isinstance(module, BitLinear): 
+    def set_qfactor(self, qfactor):
+        for module in self.modules():
+            if isinstance(module, BitLinear):
                 module.set_qfactor(qfactor)
 
     def __str__(self):
         model_type = (
-            "VitsmallT"
-            if self.dim == 384
-            else "VitbaseT" if self.dim == 768 else "Vit"
+            "VitsmallT" if self.dim == 384 else "VitbaseT" if self.dim == 768 else "Vit"
         )
         return f"{model_type}{self.image_size}"
 
@@ -322,7 +313,7 @@ def VitsmallT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=12,#12,  # Fewer transformer layers 12
+        depth=12,  # 12,  # Fewer transformer layers 12
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
@@ -337,7 +328,7 @@ def VitbaseT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=12,#12,  # 12
+        depth=12,  # 12,  # 12
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

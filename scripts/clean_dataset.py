@@ -1,12 +1,19 @@
-import os
 import argparse
+import os
+
 from PIL import Image
 from tqdm import tqdm
 
 # Add argument parser
-parser = argparse.ArgumentParser(description='Clean dataset by removing corrupted images')
-parser.add_argument('--dataset_root', type=str, required=True,
-                    help='Path to the dataset directory containing images')
+parser = argparse.ArgumentParser(
+    description="Clean dataset by removing corrupted images"
+)
+parser.add_argument(
+    "--dataset_root",
+    type=str,
+    required=True,
+    help="Path to the dataset directory containing images",
+)
 
 args = parser.parse_args()
 dataset_root = args.dataset_root

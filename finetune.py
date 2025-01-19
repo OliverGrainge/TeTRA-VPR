@@ -13,19 +13,24 @@ from models.helper import get_model
 
 def _get_weights_path(backbone_arch, image_size):
     folders = os.listdir("checkpoints/TeTRA-pretrain")
-    for folder in folders: 
-        if backbone_arch.lower() + str(image_size[0]) in folder.lower() and "progressivequant" in folder.lower():
+    for folder in folders:
+        if (
+            backbone_arch.lower() + str(image_size[0]) in folder.lower()
+            and "progressivequant" in folder.lower()
+        ):
             weights_folder = os.path.join("checkpoints/TeTRA-pretrain", folder)
             weights_avail = os.listdir(weights_folder)
-            if len(weights_avail) > 0: 
-                if len(weights_avail) > 1: 
-                    print(f"Multiple weights available for {backbone_arch} {image_size}. Using latest.")
+            if len(weights_avail) > 0:
+                if len(weights_avail) > 1:
+                    print(
+                        f"Multiple weights available for {backbone_arch} {image_size}. Using latest."
+                    )
                     return os.path.join(weights_folder, weights_avail[0])
-                elif len(weights_avail) == 1: 
+                elif len(weights_avail) == 1:
                     return os.path.join(weights_folder, weights_avail[0])
-                else: 
+                else:
                     print(f"No weights available for {backbone_arch} {image_size}")
-            else: 
+            else:
                 print(f"No weights available for {backbone_arch} {image_size}")
     return None
 
@@ -35,7 +40,7 @@ def load_model(args):
         args.image_size,
         args.backbone_arch,
         args.agg_arch,
-        desc_divider_factor=args.desc_divider_factor
+        desc_divider_factor=args.desc_divider_factor,
     )
 
     weights_path = _get_weights_path(args.backbone_arch, args.image_size)
@@ -77,9 +82,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"MSLS_val_q_R1", #msls_val_q_R1
+        monitor=f"MSLS_val_q_R1",  # msls_val_q_R1
         dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}-DescDividerFactor[{args.desc_divider_factor}]",
-        filename="{epoch}-{MSLS_val_q_R1:.2f}", #msls_val_q_R1
+        filename="{epoch}-{MSLS_val_q_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,

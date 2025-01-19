@@ -159,9 +159,7 @@ class ViT(nn.Module):
 
     def __str__(self):
         model_type = (
-            "Vitsmall"
-            if self.dim == 384
-            else "Vitbase" if self.dim == 768 else "Vit"
+            "Vitsmall" if self.dim == 384 else "Vitbase" if self.dim == 768 else "Vit"
         )
         return f"{model_type}{self.image_size}"
 

@@ -17,6 +17,7 @@ class DinoV2_BoQ_model(torch.nn.Module):
     def forward(self, x):
         return self.model(x)[0]
 
+
 def DinoV2_BoQ():
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()

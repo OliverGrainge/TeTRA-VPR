@@ -13,7 +13,6 @@ from .EigenPlacesR50D128 import EigenPlacesR50D128
 from .EigenPlacesR50D256 import EigenPlacesR50D256
 from .EigenPlacesR50D512 import EigenPlacesR50D512
 
-
 PRESET_NAMES = [
     "CosPlaces",
     "CosPlacesR18D32",

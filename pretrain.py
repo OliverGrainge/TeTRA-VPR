@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 torch.set_float32_matmul_precision("medium")
@@ -32,7 +32,9 @@ def setup_training(args):
     )
 
     if args.use_progressive_quant:
-        dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-ProgressiveQuant"
+        dirpath = (
+            f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-ProgressiveQuant"
+        )
     else:
         dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}"
 
@@ -49,7 +51,6 @@ def setup_training(args):
 
     learning_rate_cb = LearningRateMonitor(logging_interval="step")
 
-    
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
         name=f"{str(model_module.student)}",
@@ -63,7 +64,7 @@ def setup_training(args):
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[checkpoint_cb,learning_rate_cb],
+        callbacks=[checkpoint_cb, learning_rate_cb],
         reload_dataloaders_every_n_epochs=1,
         val_check_interval=1.0,
         accumulate_grad_batches=args.accumulate_grad_batches,

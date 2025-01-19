@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 from collections import defaultdict
@@ -7,16 +8,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import wandb 
-import math
 from prettytable import PrettyTable
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
 
-from dataloaders.train.DistillDataset import DistillDataset, JPGDataset, TarImageDataset
+import wandb
+from dataloaders.train.DistillDataset import (DistillDataset, JPGDataset,
+                                              TarImageDataset)
 from dataloaders.utils.Distill.attention import get_attn, remove_hooks
-from dataloaders.utils.Distill.funcs import L2Norm, freeze_model, get_feature_dim
-from dataloaders.utils.Distill.schedulers import QuantScheduler, WeightDecayScheduler
+from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
+                                             get_feature_dim)
+from dataloaders.utils.Distill.schedulers import (QuantScheduler,
+                                                  WeightDecayScheduler)
 from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
@@ -41,7 +44,6 @@ class Distill(pl.LightningModule):
         lr=1e-3,
         mse_loss_mult=500,
         val_set_names=["pitts30k_val"],
-        
     ):
         super().__init__()
         # Model-related attributes
@@ -53,8 +55,8 @@ class Distill(pl.LightningModule):
             agg_arch=student_model_agg_arch,
             image_size=student_model_image_size,
         )
-        self.student = self.student.to('cuda')
-        self.teacher = self.teacher.to('cuda')
+        self.student = self.student.to("cuda")
+        self.teacher = self.teacher.to("cuda")
 
         # Dataset and data-related attributes
         self.train_dataset_dir = train_dataset_dir
@@ -73,11 +75,13 @@ class Distill(pl.LightningModule):
 
         # progressive quantization
         self.use_progressive_quant = use_progressive_quant
-        if use_progressive_quant and not hasattr(self.student.backbone, "set_qfactor"): 
-            raise Exception("Student backbone does not have support pregressive quant method")
-        if use_progressive_quant: 
+        if use_progressive_quant and not hasattr(self.student.backbone, "set_qfactor"):
+            raise Exception(
+                "Student backbone does not have support pregressive quant method"
+            )
+        if use_progressive_quant:
             self.student.backbone.set_qfactor(0.0)
-        else: 
+        else:
             if hasattr(self.student.backbone, "set_qfactor"):
                 self.student.backbone.set_qfactor(1.0)
 
@@ -93,7 +97,8 @@ class Distill(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -122,13 +127,21 @@ class Distill(pl.LightningModule):
             wandb.define_metric(f"Euclidian Loss", summary="min")
             wandb.define_metric(f"Attention Loss", summary="min")
             wandb.define_metric(f"Total Loss", summary="min")
-            self.num_training_steps = self.trainer.max_epochs * len(self.train_dataloader())
+            self.num_training_steps = self.trainer.max_epochs * len(
+                self.train_dataloader()
+            )
 
-    def _progressive_quant_scheduler(self): 
-        x = ((self.global_step / (self.num_training_steps // self.trainer.accumulate_grad_batches)) * 12) - 6
+    def _progressive_quant_scheduler(self):
+        x = (
+            (
+                self.global_step
+                / (self.num_training_steps // self.trainer.accumulate_grad_batches)
+            )
+            * 12
+        ) - 6
         qfactor = 1 / (1 + math.exp(-x))
         return qfactor
-    
+
     def forward(self, x):
         return self.student(x)
 
@@ -140,17 +153,17 @@ class Distill(pl.LightningModule):
         num_training_steps = self.trainer.max_epochs * len(self.train_dataloader())
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=0,  
-            num_training_steps=num_training_steps//self.trainer.accumulate_grad_batches,
+            num_warmup_steps=0,
+            num_training_steps=num_training_steps
+            // self.trainer.accumulate_grad_batches,
         )
 
         scheduler_config = {
-            'scheduler': scheduler,
-            'interval': 'step',  # or 'epoch'
-            'frequency': 1
+            "scheduler": scheduler,
+            "interval": "step",  # or 'epoch'
+            "frequency": 1,
         }
         return [optimizer], [scheduler_config]
-    
 
     def _compute_features(self, student_images, teacher_images, use_attention):
         B = student_images.shape[0]
@@ -274,19 +287,22 @@ class Distill(pl.LightningModule):
             )
 
         # progressive quantization
-        if self.use_progressive_quant: 
+        if self.use_progressive_quant:
             qfactor = self._progressive_quant_scheduler()
             self.student.backbone.set_qfactor(qfactor)
             self.log("qfactor", qfactor, on_step=True)
 
-        if hasattr(self.student.backbone, "set_qfactor") and not self.use_progressive_quant: 
-            for module in self.student.backbone.modules(): 
-                if hasattr(module, "qfactor"): 
+        if (
+            hasattr(self.student.backbone, "set_qfactor")
+            and not self.use_progressive_quant
+        ):
+            for module in self.student.backbone.modules():
+                if hasattr(module, "qfactor"):
                     self.log("qfactor", module.qfactor, on_step=True)
                     break
 
         total_loss = euc_loss + cos_loss + attn_loss
-        
+
         self.log("Cosine Loss", cos_loss, on_step=True)
         self.log("Euclidian Loss", euc_loss, on_step=True)
         self.log("Attention Loss", attn_loss, on_step=True)

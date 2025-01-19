@@ -6,14 +6,14 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    #val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
-    #val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC 
-    val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets" # Laptop
-    
+    # val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
+    # val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC
+    val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
+
     train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
-    #train_dataset_dir: str = (
+    # train_dataset_dir: str = (
     #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-    #)
+    # )
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -49,7 +49,9 @@ class ModelConfig:
         )
         group.add_argument("--agg_arch", type=str, default=ModelConfig.agg_arch)
         group.add_argument("--weights_path", type=str, default=ModelConfig.weights_path)
-        group.add_argument("--desc_divider_factor", type=int, default=ModelConfig.desc_divider_factor)
+        group.add_argument(
+            "--desc_divider_factor", type=int, default=ModelConfig.desc_divider_factor
+        )
         return parent_parser
 
     @classmethod
@@ -66,7 +68,7 @@ class EvalConfig:
     # evaluation dataset
     val_set_names: Tuple[str] = ("sped", "essex")
 
-    # which evals to run 
+    # which evals to run
     accuracy: bool = False
     model_memory: bool = False
     runtime_memory: bool = False
@@ -90,14 +92,38 @@ class EvalConfig:
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
         )
-        group.add_argument("--accuracy", action='store_true', help="Run accuracy evaluation")
-        group.add_argument("--model_memory", action='store_true', help="Run model memory evaluation")
-        group.add_argument("--runtime_memory", action='store_true', help="Run runtime memory evaluation")
-        group.add_argument("--descriptor_size", action='store_true', help="Run descriptor size evaluation")
-        group.add_argument("--feature_extraction_latency", action='store_true', help="Run feature extraction latency evaluation")
-        group.add_argument("--retrieval_latency", action='store_true', help="Run retrieval latency evaluation")
-        group.add_argument("--dataset_retrieval_latency", action='store_true', help="Run dataset retrieval latency evaluation")
-        group.add_argument("--compile", action='store_true', help="Run compilation")
+        group.add_argument(
+            "--accuracy", action="store_true", help="Run accuracy evaluation"
+        )
+        group.add_argument(
+            "--model_memory", action="store_true", help="Run model memory evaluation"
+        )
+        group.add_argument(
+            "--runtime_memory",
+            action="store_true",
+            help="Run runtime memory evaluation",
+        )
+        group.add_argument(
+            "--descriptor_size",
+            action="store_true",
+            help="Run descriptor size evaluation",
+        )
+        group.add_argument(
+            "--feature_extraction_latency",
+            action="store_true",
+            help="Run feature extraction latency evaluation",
+        )
+        group.add_argument(
+            "--retrieval_latency",
+            action="store_true",
+            help="Run retrieval latency evaluation",
+        )
+        group.add_argument(
+            "--dataset_retrieval_latency",
+            action="store_true",
+            help="Run dataset retrieval latency evaluation",
+        )
+        group.add_argument("--compile", action="store_true", help="Run compilation")
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)
         group.add_argument("--num_workers", type=int, default=EvalConfig.num_workers)
         group.add_argument(
@@ -139,7 +165,10 @@ class DistillConfig:
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    val_set_names: Tuple[str] = ("msls","Pitts30k",)
+    val_set_names: Tuple[str] = (
+        "msls",
+        "Pitts30k",
+    )
     precision: str = "bf16-mixed"
 
     @staticmethod
@@ -159,15 +188,11 @@ class DistillConfig:
         group.add_argument(
             "--weight_decay", type=float, default=DistillConfig.weight_decay
         )
+        group.add_argument("--use_attention", action="store_true", help="Use Attention")
         group.add_argument(
-            "--use_attention", 
-            action='store_true', 
-            help="Use Attention"
-        )
-        group.add_argument(
-            "--use_progressive_quant", 
-            action='store_true', 
-            help="Enable progressive quantization"
+            "--use_progressive_quant",
+            action="store_true",
+            help="Enable progressive quantization",
         )
         group.add_argument(
             "--image_size", type=int, nargs=2, default=DistillConfig.image_size
@@ -242,13 +267,18 @@ class TeTRAConfig:
     )
 
     # validation set
-    val_set_names: Tuple[str] = ("msls","Pitts30k",)
+    val_set_names: Tuple[str] = (
+        "msls",
+        "Pitts30k",
+    )
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("TeTRA")
         group.add_argument("--lr", type=float, default=TeTRAConfig.lr)
-        group.add_argument("--desc_divider_factor", type=int, default=TeTRAConfig.desc_divider_factor)
+        group.add_argument(
+            "--desc_divider_factor", type=int, default=TeTRAConfig.desc_divider_factor
+        )
         group.add_argument("--batch_size", type=int, default=TeTRAConfig.batch_size)
         group.add_argument("--max_epochs", type=int, default=TeTRAConfig.max_epochs)
         group.add_argument("--precision", type=str, default=TeTRAConfig.precision)
@@ -275,7 +305,7 @@ class TeTRAConfig:
             type=str,
             default=TeTRAConfig.freeze_all_except_last_n,
         )
-    
+
         return parent_parser
 
     @classmethod

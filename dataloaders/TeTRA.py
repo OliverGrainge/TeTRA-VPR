@@ -4,7 +4,6 @@ from collections import defaultdict
 import numpy as np
 import pytorch_lightning as pl
 import torch
-import wandb
 from prettytable import PrettyTable
 from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import CosineSimilarity
@@ -12,6 +11,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
 
+import wandb
 from config import DataConfig, ModelConfig, TeTRAConfig
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from dataloaders.utils.TeTRA.distances import HammingDistance, binarize
@@ -109,7 +109,8 @@ class TeTRA(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -132,7 +133,7 @@ class TeTRA(pl.LightningModule):
                     raise NotImplementedError(
                         f"Evaluation set {val_set_name} not implemented"
                     )
-                
+
                 for val_set_name in self.val_set_names:
                     wandb.define_metric(f"{val_set_name}_R1", summary="max")
 
@@ -180,7 +181,7 @@ class TeTRA(pl.LightningModule):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
 
         total_steps = self.trainer.estimated_stepping_batches
-        #warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
+        # warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
         warmup_steps = 0
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
@@ -264,7 +265,9 @@ class TeTRA(pl.LightningModule):
         # calculate descriptors
         descriptors = self(places)
         # store the outputs
-        self.validation_outputs[self.val_set_names[dataloader_idx]].append(descriptors.detach().cpu())
+        self.validation_outputs[self.val_set_names[dataloader_idx]].append(
+            descriptors.detach().cpu()
+        )
         return descriptors.detach().cpu()
 
     def on_validation_epoch_end(self):
@@ -282,15 +285,15 @@ class TeTRA(pl.LightningModule):
                 k_values=[1, 5, 10],
             )
 
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = (
-                fp_recalls_dict["R1"]
-            )
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = (
-                fp_recalls_dict["R5"]
-            )
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = (
-                fp_recalls_dict["R10"]
-            )
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = fp_recalls_dict[
+                "R1"
+            ]
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = fp_recalls_dict[
+                "R5"
+            ]
+            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = fp_recalls_dict[
+                "R10"
+            ]
             full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = (
                 search_time
             )
@@ -302,18 +305,10 @@ class TeTRA(pl.LightningModule):
                 k_values=[1, 5, 10],
             )
 
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict[
-                "R1"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict[
-                "R5"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict[
-                "R10"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = (
-                search_time
-            )
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict["R1"]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict["R5"]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict["R10"]
+            full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = search_time
         self.log_dict(
             full_recalls_dict,
             logger=True,

@@ -1,8 +1,9 @@
 import importlib
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+
 from . import aggregators, backbones
 
 
@@ -38,7 +39,7 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
         config["out_rows"] = 4
         config["patch_size"] = 14
         config["image_size"] = image_size
-        if desc_divider_factor is not None: 
+        if desc_divider_factor is not None:
             config["out_channels"] = config["out_channels"] // desc_divider_factor
         return aggregators.MixVPR(**config)
 
@@ -48,8 +49,12 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
         config["num_clusters"] = 64
         config["cluster_dim"] = 128
         if desc_divider_factor is not None:
-            config["cluster_dim"] = int(config["cluster_dim"] / np.sqrt(desc_divider_factor))
-            config["num_clusters"] = int(config["num_clusters"] / np.sqrt(desc_divider_factor))
+            config["cluster_dim"] = int(
+                config["cluster_dim"] / np.sqrt(desc_divider_factor)
+            )
+            config["num_clusters"] = int(
+                config["num_clusters"] / np.sqrt(desc_divider_factor)
+            )
 
         return aggregators.SALAD(**config)
 
@@ -90,7 +95,7 @@ def get_model(
     backbone_arch="vitsmall",
     agg_arch="salad",
     preset=None,
-    desc_divider_factor=None
+    desc_divider_factor=None,
 ):
     if preset is not None:
         module = importlib.import_module(f"models.presets.{preset}")
@@ -106,7 +111,9 @@ def get_model(
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
 
-    aggregation = get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor)
+    aggregation = get_aggregator(
+        agg_arch, features_dim, image_size, desc_divider_factor
+    )
     aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation)
     return model

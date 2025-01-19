@@ -4,30 +4,29 @@ import faiss
 import numpy as np
 
 
-
-
 def match_hamming(
     desc: np.ndarray,
     num_references: int,
     ground_truth: np.ndarray,
-    k_values: list[int] = [1, 5, 10]
+    k_values: list[int] = [1, 5, 10],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Match descriptors using Hamming distance with Faiss.
-    
+
     Args:
         desc: Input descriptors as a numpy array
         num_references: Number of reference descriptors
         ground_truth: Ground truth matches for evaluation
         k_values: List of k values for k-nearest neighbor evaluation
-    
+
     Returns:
         tuple containing:
             - Percentage of correct matches at different k values
             - Predicted indices for each query
-            
+
     Raises:
         ValueError: If input parameters are invalid
     """
+
     def float_to_binary_desc(desc: np.ndarray) -> np.ndarray:
         """Convert float descriptors to binary packed format."""
         binary = (desc > 0).astype(np.bool_)
@@ -41,14 +40,14 @@ def match_hamming(
         raise ValueError("num_references must be less than total descriptors")
     if not all(k > 0 for k in k_values):
         raise ValueError("All k values must be positive")
-    
+
     # Convert to numpy if not already
     if not isinstance(desc, np.ndarray):
         desc = desc.cpu().numpy()
-    
+
     # Convert to binary format
     desc = float_to_binary_desc(desc)
-    
+
     # Split into reference and query
     reference_desc = desc[:num_references]
     query_desc = desc[num_references:]
@@ -56,7 +55,7 @@ def match_hamming(
     # Create and configure Faiss index
     bits_per_vector = reference_desc.shape[1] * 8
     index = faiss.IndexBinaryFlat(bits_per_vector)
-    
+
     # Add reference descriptors to index
     index.add(reference_desc)
 

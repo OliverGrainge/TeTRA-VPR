@@ -4,7 +4,6 @@ import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
 # If you want some of the aesthetic benefits of Seaborn:
 import seaborn as sns
 
@@ -49,11 +48,15 @@ x_values = []
 for idx, row in df.iterrows():
     if "vit" not in idx:
         x_values.append(
-            (ds_len * (row["descriptor_size_floating"] / (1024**2)))# + row["model_memory"])
+            (
+                ds_len * (row["descriptor_size_floating"] / (1024**2))
+            )  # + row["model_memory"])
         )
     else:
         x_values.append(
-           (ds_len * (row["descriptor_size_binary"] / (1024**2))) #+  row["model_memory"] 
+            (
+                ds_len * (row["descriptor_size_binary"] / (1024**2))
+            )  # +  row["model_memory"]
         )
 
 # Calculate R@1 values based on 'preset' (cosine vs hamming).
@@ -89,8 +92,8 @@ from brokenaxes import brokenaxes
 sns.set_style("whitegrid")
 
 # Create a broken x-axis
-#bax = brokenaxes(xlims=((0, 1000), (3800, max(x_values) + 100)), hspace=.05)
-bax = brokenaxes(xlims=((0, 1000), (3800, 4000)), hspace=.05)
+# bax = brokenaxes(xlims=((0, 1000), (3800, max(x_values) + 100)), hspace=.05)
+bax = brokenaxes(xlims=((0, 1000), (3800, 4000)), hspace=0.05)
 
 # Plot Baselines
 bax.scatter(

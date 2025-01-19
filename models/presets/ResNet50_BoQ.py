@@ -4,9 +4,8 @@ import io
 import torch
 
 
-
 class ResNet50_BoQ_model(torch.nn.Module):
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
         self.model = torch.hub.load(
             "amaralibey/bag-of-queries",
@@ -17,6 +16,7 @@ class ResNet50_BoQ_model(torch.nn.Module):
 
     def forward(self, x):
         return self.model(x)[0]
+
 
 def ResNet50_BoQ():
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
