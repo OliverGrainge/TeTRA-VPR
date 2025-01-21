@@ -174,7 +174,8 @@ class Distill(pl.LightningModule):
             student_features = self(student_images)
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
-
+            print("==============================================", teacher_features.dtype)
+            print("==============================================", student_features.dtype)
             assert (
                 teacher_features.shape == student_features.shape
             ), "teacher and student features must have the same shape"
