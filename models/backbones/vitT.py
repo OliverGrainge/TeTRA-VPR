@@ -82,7 +82,6 @@ class BitLinear(nn.Linear):
         self.qfactor = 1
 
     def forward(self, x):
-        print("=================", self.deployed_fake)
         if self.deployed_real:
             return self.deploy_forward_real(x)
         elif self.deployed_fake: 
@@ -105,7 +104,6 @@ class BitLinear(nn.Linear):
 
     @torch.no_grad()
     def eval_forward(self, x):
-        print("eval forward")
         qx, act_scale = activation_quant_real(x)
         out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
         out = out / act_scale / self.scale
@@ -113,23 +111,25 @@ class BitLinear(nn.Linear):
             out += self.bias.to(out.dtype)
         return out
 
-    @torch.no_grad()
-    def deploy_forward_real(self, x):
-        qx, act_scale = activation_quant_real(x)
-        if qx.ndim == 3:
-            B, T, D = qx.shape
-            qx = qx.view(B * T, D)
-            reshape_output = True
-        else:
-            reshape_output = False
-        out = self.deploy_matmul(qx, self.weight)
-        if reshape_output:
-            out = out.view(B, T, -1)
-        out = out / act_scale / self.scale
 
+    @torch.no_grad()
+    def deploy_forward_real(self, x): 
+        # Quantize activation
+        qx, act_scale = activation_quant_real(x)
+        reshape_output = (qx.ndim == 3)
+        if reshape_output:
+            B, T, D = qx.shape
+            qx = qx.reshape(-1, D)  # Flatten batch and time dimensions
+
+        out = self.deploy_matmul.forward(qx, self.weight)
+        if reshape_output:
+            out = out.reshape(B, T, -1)
+        out = out * (1.0 / (act_scale * self.scale))
         if self.bias is not None:
-            out += self.bias.to(out.dtype)
+            out.add_(self.bias)
+
         return out
+
     
     @torch.no_grad()
     def deploy_forward_fake(self, x):
@@ -154,11 +154,15 @@ class BitLinear(nn.Linear):
             self.scale = scale
         self = super().train(mode)
 
-    def deploy(self, opt_M=None):
+    def deploy(self, use_bitblas=True,opt_M=None):
         try:
             import bitblas
-
-            assert torch.cuda.is_available(), "CUDA is not available"
+            has_bitblas = True
+        except ImportError:
+            has_bitblas = False
+        
+        if has_bitblas and torch.cuda.is_available() and use_bitblas:
+            # Real deployment with bitblas
             matmul_config = bitblas.MatmulConfig(
                 M=[256, 512, 1024, 2048] if opt_M is None else opt_M,
                 N=self.out_features,
@@ -174,7 +178,6 @@ class BitLinear(nn.Linear):
                 with_zeros=False,
                 zeros_mode=None,
             )
-
             qweight, scale = weight_quant_real(self.weight)
             del self.weight
             if hasattr(self, "qweight"):
@@ -183,22 +186,22 @@ class BitLinear(nn.Linear):
             self.deploy_matmul = bitblas.Matmul(config=matmul_config)
             qweight = self.deploy_matmul.transform_weight(qweight)
             self.register_buffer("weight", qweight.cuda())
-            self.register_buffer("scale", scale.cuda().half())
+            self.register_buffer("scale", scale.cuda())
             if self.bias is not None:
-                self.bias.data = self.bias.data.cuda().half()
+                self.bias.data = self.bias.data.cuda()
             self.deployed_real = True
-            self.deployed_fake = True 
-
-        except Exception as e:
+            self.deployed_fake = True
+        else:
+            # Fallback to fake deployment
             qweight, scale = weight_quant_real(self.weight)
             del self.weight
             if hasattr(self, "qweight"):
                 del self.qweight
                 del self.scale
             self.register_buffer("weight", pack_ternary(qweight))
-            self.register_buffer("scale", scale.half())
+            self.register_buffer("scale", scale.float())
             if self.bias is not None:
-                self.bias.data = self.bias.data.half()
+                self.bias.data = self.bias.data.float()
             self.deployed_fake = True
             self.deployed_real = False
 
@@ -331,6 +334,7 @@ class ViT(nn.Module):
         image_height, image_width = image_size, image_size
         patch_height, patch_width = patch_size, patch_size
         num_patches = (image_height // patch_height) * (image_width // patch_width)
+        self.num_patches = num_patches
         patch_dim = channels * patch_height * patch_width
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
@@ -364,10 +368,10 @@ class ViT(nn.Module):
         x = self.transformer(x)
         return x
 
-    def deploy(self):
+    def deploy(self, use_bitblas=True):
         for module in self.modules():
             if isinstance(module, BitLinear):
-                module.deploy()
+                module.deploy(use_bitblas=use_bitblas, opt_M=[512, 1024])
 
     def set_qfactor(self, qfactor):
         for module in self.modules():
@@ -386,7 +390,7 @@ def VitsmallT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=12,  # 12,  # Fewer transformer layers 12
+        depth=12, #12, 
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
@@ -401,7 +405,7 @@ def VitbaseT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=12,  # 12,  # 12
+        depth=12, #12,
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

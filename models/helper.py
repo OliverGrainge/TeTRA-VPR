@@ -82,12 +82,12 @@ class VPRModel(nn.Module):
         x = self.aggreagtion(x)
         return x
 
-    def deploy(self):
+    def deploy(self, use_bitblas=True):
         if hasattr(self.backbone, "deploy"):
-            self.backbone.deploy()
+            self.backbone.deploy(use_bitblas=use_bitblas)
 
     def __str__(self):
-        return f"{str(self.backbone)}_{str(self.aggreagtion)}"
+        return f"TeTRA-{str(self.backbone)}_{str(self.aggreagtion)}"
 
 
 def get_model(
@@ -103,17 +103,12 @@ def get_model(
         return model()
 
     image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     backbone = get_backbone(backbone_arch, image_size=image_size)
-    backbone = backbone.to(device)
-
-    image = torch.randn(3, *(image_size)).to(device)
+    image = torch.randn(3, *(image_size))
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
-
     aggregation = get_aggregator(
         agg_arch, features_dim, image_size, desc_divider_factor
     )
-    aggregation = aggregation.to(device)
     model = VPRModel(backbone, aggregation)
     return model

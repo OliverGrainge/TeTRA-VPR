@@ -62,7 +62,6 @@ def compute_descriptors(
     Returns:
         Tensor: Concatenated descriptors for all images
     """
-    model.eval()  # Ensure model is in evaluation mode
     device = next(model.parameters()).device  # Get model's device
 
     dataloader = DataLoader(
@@ -78,8 +77,12 @@ def compute_descriptors(
     for batch in tqdm.tqdm(dataloader, desc=f"Computing Descriptors: {str(dataset).replace('_test', '')}"):
         imgs, _ = batch
         imgs = imgs.to(device)  # Move images to correct device
-        with torch.no_grad():
-            desc = model(imgs.to(device))
+        if device.type == "cuda":
+            with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+                desc = model(imgs.to(device))
+        else:
+            with torch.inference_mode():
+                desc = model(imgs.to(device))
         all_desc.append(desc.cpu())  # Move to CPU before converting to numpy
 
     return torch.cat(all_desc, dim=0)

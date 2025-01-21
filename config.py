@@ -6,9 +6,9 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    # val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
     # val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC
-    val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
+    #val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
 
     train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
     # train_dataset_dir: str = (
@@ -66,7 +66,7 @@ class EvalConfig:
     # evaluation model
     preset: str = None
     # evaluation dataset
-    val_set_names: Tuple[str] = ("sped", "essex")
+    val_set_names: Tuple[str] = ()
 
     # which evals to run
     accuracy: bool = False

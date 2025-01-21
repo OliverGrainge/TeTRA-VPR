@@ -73,7 +73,7 @@ def get_floating_descriptor_size_bytes(
     if not isinstance(descriptor, torch.Tensor):
         raise TypeError(f"Expected tensor output, got {type(descriptor)}")
 
-    return descriptor.numel() * descriptor.element_size()
+    return descriptor[0].numel() * descriptor[0].element_size()
 
 
 def get_binary_descriptor_size_bytes(

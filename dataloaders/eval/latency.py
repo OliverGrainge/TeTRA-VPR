@@ -9,8 +9,8 @@ import torch
 def get_model_inference_latency_ms(
     model: torch.nn.Module,
     inputs: torch.Tensor,
-    num_warmup: int = 3,
-    num_samples: int = 20,
+    num_warmup: int = 100,
+    num_samples: int = 500,
 ) -> Tuple[float, float]:
     """
     Measure model inference latency in milliseconds.

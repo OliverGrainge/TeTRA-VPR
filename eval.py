@@ -40,14 +40,10 @@ def save_results(results):
             # Find the row index for the existing entry
             row_index = existing_df[existing_df["id"] == results["id"]].index[0]
 
-            # Merge the new results into the existing row
+            # Merge the new results into the existing row, always overwriting
             for key, value in results.items():
                 if key in existing_df.columns:  # Check if column exists
-                    if (
-                        pd.isna(existing_df.at[row_index, key])
-                        or existing_df.at[row_index, key] == ""
-                    ):
-                        existing_df.at[row_index, key] = value
+                    existing_df.at[row_index, key] = value
         else:
             # Remove empty or all-NA columns from new_df before concatenation
             new_df = new_df.dropna(axis=1, how="all")
@@ -100,7 +96,8 @@ def _load_model_and_transform(args):
         )
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
 
-    model.eval()
+
+
     checkpoint_path = _get_weights_path(
         args.backbone_arch, args.agg_arch, args.image_size, args.desc_divider_factor
     )
@@ -119,7 +116,7 @@ def _get_model_id(args):
     if args.preset is not None:
         return args.preset
     else:
-        return f"{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DescDividerFactor[{args.desc_divider_factor}]"
+        return f"TeTRA-{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DD[{args.desc_divider_factor}]"
 
 
 def _get_example_input(args, transform):
@@ -131,10 +128,15 @@ def _get_example_input(args, transform):
 def _prepare_model(args, model):
     model.to(args.device)
     if args.compile:
-        if hasattr(model.backbone, "deploy"):
-            model.backbone.deploy()
+        if hasattr(model, "deploy"):
+            model.deploy(use_bitblas=True)
+        else: 
+            model.eval()
     else:
-        model.eval()
+        if hasattr(model, "deploy"):
+            model.deploy(use_bitblas=False)
+        else:
+            model.eval()
     return model
 
 

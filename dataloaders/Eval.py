@@ -27,7 +27,6 @@ def get_descriptor_dim(model: torch.nn.Module, inputs: torch.Tensor) -> int:
     Returns:
         Dimension of the descriptor
     """
-    model.eval()
     with torch.no_grad():
         descriptor = model(inputs)
     return descriptor.shape[-1]
@@ -61,7 +60,7 @@ def evaluate(args, model, example_input):
     results["descriptor_dim"] = get_descriptor_dim(model, example_input)
 
     # Determine precision type once
-    is_binary = str(model).endswith("t")
+    is_binary = "vitbaset" in str(model).lower() or "vitsmallt" in str(model).lower()
     precision = "binary" if is_binary else "float32"
 
     # Memory evaluations
@@ -105,7 +104,7 @@ def evaluate(args, model, example_input):
             dataset = accuracy.get_val_dataset(
                     val_set_name, args.val_dataset_dir, transform
                 )
-            dataset_name = repr(dataset).replace("_test", "")
+            dataset_name = repr(dataset).replace("_test", "").replace("_val", "")
 
             if args.accuracy:
                 desc = accuracy.compute_descriptors(
@@ -131,18 +130,18 @@ def evaluate(args, model, example_input):
 
             if args.dataset_descriptor_memory: 
                 desc_dim = results["descriptor_dim"]
-                if repr(model).endswith("t"):
+                if "vitbaset" in str(model).lower() or "vitsmallt" in str(model).lower():
                     # measure descriptor in mb and binary precision
-                    results[f"{dataset_name}_descriptor_memory_mb"] = ((desc_dim/8) * dataset.num_references) / (1024 * 1024)
+                    results[f"{dataset_name}_descriptor_memory_mb"] = (dataset.num_references * memory.get_binary_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
                 else:
                     # measure descriptor in mb and fp16 precision
-                    results[f"{dataset_name}_descriptor_memory_mb"] = (desc_dim * dataset.num_references * 2) / (1024 * 1024)
+                    results[f"{dataset_name}_descriptor_memory_mb"] = (dataset.num_references * memory.get_floating_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
 
             if args.dataset_total_memory: 
                 desc_dim = results["descriptor_dim"]
-                if repr(model).endswith("t"):
-                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + ((desc_dim/8) * dataset.num_references) / (1024 * 1024)
+                if "vitbaset" in str(model).lower() or "vitsmallt" in str(model).lower():
+                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (dataset.num_references * memory.get_binary_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
                 else:
-                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (desc_dim * dataset.num_references * 2) / (1024 * 1024)
+                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (dataset.num_references * memory.get_floating_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
     return results
 
