@@ -1,47 +1,26 @@
-import torch
-import time
-from models.helper import get_model 
-from tqdm import tqdm
+import faiss
+import numpy as np
 
-def benchmark_inference_latency(model: torch.nn.Module, input_tensor: torch.Tensor, num_iterations: int = 1000) -> float:
-    """
-    Benchmark mean inference latency of a PyTorch model on CUDA.
-    Returns mean latency in milliseconds.
-    """
-    model = model.to("cuda")
-    input_tensor = input_tensor.to("cuda")
-    
-    # Warm-up
-    with torch.no_grad():
-        for _ in tqdm(range(200)):
-            _ = model(input_tensor)
-    
-    torch.cuda.synchronize()
-    
-    # Benchmark
-    latencies = []
-    with torch.no_grad():
-        for _ in tqdm(range(num_iterations)):
-            torch.cuda.synchronize()
-            start_time = time.perf_counter()
-            _ = model(input_tensor)
-            torch.cuda.synchronize()
-            latencies.append((time.perf_counter() - start_time) * 1000)  # ms
-    
-    return sum(latencies) / len(latencies)
+# Create float32 vectors (e.g., 1000 vectors of 128 dimensions)
+d = 128  # Dimension of vectors
+nb = 1000  # Number of database vectors
+vectors = np.random.rand(nb, d).astype(np.float32)  # Create random vectors
 
-model = get_model(backbone_arch="vitsmallt", agg_arch="boq", image_size=[224, 224], desc_divider_factor=1)
-model = model.cuda()
-input_tensor = torch.randn(1, 3, 224, 224).cuda()
+# Normalize vectors to unit length (recommended before quantization)
+faiss.normalize_L2(vectors)
 
-baseline = benchmark_inference_latency(model, input_tensor)
+# Convert to int8 (FAISS expects float first, then quantizes internally)
+quantizer = faiss.IndexFlatL2(d)  # Base index for L2 search
+index = faiss.IndexIVFPQ(quantizer, d, 10, 8, 8)  # IVF-PQ with 8-bit storage
 
-model.deploy(use_bitblas=False)
-baseline_deployed = benchmark_inference_latency(model, input_tensor)
+# Train the index
+index.train(vectors)
+index.add(vectors)  # Add int8-quantized vectors
 
-print(f"Baseline latency: {baseline:.2f} ms")
-print(f"Deployed latency: {baseline_deployed:.2f} ms")
+# Perform search
+query_vector = np.random.rand(1, d).astype(np.float32)
+faiss.normalize_L2(query_vector)  # Normalize query vector
+distances, indices = index.search(query_vector, k=5)  # Search top-5 results
 
-
-
-
+print("Top indices:", indices)
+print("Top distances:", distances)

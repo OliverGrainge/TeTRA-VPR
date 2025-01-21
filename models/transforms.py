@@ -170,10 +170,10 @@ if __name__ == "__main__":
     img = Image.open(img_path)
 
     # Get all three augmentation transforms
-    light_aug = get_transform("LightAugment", (384, 384))
-    moderate_aug = get_transform("ModerateAugment", (384, 384))
-    severe_aug = get_transform("SevereAugment", (384, 384))
-    no_aug = get_transform("NoAugment", (384, 384))
+    light_aug = get_transform("Light", (384, 384))
+    moderate_aug = get_transform("Moderate", (384, 384))
+    severe_aug = get_transform("Severe", (384, 384))
+    no_aug = get_transform("None", (384, 384))
 
     # Number of examples per augmentation type
     n_examples = 10

@@ -59,8 +59,7 @@ def load_model(args):
             for k, v in sd.items()
             if k.startswith("backbone.")
         }
-
-        model.backbone.load_state_dict(backbone_sd, strict=True)
+        model.backbone.load_state_dict(backbone_sd, strict=False)
         for param in model.backbone.parameters():
             param.requires_grad = False
     model.train()

@@ -238,8 +238,16 @@ class TeTRA(pl.LightningModule):
 
         images = places.view(BS * N, ch, h, w)
         labels = labels.view(-1)
-        descriptors = self(images)
-        labels = labels.view(-1)
+
+        # Split the batch in half
+        split_size = images.shape[0] // 2
+        images1, images2 = images[:split_size], images[split_size:2*split_size]
+        # Process each half separately and concatenate
+        descriptors1 = self(images1).to(torch.bfloat16)
+        print("==============================================", descriptors1.dtype)
+        descriptors2 = self(images2).to(torch.bfloat16)
+        print("==============================================", descriptors1.dtype)
+        descriptors = torch.cat([descriptors1, descriptors2], dim=0)
 
         fp_loss = self._fp_loss_func(descriptors, labels)
         q_loss = self._q_loss_func(descriptors, labels)

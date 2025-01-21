@@ -59,7 +59,7 @@ class BoQ(torch.nn.Module):
         in_channels=1024,
         proj_channels=512,
         num_queries=32,
-        num_layers=2,
+        num_layers=4,
         row_dim=32,
     ):
         super().__init__()

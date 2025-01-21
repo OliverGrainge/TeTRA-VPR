@@ -10,10 +10,11 @@ class DataConfig:
     # val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC
     #val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
 
-    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
-    # train_dataset_dir: str = (
-    #    "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-    # )
+    #train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
+    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    train_dataset_dir: str = (
+       "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
+    )
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -227,7 +228,6 @@ class DistillConfig:
 class TeTRAConfig:
     # Training hyperparameters
     lr: float = 0.0001
-    desc_divider_factor: int = 1
     batch_size: int = 100
     max_epochs: int = 4
     precision: str = "bf16-mixed"
@@ -284,9 +284,6 @@ class TeTRAConfig:
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("TeTRA")
         group.add_argument("--lr", type=float, default=TeTRAConfig.lr)
-        group.add_argument(
-            "--desc_divider_factor", type=int, default=TeTRAConfig.desc_divider_factor
-        )
         group.add_argument("--batch_size", type=int, default=TeTRAConfig.batch_size)
         group.add_argument("--max_epochs", type=int, default=TeTRAConfig.max_epochs)
         group.add_argument("--precision", type=str, default=TeTRAConfig.precision)

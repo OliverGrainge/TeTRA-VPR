@@ -8,7 +8,7 @@ print(df.columns)
 
 # Separate data points based on TeTRA, excluding specific models
 base_mask = df['id'].str.contains('baset224|smallt224', case=False)
-tetra_mask = df['id'].str.contains('boq', case=False)  # Added $ to match exact ending
+tetra_mask = df['id'].str.contains('TeTRA-', case=False)  # Added $ to match exact ending
 non_tetra = df[~tetra_mask]
 tetra = df[tetra_mask & ~base_mask]
 
@@ -34,8 +34,8 @@ for i, txt in enumerate(df['id']):
     color = 'blue' if ('vitbaset' in txt.lower() or 'vitsmallt' in txt.lower()) else 'red'
     pos = (5,5) if ('vitbaset' in txt.lower() or 'vitsmallt' in txt.lower()) else (5, -5)
     #
-    plt.annotate(txt, (df[f'{DATASET}_total_memory_mb'][i], df[f'{DATASET}_R@1'][i]), 
-                xytext=pos, textcoords='offset points', fontsize=6, color=color)
+    #plt.annotate(txt, (df[f'{DATASET}_total_memory_mb'][i], df[f'{DATASET}_R@1'][i]), 
+    #            xytext=pos, textcoords='offset points', fontsize=6, color=color)
 
 # Add legend
 plt.legend()
