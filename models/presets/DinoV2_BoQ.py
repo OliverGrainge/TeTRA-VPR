@@ -83,6 +83,21 @@ class DinoV2(torch.nn.Module):
             patch_size = self.patch_size
             x = x.permute(0, 2, 1).view(B, C, H // patch_size, W // patch_size)
         return x
+    
+    def forward_cls(self, x):
+        B, _, H, W = x.shape
+        # No need to compute gradients for frozen layers
+        with torch.no_grad():
+            x = self.dino.prepare_tokens_with_masks(x)
+            for blk in self.dino.blocks[: -self.unfreeze_n_blocks]:
+                x = blk(x)
+
+        # Last blocks are trained
+        for blk in self.dino.blocks[-self.unfreeze_n_blocks :]:
+            x = blk(x)
+
+        x = x[:, 0]
+        return x
 
     def state_dict(self, *args, **kwargs):
         sd = self.dino.state_dict(*args, **kwargs)

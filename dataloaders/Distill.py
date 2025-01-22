@@ -197,12 +197,17 @@ class Distill(pl.LightningModule):
                 raise ValueError(f"Invalid data directory: {path}")
 
         train_dataset = JPGDataset(self.train_dataset_dir)
+        student_transform=get_transform(
+            augmentation_level=self.augmentation_level, image_size=self.image_size
+        )
+        teacher_transform=get_transform(preset=self.teacher_model_preset)
+
+        print("Student transform: ", student_transform)
+        print("Teacher transform: ", teacher_transform)
         dataset = DistillDataset(
             dataset=train_dataset,
-            student_transform=get_transform(
-                augmentation_level=self.augmentation_level, image_size=self.image_size
-            ),
-            teacher_transform=get_transform(preset=self.teacher_model_preset),
+            student_transform=student_transform,
+            teacher_transform=teacher_transform,
         )
         return DataLoader(
             dataset,

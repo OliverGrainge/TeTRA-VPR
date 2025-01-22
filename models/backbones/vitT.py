@@ -374,6 +374,10 @@ class ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
+    
+    def forward_cls(self, x):
+        x = self.forward(x)
+        return x[:, 0]
 
     def deploy(self, use_bitblas=True):
         for module in self.modules():

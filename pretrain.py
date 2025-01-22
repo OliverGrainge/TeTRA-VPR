@@ -81,7 +81,7 @@ def setup_training(args):
         #accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
         log_every_n_steps=1, #200,
-        overfit_batches=0.1,
+        #overfit_batches=0.1,
     )
     return trainer, model_module
 

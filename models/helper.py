@@ -45,9 +45,9 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
     elif "salad" in agg_arch.lower():
         print("==========================================", features_dim[1])
         config["num_channels"] = features_dim[1]
-        config["token_dim"] = 256
+        config["token_dim"] = 128#256
         config["num_clusters"] = 64
-        config["cluster_dim"] = 128
+        config["cluster_dim"] = 64#128
         if desc_divider_factor is not None:
             config["cluster_dim"] = int(
                 config["cluster_dim"] / np.sqrt(desc_divider_factor)
@@ -59,12 +59,12 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
         return aggregators.SALAD(**config)
 
     elif "boq" in agg_arch.lower():
-        config["patch_size"] = 14
+        config["patch_size"] = 16#14
         config["image_size"] = image_size
         config["in_channels"] = features_dim[1]
-        config["proj_channels"] = 512
-        config["num_queries"] = 64
-        config["row_dim"] = 12288 // config["proj_channels"]
+        config["proj_channels"] = 128 #512
+        config["num_queries"] = 32 #64
+        config["row_dim"] = 3072 // config["proj_channels"] #12288 // config["proj_channels"]
 
         if desc_divider_factor is not None:
             config["proj_channels"] = config["proj_channels"] // desc_divider_factor
