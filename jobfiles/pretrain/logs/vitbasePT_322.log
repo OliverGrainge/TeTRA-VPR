@@ -1,0 +1,19 @@
+==============================================================================
+Running epilogue script on swarmh1002.
+
+Submit time  : 2025-01-21T21:31:31
+Start time   : 2025-01-21T21:31:40
+End time     : 2025-01-21T22:41:58
+Elapsed time : 01:10:18 (Timelimit=2-11:00:00)
+
+Job ID: 71659
+Cluster: iridis_x
+User/Group: oeg1n18/
+State: CANCELLED (exit code 0)
+Nodes: 1
+Cores per node: 16
+CPU Utilized: 00:00:00
+CPU Efficiency: 0.00% of 18:44:48 core-walltime
+Job Wall-clock time: 01:10:18
+Memory Utilized: 56.01 GB
+Memory Efficiency: 87.51% of 64.00 GB

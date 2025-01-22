@@ -33,10 +33,10 @@ def setup_training(args):
 
     if args.use_progressive_quant:
         dirpath = (
-            f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-ProgressiveQuant"
+            f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-Teacher[{model_module.teacher}]-ProgressiveQuant"
         )
     else:
-        dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}"
+        dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-Teacher[{model_module.teacher}]"
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"{args.val_set_names[0]}_R1",
@@ -53,7 +53,7 @@ def setup_training(args):
 
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
-        name=f"{str(model_module.student)}",
+        name=f"{str(model_module.student)}-Teacher[{model_module.teacher}]",
     )
 
     trainer = pl.Trainer(

@@ -1,0 +1,64 @@
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+`Trainer(val_check_interval=1.0)` was configured so validation will run at the end of the training epoch..
+wandb: Using wandb-core as the SDK backend.  Please refer to https://wandb.me/wandb-core for more information.
+wandb: WARNING `resume` will be ignored since W&B syncing is set to `offline`. Starting a new run with run id drp8xw3q.
+wandb: Tracking run with wandb version 0.18.7
+wandb: W&B syncing is set to `offline` in this directory.  
+wandb: Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name    | Type             | Params | Mode 
+-----------------------------------------------------
+0 | teacher | DinoV2_BoQ_model | 95.2 M | train
+1 | student | VPRModel         | 110 M  | train
+-----------------------------------------------------
+110 M     Trainable params
+95.2 M    Non-trainable params
+205 M     Total params
+823.562   Total estimated model params size (MB)
+565       Modules in train mode
+0         Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+Traceback (most recent call last):
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/pretrain.py", line 89, in <module>
+    trainer.fit(model_module)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
+    call._call_and_handle_interrupt(
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
+    results = self._run_stage()
+              ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
+    self.fit_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
+    self.advance()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 141, in run
+    self.on_advance_end(data_fetcher)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 295, in on_advance_end
+    self.val_loop.run()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
+    return loop_run(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
+    return self.on_run_end()
+           ^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 254, in on_run_end
+    self._on_evaluation_epoch_end()
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 334, in _on_evaluation_epoch_end
+    call._call_lightning_module_hook(trainer, hook_name)
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/tetraenv/lib/python3.12/site-packages/pytorch_lightning/trainer/call.py", line 167, in _call_lightning_module_hook
+    output = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/iridisfs/home/oeg1n18/QuantPlaceFinder/dataloaders/Distill.py", line 370, in on_validation_epoch_end
+    recalls_dict, _, _ = match_cosine(
+    ^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 3, got 2)

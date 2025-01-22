@@ -42,7 +42,7 @@ class Distill(pl.LightningModule):
         num_workers=4,
         image_size=224,
         lr=1e-3,
-        mse_loss_mult=500,
+        mse_loss_mult=0,
         val_set_names=["pitts30k_val"],
     ):
         super().__init__()
@@ -174,8 +174,7 @@ class Distill(pl.LightningModule):
             student_features = self(student_images)
             teacher_attn = torch.vstack(teacher_attn)
             student_attn = torch.vstack(student_attn)
-            print("==============================================", teacher_features.dtype)
-            print("==============================================", student_features.dtype)
+
             assert (
                 teacher_features.shape == student_features.shape
             ), "teacher and student features must have the same shape"
@@ -262,7 +261,7 @@ class Distill(pl.LightningModule):
 
     @staticmethod
     def _compute_cosine_loss(student_features, teacher_features):
-        cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) ** 2
+        cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) 
         return cosine_loss.mean()
 
     @staticmethod
@@ -275,6 +274,8 @@ class Distill(pl.LightningModule):
         student_features, teacher_features, student_attn, teacher_attn = (
             self._compute_features(student_images, teacher_images, self.use_attention)
         )
+        #print("============================================== teacher features", teacher_features[0].norm())
+        #print("============================================== student_features ", student_features[0].norm())
 
         # compute losses
         euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(
@@ -303,6 +304,8 @@ class Distill(pl.LightningModule):
                     break
 
         total_loss = euc_loss + cos_loss + attn_loss
+
+        #print("== total_loss", total_loss.item(), "cos_loss", cos_loss.item(), "euc_loss", euc_loss.item(), "attn_loss", attn_loss.item())
 
         self.log("Cosine Loss", cos_loss, on_step=True)
         self.log("Euclidian Loss", euc_loss, on_step=True)
