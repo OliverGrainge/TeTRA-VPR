@@ -17,4 +17,5 @@ def CosPlacesR18D64(normalize=True):
             backbone="ResNet18",
             fc_output_dim=64,
         )
+    model.name = f"CosPlacesR18D64"
     return model

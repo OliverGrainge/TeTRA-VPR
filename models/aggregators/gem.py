@@ -35,6 +35,8 @@ class GeM(nn.Module):
         self.fc = nn.Linear(features_dim[1], out_dim)
         self.features_dim = features_dim
 
+        self.name = f"GeM"
+
     def forward(self, x):
         x = F.normalize(x, p=2, dim=1)
         x = self.gem(x)
@@ -42,6 +44,3 @@ class GeM(nn.Module):
         x = self.fc(x)
         # x = F.normalize(x, p=2, dim=-1)
         return x
-
-    def __str__(self):
-        return "GeM"

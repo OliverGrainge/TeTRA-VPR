@@ -25,4 +25,5 @@ def ResNet50_BoQ(normalize=True):
         io.StringIO()
     ):
         model = ResNet50_BoQ_model()
+        model.name = f"ResNet50_BoQ"
     return model

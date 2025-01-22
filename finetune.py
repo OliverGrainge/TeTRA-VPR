@@ -6,7 +6,7 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-from config import DataConfig, ModelConfig, TeTRAConfig
+from config import ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
     parser = argparse.ArgumentParser()
-    for config in [DataConfig, ModelConfig, TeTRAConfig]:
+    for config in [ModelConfig, TeTRAConfig]:
         parser = config.add_argparse_args(parser)
     args = parser.parse_args()
 

@@ -452,4 +452,5 @@ def DinoSalad(
                 map_location=torch.device("cpu"),
             )
         )
+    model.name = f"DinoSalad"
     return model

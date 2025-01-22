@@ -360,6 +360,10 @@ class ViT(nn.Module):
             mlp_dim,
             dropout,
         )
+        model_type = (
+            "VitsmallT" if self.dim == 384 else "VitbaseT" if self.dim == 768 else "Vit"
+        )
+        self.name = f"{model_type}{self.image_size}"
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
@@ -381,11 +385,7 @@ class ViT(nn.Module):
             if isinstance(module, BitLinear):
                 module.set_qfactor(qfactor)
 
-    def __str__(self):
-        model_type = (
-            "VitsmallT" if self.dim == 384 else "VitbaseT" if self.dim == 768 else "Vit"
-        )
-        return f"{model_type}{self.image_size}"
+
 
 
 def VitsmallT(image_size=[224, 224]):
@@ -399,7 +399,7 @@ def VitsmallT(image_size=[224, 224]):
         dropout=0.1,  # Regularization via dropout
         emb_dropout=0.1,  # Dropout for the embedding layer
         channels=3,  # RGB images
-        dim_head=98,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
+        dim_head=96,  # Dimension of each attention head (use a slightly larger value so down projection is suitable for bitblas kernel)
     )
 
 

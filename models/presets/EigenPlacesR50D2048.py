@@ -16,5 +16,6 @@ def EigenPlacesR50D2048(normalize=True):
             backbone="ResNet50",
             fc_output_dim=2048,
         )
+        model.name = f"EigenPlacesR50D2048"
 
     return model

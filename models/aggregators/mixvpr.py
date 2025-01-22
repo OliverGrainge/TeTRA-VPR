@@ -64,6 +64,8 @@ class MixVPR(nn.Module):
         self.channel_proj = nn.Linear(in_channels, out_channels)
         self.row_proj = nn.Linear(hw, out_rows)
 
+        self.name = f"MixVPR"
+
     def forward(self, x):
         if len(x.shape) == 3:
             B, T, C = x.shape
@@ -84,5 +86,4 @@ class MixVPR(nn.Module):
         x = self.row_proj(x)
         return x.flatten(1)
 
-    def __str__(self):
-        return "MixVPR"
+

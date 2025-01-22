@@ -79,6 +79,7 @@ class BoQ(torch.nn.Module):
         )
 
         self.fc = torch.nn.Linear(num_layers * num_queries, row_dim)
+        self.name = f"BoQ"
 
     def forward(self, x):
         B, T, C = x.shape
@@ -106,5 +107,4 @@ class BoQ(torch.nn.Module):
         # out = torch.nn.functional.normalize(out, p=2, dim=-1)
         return out
 
-    def __str__(self):
-        return f"BoQ"
+

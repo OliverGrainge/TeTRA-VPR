@@ -3,36 +3,6 @@ from dataclasses import dataclass
 from typing import Tuple, Union
 
 
-@dataclass
-class DataConfig:
-    # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"  # Desktop
-    # val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC
-    # val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
-
-    # train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
-    # train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
-    train_dataset_dir: str = (
-        "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
-    )
-
-    @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
-        group = parent_parser.add_argument_group("Data")
-        group.add_argument(
-            "--val_dataset_dir", type=str, default=DataConfig.val_dataset_dir
-        )
-        group.add_argument(
-            "--train_dataset_dir", type=str, default=DataConfig.train_dataset_dir
-        )
-        return parent_parser
-
-    @classmethod
-    def from_argparse_args(cls, args):
-        return cls(
-            **{k: v for k, v in vars(args).items() if k in cls.__dataclass_fields__}
-        )
-
 
 @dataclass
 class ModelConfig:
@@ -41,6 +11,8 @@ class ModelConfig:
     agg_arch: str = "salad"
     weights_path: Union[str, None] = None
     desc_divider_factor: int = 1
+    preset: str = None
+    noramlize: bool = True
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -53,6 +25,8 @@ class ModelConfig:
         group.add_argument(
             "--desc_divider_factor", type=int, default=ModelConfig.desc_divider_factor
         )
+        group.add_argument("--preset", type=str, default=ModelConfig.preset)
+        group.add_argument("--noramlize", type=bool, default=ModelConfig.noramlize)
         return parent_parser
 
     @classmethod
@@ -64,12 +38,12 @@ class ModelConfig:
 
 @dataclass
 class EvalConfig:
-    # evaluation model
-    preset: str = None
     # evaluation dataset
-    val_set_names: Tuple[str] = ()
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # directory for evaluation datasets
+    checkpoints_dir: str = "./checkpoints/TeTRA/" # directory for TeTRA checkpoints
 
     # which evals to run
+    val_set_names: Tuple[str] = ()
     accuracy: bool = False
     model_memory: bool = False
     runtime_memory: bool = False
@@ -86,12 +60,13 @@ class EvalConfig:
     num_workers: int = 4
     image_size: Tuple[int] = (224, 224)
     silent: bool = False
-    checkpoints_dir: str = "./checkpoints/TeTRA/"
+   
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("Eval")
-        group.add_argument("--preset", type=str, default=EvalConfig.preset)
+        
+        group.add_argument("--val_dataset_dir", type=str, default=EvalConfig.val_dataset_dir)
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
         )
@@ -157,6 +132,9 @@ class EvalConfig:
 
 @dataclass
 class DistillConfig:
+    # list of directories containing jpg images to be used for distillation
+    #train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images", "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
     # Teacher model settings
     teacher_preset: str = "DinoSalad"
 
@@ -164,24 +142,16 @@ class DistillConfig:
     lr: float = 0.0007
     batch_size: int = 128
     accumulate_grad_batches: int = 2
-    max_epochs: int = 3
-
-    # Loss and regularization
-    weight_decay: float = 0.05
-    use_attention: bool = False
-    use_progressive_quant: bool = False
+    max_epochs: int = 5
+    weight_decay: float = 0.01
 
     # Data processing
-    image_size: Tuple[int] = (224, 224)
+    image_size: Tuple[int] = (322, 322)
     augmentation_level: str = "Severe"
 
     # Runtime settings
     num_workers: int = 0
     pbar: bool = False
-    val_set_names: Tuple[str] = (
-        "msls",
-        "Pitts30k",
-    )
     precision: str = "bf16-mixed"
 
     @staticmethod
@@ -201,12 +171,6 @@ class DistillConfig:
         group.add_argument(
             "--weight_decay", type=float, default=DistillConfig.weight_decay
         )
-        group.add_argument("--use_attention", action="store_true", help="Use Attention")
-        group.add_argument(
-            "--use_progressive_quant",
-            action="store_true",
-            help="Enable progressive quantization",
-        )
         group.add_argument(
             "--image_size", type=int, nargs=2, default=DistillConfig.image_size
         )
@@ -215,10 +179,10 @@ class DistillConfig:
         )
         group.add_argument("--num_workers", type=int, default=DistillConfig.num_workers)
         group.add_argument("--pbar", type=bool, default=DistillConfig.pbar)
-        group.add_argument(
-            "--val_set_names", type=str, nargs="+", default=DistillConfig.val_set_names
-        )
         group.add_argument("--precision", type=str, default=DistillConfig.precision)
+        group.add_argument(
+            "--train_dataset_dir", type=str, default=DistillConfig.train_dataset_dir
+        )
         return parent_parser
 
     @classmethod
@@ -230,6 +194,8 @@ class DistillConfig:
 
 @dataclass
 class TeTRAConfig:
+    # directory for gsv-cities dataset
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/" # my desktop
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 100
@@ -314,7 +280,9 @@ class TeTRAConfig:
             type=str,
             default=TeTRAConfig.freeze_all_except_last_n,
         )
-
+        group.add_argument(
+            "--train_dataset_dir", type=str, default=DataConfig.train_dataset_dir
+        )
         return parent_parser
 
     @classmethod

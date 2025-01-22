@@ -9,11 +9,7 @@ from . import aggregators, backbones
 
 
 def get_backbone(backbone_arch, image_size):
-    if "vitsmall" == backbone_arch.lower():
-        return backbones.Vitsmall(image_size=image_size)
-    elif "vitbase" == backbone_arch.lower():
-        return backbones.Vitbase(image_size=image_size)
-    elif "vitbaset" == backbone_arch.lower():
+    if "vitbaset" == backbone_arch.lower():
         return backbones.VitbaseT(image_size=image_size)
     elif "vitsmallt" == backbone_arch.lower():
         return backbones.VitsmallT(image_size=image_size)
@@ -79,6 +75,8 @@ class VPRModel(nn.Module):
         self.aggreagtion = aggregation
         self.normalize = normalize
 
+        self.name = f"TeTRA-{self.backbone.name}_{self.aggreagtion.name}"
+
     def forward(self, x):
         x = self.backbone(x)
         x = self.aggreagtion(x)
@@ -90,8 +88,6 @@ class VPRModel(nn.Module):
         if hasattr(self.backbone, "deploy"):
             self.backbone.deploy(use_bitblas=use_bitblas)
 
-    def __str__(self):
-        return f"TeTRA-{str(self.backbone)}_{str(self.aggreagtion)}"
 
 
 def get_model(

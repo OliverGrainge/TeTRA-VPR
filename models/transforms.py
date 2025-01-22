@@ -134,6 +134,7 @@ def _get_augmentation(augmentation_level: str, image_size: Union[tuple, int]):
         )
 
     elif augmentation_level.lower() == "none":
+        print("===================================", augmentation_level)
         return T.Compose(
             [
                 T.Resize(image_size),  # Resize the image to the specified size

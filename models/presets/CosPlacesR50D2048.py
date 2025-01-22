@@ -18,4 +18,5 @@ def CosPlacesR50D2048(noramlize=True):
             backbone="ResNet50",
             fc_output_dim=2048,
         )
+    model.name = f"CosPlacesR50D2048"
     return model

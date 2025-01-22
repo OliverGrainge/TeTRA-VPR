@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 import torch
 from PIL import Image
 
-from config import DataConfig, EvalConfig, ModelConfig
+from config import EvalConfig, ModelConfig
 from dataloaders.Eval import evaluate
 from models.helper import get_model
 from models.transforms import get_transform
@@ -159,7 +159,7 @@ def eval(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    for config in [DataConfig, ModelConfig, EvalConfig]:
+    for config in [ModelConfig, EvalConfig]:
         parser = config.add_argparse_args(parser)
     args = parser.parse_args()
 

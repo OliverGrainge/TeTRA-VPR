@@ -106,6 +106,8 @@ class SALAD(nn.Module):
         # Dustbin parameter z
         self.dust_bin = nn.Parameter(torch.tensor(1.0))
 
+        self.name = f"SALAD"
+
     def forward(self, x):
         """
         x (tuple): A tuple containing two elements, f and t.
@@ -146,5 +148,4 @@ class SALAD(nn.Module):
         # f = nn.functional.normalize(f.flatten(1), p=2, dim=-1)
         return f
 
-    def __str__(self):
-        return "SALAD"
+

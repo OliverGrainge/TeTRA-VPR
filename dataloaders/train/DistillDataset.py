@@ -6,113 +6,91 @@ from io import BytesIO
 
 from PIL import Image
 from torch.utils.data import Dataset
-
-
-class TarImageDataset(Dataset):
-    def __init__(self, data_directory, transform=None):
-        tar_paths = glob.glob(os.path.join(data_directory, "*.tar"))
-        self.tar_paths = tar_paths
-        self.transform = transform
-        self.image_paths = []
-
-        # Store tar file info and image paths for later access
-        self.tar_info = []
-        for tar_path in tar_paths:
-            with tarfile.open(tar_path, "r") as tar:
-                members = tar.getmembers()
-                self.tar_info.extend(
-                    [(tar_path, member) for member in members if member.isfile()]
-                )
-
-    def __len__(self):
-        return len(self.tar_info)
-
-    def __getitem__(self, idx):
-        tar_path, member = self.tar_info[idx]
-        with tarfile.open(tar_path, "r") as tar:
-            file = tar.extractfile(member)
-            image = Image.open(BytesIO(file.read()))
-            image = image.convert("RGB")  # Convert to RGB if necessary
-
-        width, height = image.size
-        if width > height and width > 1024:
-            height, height = 512, 512
-            left = random.randint(0, width - height)
-            right = left + height
-            bottom = height
-            image = image.crop((left, 0, right, bottom))
-
-        if self.transform:
-            image = self.transform(image)
-
-        return image
+from prettytable import PrettyTable
 
 
 class JPGDataset(Dataset):
-    def __init__(self, data_directory, transform=None):
+    def __init__(self, data_directories):
+        # Convert single directory to list for consistent handling
+        if isinstance(data_directories, str):
+            data_directories = [data_directories]
+        
         self.image_paths = []
         total_images = 0
-        print(f"Scanning directory: {data_directory}")
+        
+        # Create a dictionary to store directory counts
+        dir_counts = {}
 
-        # Check if the directory contains subdirectories
-        subdirs = [
-            d
-            for d in os.listdir(data_directory)
-            if os.path.isdir(os.path.join(data_directory, d))
-        ]
+        for data_directory in data_directories:
+            print(f"\nScanning directory: {data_directory}")
+            # Recursively find all jpg files in the directory
+            for root, _, files in os.walk(data_directory):
+                jpg_files = [os.path.join(root, f) for f in files if f.lower().endswith('.jpg')]
+                num_images = len(jpg_files)
+                if num_images > 0:
+                    relative_path = os.path.relpath(root, data_directory)
+                    dir_counts[f"{data_directory}/{relative_path}"] = num_images
+                    self.image_paths.extend(jpg_files)
+                    total_images += num_images
 
-        if subdirs:
-            print("Found subdirectories. Scanning each:")
-            for subdir in subdirs:
-                subdir_path = os.path.join(data_directory, subdir)
-                subdir_images = glob.glob(os.path.join(subdir_path, "*.jpg"))
-                num_images = len(subdir_images)
-                self.image_paths.extend(subdir_images)
-                total_images += num_images
-                print(f"  {subdir}: {num_images} images")
-        else:
-            print("No subdirectories found. Scanning for images in the main directory.")
-            self.image_paths = glob.glob(os.path.join(data_directory, "*.jpg"))
-            total_images = len(self.image_paths)
-            print(f"  Main directory: {total_images} images")
+        # Create and configure the table
+        table = PrettyTable()
+        table.field_names = ["Directory", "Image Count"]
+        table.align["Directory"] = "l"  # Left align directory
+        table.align["Image Count"] = "r"  # Right align count
+        table.max_width["Directory"] = 80  # Limit directory column width
+        
+        # Add rows to the table
+        for directory, count in dir_counts.items():
+            table.add_row([directory, f"{count:,}"])
+        
+        # Add total row
+        table.add_row(["TOTAL", f"{total_images:,}"])
+        
+        print("\nDirectory Statistics:")
+        print(table)
 
-        print(f"Total images found: {total_images}")
-        self.transform = transform
+        # Add a cache for known bad images
+        self.bad_images = set()
 
     def __len__(self):
         return len(self.image_paths)
 
-    def __getitem__(self, idx, max_retries=10):
-        retries = 0
-        while retries < max_retries:
-            image_path = self.image_paths[idx]
-            try:
-                image = Image.open(image_path)
-                image = image.convert("RGB")
-                break  # Exit the loop if image loading is successful
-            except OSError as e:
-                print(f"Skipping corrupted image at {image_path}. Retrying...")
-                idx = (idx + 1) % len(self.image_paths)
-                retries += 1
-        else:
-            # If max retries exceeded, raise an exception or return a placeholder
-            raise RuntimeError(f"Too many corrupted images encountered at index {idx}")
+    def __getitem__(self, idx):
+        # Skip known bad images
+        while idx in self.bad_images and len(self.bad_images) < len(self.image_paths):
+            idx = (idx + 1) % len(self.image_paths)
+            
+        image_path = self.image_paths[idx]
+        try:
+            with Image.open(image_path) as image:
+                image = image.convert('RGB')
+                
+                # Continue processing the image as usual
+                width, height = image.size
 
-        # Continue processing the image as usual
-        width, height = image.size
-        if width > height and width > 2 * height:
-            height, height = 512, 512
-            left = random.randint(0, width - height)
-            right = left + height
-            bottom = height
-            image = image.crop((left, 0, right, bottom))
+                # crop image if it is panoramic and a random direction 
+                if width > height and width > 2 * height:
+                    height, height = 512, 512
+                    left = random.randint(0, width - height)
+                    right = left + height
+                    bottom = height
+                    image = image.crop((left, 0, right, bottom))
 
-        if self.transform:
-            image = self.transform(image)
-
-        return image
-
-
+                return image
+                
+        except Exception as e:
+            # Add to bad images cache
+            self.bad_images.add(idx)
+            
+            # If we've found too many bad images, raise an error
+            if len(self.bad_images) >= len(self.image_paths):
+                raise RuntimeError("All images appear to be corrupted!")
+                
+            # Try the next image
+            return self.__getitem__((idx + 1) % len(self.image_paths))
+        
+        
 class DistillDataset(Dataset):
     def __init__(self, dataset, student_transform, teacher_transform):
         self.dataset = dataset

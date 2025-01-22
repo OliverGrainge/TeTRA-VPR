@@ -249,6 +249,8 @@ def get_trained_boq(backbone_name="resnet50", output_dim=16384, normalize=True):
         ),
         strict=False,
     )
+
+    vpr_model.name = f"DinoV2_BoQ"
     return vpr_model
 
 
@@ -259,4 +261,5 @@ def DinoV2_BoQ(normalize=True):
         model = get_trained_boq(
             backbone_name="dinov2", output_dim=12288, normalize=normalize
         )
+        model.name = f"DinoV2_BoQ"
     return model
