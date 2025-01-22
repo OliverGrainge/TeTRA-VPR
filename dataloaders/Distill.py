@@ -8,97 +8,90 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
+from dataclasses import dataclass
+from typing import List, Tuple, Optional
 
 import wandb
 from dataloaders.train.DistillDataset import DistillDataset, JPGDataset
 from models.helper import get_model
 from models.transforms import get_transform
+import wandb
 
 
 class Distill(pl.LightningModule):
-    def __init__(
-        self,
-        student_model_backbone_arch,
-        student_model_agg_arch,
-        student_model_image_size,
-        teacher_model_preset,
-        train_dataset_dir,
-        augmentation_level="Moderate",
-        use_attention=True,
-        use_progressive_quant=True,
-        weight_decay=0.01,
-        batch_size=32,
-        num_workers=4,
-        image_size=224,
-        lr=1e-3,
-        mse_loss_mult=2,
-        latent_dim=512,
-    ):
+    """Knowledge distillation training module.
+    
+    This module implements teacher-student knowledge distillation using cosine and euclidean losses.
+    """
+    
+    def __init__(self, teacher_model_preset: str, student_model_backbone_arch: str, student_model_agg_arch: str, student_model_image_size: Tuple[int], train_dataset_dir: Tuple[str], lr: float, batch_size: int, weight_decay: float, image_size: Tuple[int], num_workers: int, augmentation_level: str, latent_dim: int=512, mse_loss_mult: float=2.0):
         super().__init__()
-        # Model-related attributes
         self.teacher_model_preset = teacher_model_preset
-        self.teacher = get_model(
-            preset=teacher_model_preset,
-            normalize=False,
-        )
-        self.student = get_model(
-            backbone_arch=student_model_backbone_arch,
-            agg_arch=student_model_agg_arch,
-            image_size=student_model_image_size,
-            normalize=False,
-        )
-        self.student = self.student.to("cuda")
-        self.teacher = self.teacher.to("cuda")
-
-        # Dataset and data-related attributes
+        self.student_model_backbone_arch = student_model_backbone_arch
+        self.student_model_agg_arch = student_model_agg_arch
+        self.student_model_image_size = student_model_image_size
         self.train_dataset_dir = train_dataset_dir
-        self.augmentation_level = augmentation_level
-        self.image_size = image_size
-
-        # Training-related attributes
-        self.batch_size = batch_size
-        self.num_workers = num_workers
         self.lr = lr
-        self.mse_loss_mult = mse_loss_mult
-        self.use_attention = use_attention
+        self.batch_size = batch_size
         self.weight_decay = weight_decay
+        self.mse_loss_mult = mse_loss_mult
+        self.image_size = image_size
+        self.num_workers = num_workers
+        self.augmentation_level = augmentation_level
         self.latent_dim = latent_dim
-
-        # progressive quantization
-        self.use_progressive_quant = use_progressive_quant
-        if use_progressive_quant and not hasattr(self.student.backbone, "set_qfactor"):
-            raise Exception(
-                "Student backbone does not have support pregressive quant method"
-            )
-        if use_progressive_quant:
-            self.student.backbone.set_qfactor(0.0)
-        else:
-            if hasattr(self.student.backbone, "set_qfactor"):
-                self.student.backbone.set_qfactor(1.0)
-
+        self._init_models()
+        self._init_projections()
+        
+        # Log hyperparameters to wandb
+        self.save_hyperparameters()
+        
+    def _init_models(self) -> None:
+        """Initialize and configure teacher and student models."""
+        self.teacher = self._setup_teacher()
+        self.student = self._setup_student()
         self.freeze_model(self.teacher)
-        print(repr(self.student))
+        self.student.backbone.set_qfactor(0.0)
+        
+    def _setup_teacher(self) -> nn.Module:
+        teacher = get_model(
+            preset=self.teacher_model_preset,
+            normalize=False,
+        )
+        return teacher
+        
+    def _setup_student(self) -> nn.Module:
+        student = get_model(
+            backbone_arch=self.student_model_backbone_arch,
+            agg_arch=self.student_model_agg_arch,
+            image_size=self.student_model_image_size,
+            normalize=False,
+        )
+        return student
 
-        self._setup_projection()    
+    def _init_projections(self) -> None:
+        """Initialize projection layers for feature alignment."""
+        img = torch.randn(1, 3, *self.image_size)
+        out = self.student(img.to(next(self.student.parameters()).device))
+        feature_dim = out.shape[-1]
+        
+        projection = lambda: nn.Sequential(
+            nn.Linear(feature_dim, self.latent_dim),
+            nn.LayerNorm(self.latent_dim)
+        )
+        
+        self.teacher_projection = projection()
+        self.student_projection = projection()
+
+
+    def setup(self, stage=None):
+        if stage == "fit":
+            wandb.define_metric(f"cosine_loss", summary="min")
+            wandb.define_metric(f"euclidian_loss", summary="min")
+            wandb.define_metric(f"train_loss", summary="min")
 
     def freeze_model(self, model): 
         for param in model.parameters(): 
             param.requires_grad=False
-
-    def _setup_projection(self): 
-        img = torch.randn(1, 3, *self.image_size)
-        out = self.student(img.to(next(self.student.parameters()).device))
-        feature_dim = out.shape[-1]
-        self.teacher_projection = nn.Sequential(nn.Linear(feature_dim, self.latent_dim), nn.LayerNorm(self.latent_dim))
-        self.student_projection = nn.Sequential(nn.Linear(feature_dim, self.latent_dim), nn.LayerNorm(self.latent_dim))
-
-
-    def setup(self, stage=None):
-        # Setup for 'fit' or 'validate'self
-        if stage == "fit" or stage == "validate":
-            wandb.define_metric(f"cosine_loss", summary="min")
-            wandb.define_metric(f"euclidian_loss", summary="min")
-            wandb.define_metric(f"total_loss", summary="min")
 
     def _progressive_quant_scheduler(self):
         x = (
@@ -130,6 +123,8 @@ class Distill(pl.LightningModule):
             "interval": "step",  # or 'epoch'
             "frequency": 1,
         }
+
+        wandb.summary
         return [optimizer], [scheduler_config]
 
     def _compute_features(self, student_images, teacher_images):
@@ -170,23 +165,12 @@ class Distill(pl.LightningModule):
         cos_loss = self._compute_cosine_loss(teacher_features, student_features)
 
         # progressive quantization
-        if self.use_progressive_quant:
-            qfactor = self._progressive_quant_scheduler()
-            self.student.backbone.set_qfactor(qfactor)
-            self.log("qfactor", qfactor, on_step=True)
+        qfactor = self._progressive_quant_scheduler()
+        self.student.backbone.set_qfactor(qfactor)
+        self.log("qfactor", qfactor, on_step=True)
 
-        if (
-            hasattr(self.student.backbone, "set_qfactor")
-            and not self.use_progressive_quant
-        ):
-            for module in self.student.backbone.modules():
-                if hasattr(module, "qfactor"):
-                    self.log("qfactor", module.qfactor, on_step=True)
-                    break
 
         total_loss = euc_loss + cos_loss
-
-        #print("== total_loss", total_loss.item(), "cos_loss", cos_loss.item(), "euc_loss", euc_loss.item())
 
         self.log("cosine_loss", cos_loss, on_step=True)
         self.log("euclidian_loss", euc_loss, on_step=True)

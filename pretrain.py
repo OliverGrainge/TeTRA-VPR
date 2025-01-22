@@ -31,7 +31,7 @@ def setup_training(args):
 
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
-        dirpath=f"./checkpoints/TeTRA-pretrain/{model_module.student.name}-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
+        dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
         filename="{epoch}-{train_loss:.3f}",
         save_on_train_epoch_end=True,
         auto_insert_metric_name=True,
@@ -42,9 +42,27 @@ def setup_training(args):
 
     learning_rate_cb = LearningRateMonitor(logging_interval="step")
 
+    hyperparameters = {
+        "student_model_backbone_arch": args.backbone_arch,
+        "student_model_agg_arch": args.agg_arch,
+        "student_model_image_size": args.image_size[0],
+        "teacher_model_preset": args.teacher_preset,
+        "augmentation_level": args.augmentation_level,
+        "lr": args.lr,
+        "batch_size": args.batch_size,
+        "weight_decay": args.weight_decay,
+        "image_size": args.image_size,
+        "num_workers": args.num_workers,
+        "latent_dim": model_module.latent_dim,
+        "mse_loss_mult": model_module.mse_loss_mult,
+        "train_dataset_dir": args.train_dataset_dir,
+        "max_epochs": args.max_epochs,
+    }
+
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
-        name=f"{model_module.student.name}-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
+        name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
+        config=hyperparameters,
     )
 
     trainer = pl.Trainer(
@@ -58,7 +76,7 @@ def setup_training(args):
         callbacks=[checkpoint_cb, learning_rate_cb],
         #reload_dataloaders_every_n_epochs=1,
         #val_check_interval=1.0,
-        check_val_every_n_epoch=args.max_epochs,
+        #check_val_every_n_epoch=args.max_epochs,
         #accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
         log_every_n_steps=1, #200,
