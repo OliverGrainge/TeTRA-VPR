@@ -177,8 +177,6 @@ class Distill(pl.LightningModule):
     def _compute_cosine_loss(student_features, teacher_features):
         student_features = F.normalize(student_features, p=2, dim=-1)
         teacher_features = F.normalize(teacher_features, p=2, dim=-1)
-        print("============================================== teacher features post norm ", teacher_features.norm(dim=1)[:5])
-        print("============================================== student_features post norm ", student_features.norm(dim=1)[:5])
         cosine_loss = 1 - F.cosine_similarity(teacher_features, student_features)
         return cosine_loss.mean()
 
@@ -193,14 +191,6 @@ class Distill(pl.LightningModule):
             student_images, teacher_images
         )
 
-        print(
-            "============================================== teacher features pre norm ",
-            teacher_features.norm(dim=1)[:5],
-        )
-        print(
-            "============================================== student_features pre norm ",
-            student_features.norm(dim=1)[:5],
-        )
 
         # compute losses
         euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(
@@ -237,8 +227,6 @@ class Distill(pl.LightningModule):
             raise ValueError(f"Invalid data directory: {self.train_dataset_dir}")
 
         train_dataset = JPGDataset(self.train_dataset_dir)
-        print("============================================== agumentation_level ", self.augmentation_level)
-        raise Exception("stop")
         dataset = DistillDataset(
             dataset=train_dataset,
             student_transform=get_transform(
