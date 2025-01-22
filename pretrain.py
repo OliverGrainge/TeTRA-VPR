@@ -29,12 +29,11 @@ def setup_training(args):
         val_set_names=args.val_set_names,
         use_attention=args.use_attention,
         use_progressive_quant=args.use_progressive_quant,
+        augmentation_level=args.augmentation_level,
     )
 
     if args.use_progressive_quant:
-        dirpath = (
-            f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-Teacher[{model_module.teacher}]-ProgressiveQuant"
-        )
+        dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-Teacher[{model_module.teacher}]-ProgressiveQuant"
     else:
         dirpath = f"./checkpoints/TeTRA-pretrain/{str(model_module.student)}-Teacher[{model_module.teacher}]"
 

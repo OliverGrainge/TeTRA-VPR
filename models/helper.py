@@ -3,6 +3,7 @@ import importlib
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from . import aggregators, backbones
 
@@ -72,14 +73,17 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
 
 
 class VPRModel(nn.Module):
-    def __init__(self, backbone, aggregation):
+    def __init__(self, backbone, aggregation, normalize=True):
         super().__init__()
         self.backbone = backbone
         self.aggreagtion = aggregation
+        self.normalize = normalize
 
     def forward(self, x):
         x = self.backbone(x)
         x = self.aggreagtion(x)
+        if self.normalize:
+            x = F.normalize(x, p=2, dim=-1)
         return x
 
     def deploy(self, use_bitblas=True):
@@ -96,11 +100,12 @@ def get_model(
     agg_arch="salad",
     preset=None,
     desc_divider_factor=None,
+    normalize=True,
 ):
     if preset is not None:
         module = importlib.import_module(f"models.presets.{preset}")
         model = getattr(module, preset)
-        return model()
+        return model(normalize=normalize)
 
     image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
     backbone = get_backbone(backbone_arch, image_size=image_size)
@@ -110,5 +115,5 @@ def get_model(
     aggregation = get_aggregator(
         agg_arch, features_dim, image_size, desc_divider_factor
     )
-    model = VPRModel(backbone, aggregation)
+    model = VPRModel(backbone, aggregation, normalize=normalize)
     return model

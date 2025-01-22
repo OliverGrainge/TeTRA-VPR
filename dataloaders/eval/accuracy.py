@@ -74,11 +74,15 @@ def compute_descriptors(
 
     all_desc = []
     device = next(model.parameters()).device
-    for batch in tqdm.tqdm(dataloader, desc=f"Computing Descriptors: {str(dataset).replace('_test', '')}"):
+    for batch in tqdm.tqdm(
+        dataloader, desc=f"Computing Descriptors: {str(dataset).replace('_test', '')}"
+    ):
         imgs, _ = batch
         imgs = imgs.to(device)  # Move images to correct device
         if device.type == "cuda":
-            with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+            with torch.inference_mode(), torch.autocast(
+                device_type="cuda", dtype=torch.bfloat16
+            ):
                 desc = model(imgs.to(device))
         else:
             with torch.inference_mode():

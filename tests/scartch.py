@@ -5,8 +5,7 @@ import torch
 import torch.nn as nn
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models.backbones.vitst import (BitLinear, activation_quant_real,
-                                    weight_quant_real)
+from models.backbones.vitst import BitLinear, activation_quant_real, weight_quant_real
 
 if __name__ == "__main__":
     layer = nn.Linear(2, 4096)

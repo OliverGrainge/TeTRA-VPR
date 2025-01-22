@@ -4,7 +4,9 @@ import io
 import torch
 
 
-def EigenPlacesR50D512():
+def EigenPlacesR50D512(normalize=True):
+    if not normalize:
+        raise Exception("EigenPlacesR50D512 does not support normalize=False")
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()
     ):

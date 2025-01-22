@@ -5,7 +5,9 @@ import sys
 import torch
 
 
-def CosPlaces():
+def CosPlacesR50D2048(noramlize=True):
+    if not noramlize:
+        raise Exception("CosPlaces does not support noramlize=False")
     # Suppress both stdout and stderr
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()

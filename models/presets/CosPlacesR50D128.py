@@ -4,7 +4,9 @@ import io
 import torch
 
 
-def CosPlacesR50D128():
+def CosPlacesR50D128(normalize=True):
+    if not normalize:
+        raise Exception("CosPlacesR50D128 does not support normalize=False")
     # Suppress both stdout and stderr
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()

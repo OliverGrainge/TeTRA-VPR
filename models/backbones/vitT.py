@@ -12,15 +12,15 @@ def pack_ternary(tensor):
     allowed_values = torch.tensor([-1, 0, 1], device=tensor.device)
     if not torch.all(torch.isin(tensor, allowed_values)):
         raise ValueError("weight values must be only -1, 0, or 1")
-    
+
     assert tensor.shape[1] % 4 == 0, "tensor.shape[1] must be divisible by 4"
-    
+
     tensor += 1  # shift values to be 0, 1, 2
-    
+
     # Flatten tensor and group into chunks of 4 values
     h, w = tensor.shape
     flat = tensor.flatten().view(-1, 4)
-    
+
     # Pack 4 values into each byte
     packed = (flat[:, 0] << 6) | (flat[:, 1] << 4) | (flat[:, 2] << 2) | flat[:, 3]
     return packed.view(h, -1)
@@ -28,20 +28,24 @@ def pack_ternary(tensor):
 
 def unpack_ternary(packed):
     h, w = packed.shape
-    w *= 4 
+    w *= 4
     flat_packed = packed.flatten()
-    
+
     # Extract 4 values per uint8
-    unpacked = torch.stack([
-        (flat_packed >> 6) & 0b11,
-        (flat_packed >> 4) & 0b11,
-        (flat_packed >> 2) & 0b11,
-        flat_packed & 0b11
-    ], dim=1).flatten()
-    
-    unpacked -= 1 # shift values back to -1, 0, 1
-    unpacked = unpacked[:h * w]
+    unpacked = torch.stack(
+        [
+            (flat_packed >> 6) & 0b11,
+            (flat_packed >> 4) & 0b11,
+            (flat_packed >> 2) & 0b11,
+            flat_packed & 0b11,
+        ],
+        dim=1,
+    ).flatten()
+
+    unpacked -= 1  # shift values back to -1, 0, 1
+    unpacked = unpacked[: h * w]
     return unpacked.view(h, w)
+
 
 @torch.no_grad()
 def activation_quant_fake(x):
@@ -71,7 +75,6 @@ def weight_quant_real(w):
     return qw, scale
 
 
-
 class BitLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True):
         super(BitLinear, self).__init__(in_features, out_features, bias)
@@ -84,7 +87,7 @@ class BitLinear(nn.Linear):
     def forward(self, x):
         if self.deployed_real:
             return self.deploy_forward_real(x)
-        elif self.deployed_fake: 
+        elif self.deployed_fake:
             return self.deploy_forward_fake(x)
         elif self.training:
             return self.train_forward(x)
@@ -111,12 +114,11 @@ class BitLinear(nn.Linear):
             out += self.bias.to(out.dtype)
         return out
 
-
     @torch.no_grad()
-    def deploy_forward_real(self, x): 
+    def deploy_forward_real(self, x):
         # Quantize activation
         qx, act_scale = activation_quant_real(x)
-        reshape_output = (qx.ndim == 3)
+        reshape_output = qx.ndim == 3
         if reshape_output:
             B, T, D = qx.shape
             qx = qx.reshape(-1, D)  # Flatten batch and time dimensions
@@ -130,7 +132,6 @@ class BitLinear(nn.Linear):
 
         return out
 
-    
     @torch.no_grad()
     def deploy_forward_fake(self, x):
         qweight = unpack_ternary(self.weight)
@@ -154,13 +155,14 @@ class BitLinear(nn.Linear):
             self.scale = scale
         self = super().train(mode)
 
-    def deploy(self, use_bitblas=True,opt_M=None):
+    def deploy(self, use_bitblas=True, opt_M=None):
         try:
             import bitblas
+
             has_bitblas = True
         except ImportError:
             has_bitblas = False
-        
+
         if has_bitblas and torch.cuda.is_available() and use_bitblas:
             # Real deployment with bitblas
             matmul_config = bitblas.MatmulConfig(
@@ -218,6 +220,7 @@ class BitLinear(nn.Linear):
             self.qweight = qw
             self.scale = s
         return sd
+
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0):
@@ -390,7 +393,7 @@ def VitsmallT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,  # More patches for better granularity
         dim=384,  # Reduced embedding dimension
-        depth=12, #12, 
+        depth=12,  # 12,
         heads=6,  # Fewer attention heads
         mlp_dim=1536,  # MLP layer dimension (4x dim)
         dropout=0.1,  # Regularization via dropout
@@ -405,7 +408,7 @@ def VitbaseT(image_size=[224, 224]):
         image_size=image_size[0],  # Smaller image size for reduced complexity
         patch_size=14,
         dim=768,
-        depth=12, #12,
+        depth=12,  # 12,
         heads=12,
         mlp_dim=3072,
         dropout=0.1,

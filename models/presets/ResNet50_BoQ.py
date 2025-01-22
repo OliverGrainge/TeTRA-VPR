@@ -18,7 +18,9 @@ class ResNet50_BoQ_model(torch.nn.Module):
         return self.model(x)[0]
 
 
-def ResNet50_BoQ():
+def ResNet50_BoQ(normalize=True):
+    if not normalize:
+        raise Exception("ResNet50_BoQ does not support normalize=False")
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()
     ):

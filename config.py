@@ -6,14 +6,14 @@ from typing import Tuple, Union
 @dataclass
 class DataConfig:
     # dataset directories
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # Desktop
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets"  # Desktop
     # val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr" # HPC
-    #val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
+    # val_dataset_dir: str = "/Users/olivergrainge/Documents/github/Datasets"  # Laptop
 
-    #train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
-    #train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
+    # train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities"
+    # train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities"
     train_dataset_dir: str = (
-       "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
+        "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database"
     )
 
     @staticmethod
@@ -99,10 +99,14 @@ class EvalConfig:
             "--accuracy", action="store_true", help="Run accuracy evaluation"
         )
         group.add_argument(
-            "--dataset_descriptor_memory", action="store_true", help="Run dataset descriptor memory evaluation"
+            "--dataset_descriptor_memory",
+            action="store_true",
+            help="Run dataset descriptor memory evaluation",
         )
         group.add_argument(
-            "--dataset_total_memory", action="store_true", help="Run dataset total memory evaluation"
+            "--dataset_total_memory",
+            action="store_true",
+            help="Run dataset total memory evaluation",
         )
         group.add_argument(
             "--model_memory", action="store_true", help="Run model memory evaluation"

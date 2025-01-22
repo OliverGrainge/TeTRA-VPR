@@ -13,13 +13,10 @@ from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
 
 import wandb
-from dataloaders.train.DistillDataset import (DistillDataset, JPGDataset,
-                                              TarImageDataset)
+from dataloaders.train.DistillDataset import DistillDataset, JPGDataset, TarImageDataset
 from dataloaders.utils.Distill.attention import get_attn, remove_hooks
-from dataloaders.utils.Distill.funcs import (L2Norm, freeze_model,
-                                             get_feature_dim)
-from dataloaders.utils.Distill.schedulers import (QuantScheduler,
-                                                  WeightDecayScheduler)
+from dataloaders.utils.Distill.funcs import L2Norm, freeze_model, get_feature_dim
+from dataloaders.utils.Distill.schedulers import QuantScheduler, WeightDecayScheduler
 from matching.match_cosine import match_cosine
 from models.helper import get_model
 from models.transforms import get_transform
@@ -34,7 +31,7 @@ class Distill(pl.LightningModule):
         teacher_model_preset,
         train_dataset_dir,
         val_dataset_dir,
-        augmentation_level="Severe",
+        augmentation_level="Moderate",
         use_attention=True,
         use_progressive_quant=True,
         weight_decay=0.01,
@@ -42,18 +39,20 @@ class Distill(pl.LightningModule):
         num_workers=4,
         image_size=224,
         lr=1e-3,
-        mse_loss_mult=0,
+        mse_loss_mult=200,
         val_set_names=["pitts30k_val"],
     ):
         super().__init__()
         # Model-related attributes
         self.teacher = get_model(
             preset=teacher_model_preset,
+            normalize=False,
         )
         self.student = get_model(
             backbone_arch=student_model_backbone_arch,
             agg_arch=student_model_agg_arch,
             image_size=student_model_image_size,
+            normalize=False,
         )
         self.student = self.student.to("cuda")
         self.teacher = self.teacher.to("cuda")
@@ -97,8 +96,7 @@ class Distill(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -125,7 +123,6 @@ class Distill(pl.LightningModule):
                 wandb.define_metric(f"{val_set_name}_R1", summary="max")
             wandb.define_metric(f"Cosine Loss", summary="min")
             wandb.define_metric(f"Euclidian Loss", summary="min")
-            wandb.define_metric(f"Attention Loss", summary="min")
             wandb.define_metric(f"Total Loss", summary="min")
             self.num_training_steps = self.trainer.max_epochs * len(
                 self.train_dataloader()
@@ -165,103 +162,24 @@ class Distill(pl.LightningModule):
         }
         return [optimizer], [scheduler_config]
 
-    def _compute_features(self, student_images, teacher_images, use_attention):
+    def _compute_features(self, student_images, teacher_images):
         B = student_images.shape[0]
-        if use_attention:
-            teacher_attn, teacher_hooks = get_attn(self.teacher)
-            student_attn, student_hooks = get_attn(self.student)
-            teacher_features = self.teacher(teacher_images)
-            student_features = self(student_images)
-            teacher_attn = torch.vstack(teacher_attn)
-            student_attn = torch.vstack(student_attn)
+        teacher_features = self.teacher(teacher_images)
+        student_features = self(student_images)
 
-            assert (
-                teacher_features.shape == student_features.shape
-            ), "teacher and student features must have the same shape"
+        assert (
+            teacher_features.shape == student_features.shape
+        ), "teacher and student features must have the same shape"
 
-            # B * D, H, N, N
-            teacher_attn = teacher_attn.view(
-                B,
-                -1,
-                teacher_attn.shape[-3],
-                teacher_attn.shape[-2],
-                teacher_attn.shape[-1],
-            )
-            student_attn = student_attn.view(
-                B,
-                -1,
-                student_attn.shape[-3],
-                student_attn.shape[-2],
-                student_attn.shape[-1],
-            )
-
-            remove_hooks(teacher_hooks)
-            remove_hooks(student_hooks)
-            return (
-                student_features,
-                teacher_features,
-                student_attn,
-                teacher_attn,
-            )
-        else:
-            teacher_features = self.teacher(teacher_images)
-            student_features = self(student_images)
-            student_attn = None
-            teacher_attn = None
-
-            assert (
-                teacher_features.shape == student_features.shape
-            ), "teacher and student features must have the same shape"
-
-            return (
-                student_features,
-                teacher_features,
-                None,
-                None,
-            )
-
-    @staticmethod
-    def _compute_attn_loss(student_attn, teacher_attn):
-        # B, D, H, N, N
-        if teacher_attn.shape[1] != student_attn.shape[1]:
-            # have different depths
-            assert (
-                teacher_attn.shape[1] > student_attn.shape[1]
-            ), "teacher attention must be deeper or equal to the depth of the than student attention"
-            teacher_attn_idxs = (
-                torch.arange(student_attn.shape[1]) * teacher_attn.shape[1]
-            ) / student_attn.shape[1].floor().long()
-            teacher_attn = teacher_attn[teacher_attn_idxs, :, :, :]
-
-        if teacher_attn.shape[2] != student_attn.shape[2]:
-            # have different number of attention heads
-            teacher_attn = teacher_attn.mean(2)
-            student_attn = student_attn.mean(2)
-
-        if teacher_attn.shape[-1] != student_attn.shape[-1]:
-            # have different number of tokens
-            B, D, H = student_attn.shape[:3]
-            if len(student_attn.shape) == 5:
-                student_attn = F.interpolate(
-                    student_attn.view(
-                        B * D * H, 1, student_attn.shape[-2], student_attn.shape[-1]
-                    ),
-                    size=teacher_attn.shape[-2:],
-                    mode="bilinear",
-                    align_corners=False,
-                ).view(B, D, H, teacher_attn.shape[-2], teacher_attn.shape[-1])
-            else:
-                student_attn = F.interpolate(
-                    student_attn,
-                    size=teacher_attn.shape[-2:],
-                    mode="bilinear",
-                    align_corners=False,
-                )
-        return F.mse_loss(teacher_attn, student_attn)
+        return student_features, teacher_features
 
     @staticmethod
     def _compute_cosine_loss(student_features, teacher_features):
-        cosine_loss = (1 - F.cosine_similarity(teacher_features, student_features)) 
+        student_features = F.normalize(student_features, p=2, dim=-1)
+        teacher_features = F.normalize(teacher_features, p=2, dim=-1)
+        print("============================================== teacher features post norm ", teacher_features.norm(dim=1)[:5])
+        print("============================================== student_features post norm ", student_features.norm(dim=1)[:5])
+        cosine_loss = 1 - F.cosine_similarity(teacher_features, student_features)
         return cosine_loss.mean()
 
     @staticmethod
@@ -271,22 +189,24 @@ class Distill(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # compute features
         student_images, teacher_images = batch
-        student_features, teacher_features, student_attn, teacher_attn = (
-            self._compute_features(student_images, teacher_images, self.use_attention)
+        student_features, teacher_features = self._compute_features(
+            student_images, teacher_images
         )
-        #print("============================================== teacher features", teacher_features[0].norm())
-        #print("============================================== student_features ", student_features[0].norm())
+
+        print(
+            "============================================== teacher features pre norm ",
+            teacher_features.norm(dim=1)[:5],
+        )
+        print(
+            "============================================== student_features pre norm ",
+            student_features.norm(dim=1)[:5],
+        )
 
         # compute losses
         euc_loss = self.mse_loss_mult * self._compute_euclidian_loss(
             teacher_features, student_features
         )
         cos_loss = self._compute_cosine_loss(teacher_features, student_features)
-        attn_loss = torch.tensor(0.0, device=cos_loss.device)
-        if self.use_attention:
-            attn_loss = self.mse_loss_mult * self._compute_attn_loss(
-                teacher_attn, student_attn
-            )
 
         # progressive quantization
         if self.use_progressive_quant:
@@ -303,27 +223,26 @@ class Distill(pl.LightningModule):
                     self.log("qfactor", module.qfactor, on_step=True)
                     break
 
-        total_loss = euc_loss + cos_loss + attn_loss
+        total_loss = euc_loss + cos_loss
 
-        #print("== total_loss", total_loss.item(), "cos_loss", cos_loss.item(), "euc_loss", euc_loss.item(), "attn_loss", attn_loss.item())
+        print("== total_loss", total_loss.item(), "cos_loss", cos_loss.item(), "euc_loss", euc_loss.item())
 
         self.log("Cosine Loss", cos_loss, on_step=True)
         self.log("Euclidian Loss", euc_loss, on_step=True)
-        self.log("Attention Loss", attn_loss, on_step=True)
         self.log("Total Loss", total_loss, on_step=True, prog_bar=True)
         return total_loss
 
     def train_dataloader(self):
-        paths = os.listdir(self.train_dataset_dir)
         if not os.path.isdir(self.train_dataset_dir):
             raise ValueError(f"Invalid data directory: {self.train_dataset_dir}")
 
         train_dataset = JPGDataset(self.train_dataset_dir)
-
+        print("============================================== agumentation_level ", self.augmentation_level)
+        raise Exception("stop")
         dataset = DistillDataset(
             dataset=train_dataset,
             student_transform=get_transform(
-                augmentation_level="Severe", image_size=self.image_size
+                augmentation_level=self.augmentation_level, image_size=self.image_size
             ),
             teacher_transform=get_transform(preset="DinoSalad"),
         )
@@ -391,7 +310,5 @@ class Distill(pl.LightningModule):
         return full_recalls_dict
 
     def state_dict(self):
-        # Override the state_dict method to return only the student model's state dict
-        # self.student.train() # remove the qweight buffers
         sd = self.student.state_dict()
         return sd

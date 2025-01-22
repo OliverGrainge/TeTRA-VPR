@@ -86,7 +86,7 @@ def evaluate(args, model, example_input):
             latency.get_model_inference_latency_ms(model, example_input)
         )
 
-    # 
+    #
     if args.retrieval_latency:
         get_latency_fn = (
             latency.get_binary_retrieval_latency
@@ -102,20 +102,23 @@ def evaluate(args, model, example_input):
         for val_set_name in args.val_set_names:
 
             dataset = accuracy.get_val_dataset(
-                    val_set_name, args.val_dataset_dir, transform
-                )
+                val_set_name, args.val_dataset_dir, transform
+            )
             dataset_name = repr(dataset).replace("_test", "").replace("_val", "")
 
             if args.accuracy:
                 desc = accuracy.compute_descriptors(
-                    model, dataset, batch_size=args.batch_size, num_workers=args.num_workers
+                    model,
+                    dataset,
+                    batch_size=args.batch_size,
+                    num_workers=args.num_workers,
                 )
 
                 recalls = accuracy.get_recall_at_k(
                     desc, dataset, precision=precision, k_values=k_values
                 )
                 for idx, k in enumerate(recalls):
-                    
+
                     results[f"{dataset_name}_R@{k_values[idx]}"] = recalls[idx]
 
             if args.dataset_retrieval_latency == 1:
@@ -128,20 +131,49 @@ def evaluate(args, model, example_input):
                     results["descriptor_dim"], ref_n=len(dataset)
                 )
 
-            if args.dataset_descriptor_memory: 
+            if args.dataset_descriptor_memory:
                 desc_dim = results["descriptor_dim"]
-                if "vitbaset" in str(model).lower() or "vitsmallt" in str(model).lower():
+                if (
+                    "vitbaset" in str(model).lower()
+                    or "vitsmallt" in str(model).lower()
+                ):
                     # measure descriptor in mb and binary precision
-                    results[f"{dataset_name}_descriptor_memory_mb"] = (dataset.num_references * memory.get_binary_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
+                    results[f"{dataset_name}_descriptor_memory_mb"] = (
+                        dataset.num_references
+                        * memory.get_binary_descriptor_size_bytes(model, example_input)
+                    ) // (1024 * 1024)
                 else:
                     # measure descriptor in mb and fp16 precision
-                    results[f"{dataset_name}_descriptor_memory_mb"] = (dataset.num_references * memory.get_floating_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
+                    results[f"{dataset_name}_descriptor_memory_mb"] = (
+                        dataset.num_references
+                        * memory.get_floating_descriptor_size_bytes(
+                            model, example_input
+                        )
+                    ) // (1024 * 1024)
 
-            if args.dataset_total_memory: 
+            if args.dataset_total_memory:
                 desc_dim = results["descriptor_dim"]
-                if "vitbaset" in str(model).lower() or "vitsmallt" in str(model).lower():
-                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (dataset.num_references * memory.get_binary_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
+                if (
+                    "vitbaset" in str(model).lower()
+                    or "vitsmallt" in str(model).lower()
+                ):
+                    results[
+                        f"{dataset_name}_total_memory_mb"
+                    ] = memory.get_model_memory_mb(model) + (
+                        dataset.num_references
+                        * memory.get_binary_descriptor_size_bytes(model, example_input)
+                    ) // (
+                        1024 * 1024
+                    )
                 else:
-                    results[f"{dataset_name}_total_memory_mb"] = memory.get_model_memory_mb(model) + (dataset.num_references * memory.get_floating_descriptor_size_bytes(model, example_input)) // (1024 * 1024)
+                    results[
+                        f"{dataset_name}_total_memory_mb"
+                    ] = memory.get_model_memory_mb(model) + (
+                        dataset.num_references
+                        * memory.get_floating_descriptor_size_bytes(
+                            model, example_input
+                        )
+                    ) // (
+                        1024 * 1024
+                    )
     return results
-

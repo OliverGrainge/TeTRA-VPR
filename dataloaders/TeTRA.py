@@ -109,8 +109,7 @@ class TeTRA(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(
@@ -241,7 +240,7 @@ class TeTRA(pl.LightningModule):
 
         # Split the batch in half
         split_size = images.shape[0] // 2
-        images1, images2 = images[:split_size], images[split_size:2*split_size]
+        images1, images2 = images[:split_size], images[split_size : 2 * split_size]
         # Process each half separately and concatenate
         descriptors1 = self(images1).to(torch.bfloat16)
         print("==============================================", descriptors1.dtype)
@@ -333,8 +332,6 @@ class TeTRA(pl.LightningModule):
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
         return self.model.state_dict()
-
-
 
 
 if __name__ == "__main__":

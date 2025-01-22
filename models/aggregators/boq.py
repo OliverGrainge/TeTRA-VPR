@@ -103,7 +103,7 @@ class BoQ(torch.nn.Module):
         out = torch.cat(outs, dim=1)
         out = self.fc(out.permute(0, 2, 1))
         out = out.flatten(1)
-        out = torch.nn.functional.normalize(out, p=2, dim=-1)
+        # out = torch.nn.functional.normalize(out, p=2, dim=-1)
         return out
 
     def __str__(self):

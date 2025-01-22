@@ -96,8 +96,6 @@ def _load_model_and_transform(args):
         )
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
 
-
-
     checkpoint_path = _get_weights_path(
         args.backbone_arch, args.agg_arch, args.image_size, args.desc_divider_factor
     )
@@ -130,7 +128,7 @@ def _prepare_model(args, model):
     if args.compile:
         if hasattr(model, "deploy"):
             model.deploy(use_bitblas=True)
-        else: 
+        else:
             model.eval()
     else:
         if hasattr(model, "deploy"):
