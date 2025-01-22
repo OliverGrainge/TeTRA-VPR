@@ -9,6 +9,8 @@ import torch.optim as optim
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
 from dataclasses import dataclass
+from PIL import Image
+import numpy as np
 from typing import List, Tuple, Optional
 
 import wandb
@@ -70,17 +72,26 @@ class Distill(pl.LightningModule):
 
     def _init_projections(self) -> None:
         """Initialize projection layers for feature alignment."""
-        img = torch.randn(1, 3, *self.image_size)
-        out = self.student(img.to(next(self.student.parameters()).device))
-        feature_dim = out.shape[-1]
+        img = Image.fromarray(np.zeros((224, 224, 3), dtype=np.uint8))
+        teacher_transform = get_transform(preset=self.teacher_model_preset)
+        student_transform = get_transform(augmentation_level=self.augmentation_level, image_size=self.image_size)
+        teacher_img = teacher_transform(img)
+        student_img = student_transform(img)
+        teacher_features = self.teacher(teacher_img[None, ...].to(next(self.student.parameters()).device))
+        student_features = self.student(student_img[None, ...].to(next(self.student.parameters()).device))
+
+        teacher_feature_dim = teacher_features.shape[-1]
+        student_feature_dim = student_features.shape[-1]
         
-        projection = lambda: nn.Sequential(
-            nn.Linear(feature_dim, self.latent_dim),
+        self.teacher_projection = nn.Sequential(
+            nn.Linear(teacher_feature_dim, self.latent_dim),
             nn.LayerNorm(self.latent_dim)
         )
         
-        self.teacher_projection = projection()
-        self.student_projection = projection()
+        self.student_projection = nn.Sequential(
+            nn.Linear(student_feature_dim, self.latent_dim),
+            nn.LayerNorm(self.latent_dim)
+        )
 
 
     def setup(self, stage=None):
@@ -129,8 +140,11 @@ class Distill(pl.LightningModule):
 
     def _compute_features(self, student_images, teacher_images):
         B = student_images.shape[0]
-        teacher_features = self.teacher_projection(self.teacher(teacher_images))
-        student_features = self.student_projection(self(student_images))
+        teacher_features = self.teacher(teacher_images)
+        student_features = self(student_images)
+
+        teacher_features = self.teacher_projection(teacher_features)
+        student_features = self.student_projection(student_features)
 
 
         assert (

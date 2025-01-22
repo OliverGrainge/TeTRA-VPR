@@ -1,99 +1,185 @@
-import glob
-import os
-import random
-import tarfile
-from io import BytesIO
+import contextlib
+import io
 
-from PIL import Image
-from torch.utils.data import Dataset
-from torchvision import transforms
-from prettytable import PrettyTable
+import torch
 
 
-class JPGDataset(Dataset):
-    def __init__(self, data_directories, transform=None):
-        # Convert single directory to list for consistent handling
-        if isinstance(data_directories, str):
-            data_directories = [data_directories]
-        
-        self.image_paths = []
-        total_images = 0
-        
-        # Create a dictionary to store directory counts
-        dir_counts = {}
+import torch
+import logging
+import torchvision
+from torch import nn
+from typing import Tuple
 
-        for data_directory in data_directories:
-            print(f"\nScanning directory: {data_directory}")
-            # Recursively find all jpg files in the directory
-            for root, _, files in os.walk(data_directory):
-                jpg_files = [os.path.join(root, f) for f in files if f.lower().endswith('.jpg')]
-                num_images = len(jpg_files)
-                if num_images > 0:
-                    relative_path = os.path.relpath(root, data_directory)
-                    dir_counts[f"{data_directory}/{relative_path}"] = num_images
-                    self.image_paths.extend(jpg_files)
-                    total_images += num_images
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 
-        # Create and configure the table
-        table = PrettyTable()
-        table.field_names = ["Directory", "Image Count"]
-        table.align["Directory"] = "l"  # Left align directory
-        table.align["Image Count"] = "r"  # Right align count
-        table.max_width["Directory"] = 80  # Limit directory column width
-        
-        # Add rows to the table
-        for directory, count in dir_counts.items():
-            table.add_row([directory, f"{count:,}"])
-        
-        # Add total row
-        table.add_row(["TOTAL", f"{total_images:,}"])
-        
-        print("\nDirectory Statistics:")
-        print(table)
 
-        # Add a cache for known bad images
-        self.bad_images = set()
-        self.transform = transform
+# The number of channels in the last convolutional layer, the one before average pooling
+CHANNELS_NUM_IN_LAST_CONV = {
+    "ResNet18": 512,
+    "ResNet50": 2048,
+    "ResNet101": 2048,
+    "ResNet152": 2048,
+    "VGG16": 512,
+}
 
-    def __len__(self):
-        return len(self.image_paths)
 
-    def __getitem__(self, idx):
-        # Skip known bad images
-        while idx in self.bad_images and len(self.bad_images) < len(self.image_paths):
-            idx = (idx + 1) % len(self.image_paths)
-            
-        image_path = self.image_paths[idx]
-        try:
-            with Image.open(image_path) as image:
-                image = image.convert('RGB')
-                
-                # Continue processing the image as usual
-                width, height = image.size
 
-                # crop image if it is panoramic and a random direction 
-                if width > height and width > 2 * height:
-                    height, height = 512, 512
-                    left = random.randint(0, width - height)
-                    right = left + height
-                    bottom = height
-                    image = image.crop((left, 0, right, bottom))
 
-                if self.transform:
-                    image = self.transform(image)
+AVAILABLE_TRAINED_MODELS = {
+    # backbone : list of available fc_output_dim, which is equivalent to descriptors dimensionality
+    "VGG16":     [          512],
+    "ResNet18":  [     256, 512],
+    "ResNet50":  [128, 256, 512, 1024, 2048],
+    "ResNet101": [128, 256, 512, 1024, 2048],
+}
 
-                return image
-                
-        except Exception as e:
-            # Add to bad images cache
-            self.bad_images.add(idx)
-            
-            # If we've found too many bad images, raise an error
-            if len(self.bad_images) >= len(self.image_paths):
-                raise RuntimeError("All images appear to be corrupted!")
-                
-            # Try the next image
-            return self.__getitem__((idx + 1) % len(self.image_paths))
+
+def gem(x, p=torch.ones(1)*3, eps: float = 1e-6):
+    return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1./p)
+
+
+class GeM(nn.Module):
+    def __init__(self, p=3, eps=1e-6):
+        super().__init__()
+        self.p = Parameter(torch.ones(1)*p)
+        self.eps = eps
     
+    def forward(self, x):
+        return gem(x, p=self.p, eps=self.eps)
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(p={self.p.data.tolist()[0]:.4f}, eps={self.eps})"
+
+
+class Flatten(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x):
+        assert x.shape[2] == x.shape[3] == 1, f"{x.shape[2]} != {x.shape[3]} != 1"
+        return x[:, :, 0, 0]
+
+
+class L2Norm(nn.Module):
+    def __init__(self, dim=1):
+        super().__init__()
+        self.dim = dim
+    
+    def forward(self, x):
+        return F.normalize(x, p=2.0, dim=self.dim)
+    
+
+class GeoLocalizationNet_(nn.Module):
+    def __init__(self, backbone : str, fc_output_dim : int, normalize : bool = True):
+        """Return a model_ for GeoLocalization.
+        
+        Args:
+            backbone (str): which torchvision backbone to use. Must be VGG16 or a ResNet.
+            fc_output_dim (int): the output dimension of the last fc layer, equivalent to the descriptors dimension.
+        """
+        super().__init__()
+        assert backbone in CHANNELS_NUM_IN_LAST_CONV, f"backbone must be one of {list(CHANNELS_NUM_IN_LAST_CONV.keys())}"
+        self.normalize = normalize
+        self.backbone, features_dim = _get_backbone(backbone)
+        self.aggregation = nn.Sequential(
+            L2Norm(),
+            GeM(),
+            Flatten(),
+            nn.Linear(features_dim, fc_output_dim),
+            #L2Norm() if normalize else nn.Identity()
+        )
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.aggregation(x)
+        if self.normalize: 
+            x = F.normalize(x, p=2.0, dim=1)
+        return x
+
+
+def _get_torchvision_model(backbone_name : str) -> torch.nn.Module:
+    """This function takes the name of a backbone and returns the corresponding pretrained
+    model from torchvision. Examples of backbone_name are 'VGG16' or 'ResNet18'
+    """
+    return getattr(torchvision.models, backbone_name.lower())()
+
+
+def _get_backbone(backbone_name : str) -> Tuple[torch.nn.Module, int]:
+    backbone = _get_torchvision_model(backbone_name)
+
+    logging.info("Loading pretrained backbone's weights from CosPlace")
+    cosplace = torch.hub.load("gmberton/cosplace", "get_trained_model", backbone=backbone_name, fc_output_dim=512)
+    new_sd = {k1: v2 for (k1, v1), (k2, v2) in zip(backbone.state_dict().items(), cosplace.state_dict().items())
+              if v1.shape == v2.shape}
+    backbone.load_state_dict(new_sd, strict=False)
+
+    if backbone_name.startswith("ResNet"):
+        for name, child in backbone.named_children():
+            if name == "layer3":  # Freeze layers before conv_3
+                break
+            for params in child.parameters():
+                params.requires_grad = False
+        logging.debug(f"Train only layer3 and layer4 of the {backbone_name}, freeze the previous ones")
+        layers = list(backbone.children())[:-2]  # Remove avg pooling and FC layer
+    
+    elif backbone_name == "VGG16":
+        layers = list(backbone.features.children())[:-2]  # Remove avg pooling and FC layer
+        for layer in layers[:-5]:
+            for p in layer.parameters():
+                p.requires_grad = False
+        logging.debug("Train last layers of the VGG-16, freeze the previous ones")
+    
+    backbone = torch.nn.Sequential(*layers)
+    
+    features_dim = CHANNELS_NUM_IN_LAST_CONV[backbone_name]
+    
+    return backbone, features_dim
+
+
+
+def get_trained_model(backbone : str = "ResNet50", fc_output_dim : int = 2048, normalize : bool = True) -> torch.nn.Module:
+    """Return a model trained with EigenPlaces on San Francisco eXtra Large.
+    
+    Args:
+        backbone (str): which torchvision backbone to use. Must be VGG16 or a ResNet.
+        fc_output_dim (int): the output dimension of the last fc layer, equivalent to
+            the descriptors dimension. Must be between 32 and 2048, depending on model's availability.
+    
+    Return:
+        model (torch.nn.Module): a trained model.
+    """
+    print(f"Returning EigenPlaces model with backbone: {backbone} with features dimension {fc_output_dim}")
+    if backbone not in AVAILABLE_TRAINED_MODELS:
+        raise ValueError(f"Parameter `backbone` is set to {backbone} but it must be one of {list(AVAILABLE_TRAINED_MODELS.keys())}")
+    try:
+        fc_output_dim = int(fc_output_dim)
+    except:
+        raise ValueError(f"Parameter `fc_output_dim` must be an integer, but it is set to {fc_output_dim}")
+    if fc_output_dim not in AVAILABLE_TRAINED_MODELS[backbone]:
+        raise ValueError(f"Parameter `fc_output_dim` is set to {fc_output_dim}, but for backbone {backbone} "
+                         f"it must be one of {list(AVAILABLE_TRAINED_MODELS[backbone])}")
+    model = GeoLocalizationNet_(backbone, fc_output_dim, normalize=normalize)
+    model.load_state_dict(
+        torch.hub.load_state_dict_from_url(
+            f'https://github.com/gmberton/EigenPlaces/releases/download/v1.0/{backbone}_{fc_output_dim}_eigenplaces.pth',
+        map_location=torch.device('cpu'))
+    )
+    return model
+
+
+
+
+
+def EigenPlacesR18D512(normalize=True):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
+        model = get_trained_model(backbone="ResNet18", fc_output_dim=512, normalize=normalize)
+        model.name = f"EigenPlacesR18D512"
+
+    return model
 
 

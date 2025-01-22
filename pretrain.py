@@ -26,6 +26,7 @@ def setup_training(args):
         image_size=args.image_size,
         num_workers=args.num_workers,
         augmentation_level=args.augmentation_level,
+        latent_dim=args.latent_dim
     )
     
 
@@ -60,8 +61,8 @@ def setup_training(args):
     }
 
     wandb_logger = WandbLogger(
-        project="TeTRA-pretrain",
-        name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
+        project="TeTRA-pretrain-experimental",
+        name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]-LatentDim[{args.latent_dim}]",
         config=hyperparameters,
     )
 
@@ -80,7 +81,7 @@ def setup_training(args):
         #accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
         log_every_n_steps=1, #200,
-        #overfit_batches=0.001,
+        overfit_batches=0.1,
     )
     return trainer, model_module
 

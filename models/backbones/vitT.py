@@ -361,7 +361,7 @@ class ViT(nn.Module):
             dropout,
         )
         model_type = (
-            "VitsmallT" if self.dim == 384 else "VitbaseT" if self.dim == 768 else "Vit"
+            "VittinyT" if self.dim == 192 else "VitsmallT" if self.dim == 384 else "VitbaseT"
         )
         self.name = f"{model_type}{self.image_size}"
 
@@ -386,6 +386,21 @@ class ViT(nn.Module):
                 module.set_qfactor(qfactor)
 
 
+
+
+def VittinyT(image_size=[224, 224]):
+    return ViT(
+        image_size=image_size[0],
+        patch_size=16,        # Larger patches to reduce sequence length
+        dim=192,             # Smaller embedding dimension
+        depth=6,             # Fewer transformer layers
+        heads=3,             # Fewer attention heads
+        mlp_dim=768,         # MLP dimension (4x dim)
+        dropout=0.1,
+        emb_dropout=0.1,
+        channels=3,
+        dim_head=64,         # Dimension per head
+    )
 
 
 def VitsmallT(image_size=[224, 224]):

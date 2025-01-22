@@ -133,8 +133,8 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # list of directories containing jpg images to be used for distillation
-    #train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images", "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
-    train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
+    train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",)#, "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    #train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
     # Teacher model settings
     teacher_preset: str = "DinoSalad"
 
@@ -144,7 +144,7 @@ class DistillConfig:
     accumulate_grad_batches: int = 2
     max_epochs: int = 5
     weight_decay: float = 0.01
-
+    latent_dim: int = 1024
     # Data processing
     image_size: Tuple[int] = (322, 322)
     augmentation_level: str = "Severe"
@@ -168,6 +168,7 @@ class DistillConfig:
             default=DistillConfig.accumulate_grad_batches,
         )
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
+        group.add_argument("--latent_dim", type=int, default=DistillConfig.latent_dim)
         group.add_argument(
             "--weight_decay", type=float, default=DistillConfig.weight_decay
         )

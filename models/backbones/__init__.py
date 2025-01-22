@@ -1,2 +1,2 @@
 
-from .vitT import VitbaseT, VitsmallT
+from .vitT import VitbaseT, VitsmallT, VittinyT

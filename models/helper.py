@@ -13,6 +13,8 @@ def get_backbone(backbone_arch, image_size):
         return backbones.VitbaseT(image_size=image_size)
     elif "vitsmallt" == backbone_arch.lower():
         return backbones.VitsmallT(image_size=image_size)
+    elif "vittinyt" == backbone_arch.lower():
+        return backbones.VittinyT(image_size=image_size)
     else:
         raise Exception(f"Backbone {backbone_arch} not available")
 
@@ -21,7 +23,7 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
     config = {}
     if "gem" in agg_arch.lower():
         config["features_dim"] = features_dim
-        config["out_dim"] = 2048
+        config["out_dim"] = 512#2048
         if desc_divider_factor is not None:
             config["out_dim"] = config["out_dim"] // desc_divider_factor
         return aggregators.GeM(**config)
@@ -41,6 +43,7 @@ def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None)
         return aggregators.MixVPR(**config)
 
     elif "salad" in agg_arch.lower():
+        print("==========================================", features_dim[1])
         config["num_channels"] = features_dim[1]
         config["token_dim"] = 256
         config["num_clusters"] = 64
