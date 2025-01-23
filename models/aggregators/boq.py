@@ -106,5 +106,3 @@ class BoQ(torch.nn.Module):
         out = out.flatten(1)
         # out = torch.nn.functional.normalize(out, p=2, dim=-1)
         return out
-
-

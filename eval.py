@@ -8,6 +8,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from PIL import Image
+from tabulate import tabulate
 
 from config import EvalConfig, ModelConfig
 from dataloaders.Eval import evaluate
@@ -154,6 +155,12 @@ def eval(args):
     model = _prepare_model(args, model)
     results = evaluate(args, model, example_input)
     results["id"] = _get_model_id(args)
+
+    # Print results as a pretty table
+    results_df = pd.DataFrame([results])
+    print("\nEvaluation Results:")
+    print(tabulate(results_df.T, headers=["Metric", "Value"], tablefmt="pretty"))
+
     save_results(results)
 
 

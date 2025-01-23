@@ -109,7 +109,8 @@ class TeTRA(pl.LightningModule):
             )
             for val_set_name in self.val_set_names:
                 if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import PittsburghDataset30k
+                    from dataloaders.val.PittsburghDataset import \
+                        PittsburghDataset30k
 
                     self.val_datasets.append(
                         PittsburghDataset30k(

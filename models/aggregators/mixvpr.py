@@ -85,5 +85,3 @@ class MixVPR(nn.Module):
         x = x.permute(0, 2, 1)
         x = self.row_proj(x)
         return x.flatten(1)
-
-

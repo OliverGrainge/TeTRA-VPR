@@ -16,9 +16,7 @@ from dataloaders.Distill import Distill
 def setup_training(args):
     model_module = Distill(  #
         student_model_backbone_arch=args.backbone_arch,
-        student_model_agg_arch=args.agg_arch,
         student_model_image_size=args.image_size,
-        teacher_model_preset=args.teacher_preset,
         train_dataset_dir=args.train_dataset_dir,
         lr=args.lr,
         batch_size=args.batch_size,
@@ -26,9 +24,8 @@ def setup_training(args):
         image_size=args.image_size,
         num_workers=args.num_workers,
         augmentation_level=args.augmentation_level,
-        latent_dim=args.latent_dim
+        use_attn_loss=args.use_attn_loss,
     )
-    
 
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
@@ -47,22 +44,19 @@ def setup_training(args):
         "student_model_backbone_arch": args.backbone_arch,
         "student_model_agg_arch": args.agg_arch,
         "student_model_image_size": args.image_size[0],
-        "teacher_model_preset": args.teacher_preset,
         "augmentation_level": args.augmentation_level,
         "lr": args.lr,
         "batch_size": args.batch_size,
         "weight_decay": args.weight_decay,
         "image_size": args.image_size,
         "num_workers": args.num_workers,
-        "latent_dim": model_module.latent_dim,
-        "mse_loss_mult": model_module.mse_loss_mult,
         "train_dataset_dir": args.train_dataset_dir,
         "max_epochs": args.max_epochs,
     }
 
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain-experimental",
-        name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]-LatentDim[{args.latent_dim}]",
+        name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
         config=hyperparameters,
     )
 
@@ -75,13 +69,13 @@ def setup_training(args):
         precision=args.precision,
         max_epochs=args.max_epochs,
         callbacks=[checkpoint_cb, learning_rate_cb],
-        #reload_dataloaders_every_n_epochs=1,
-        #val_check_interval=1.0,
-        #check_val_every_n_epoch=args.max_epochs,
-        #accumulate_grad_batches=args.accumulate_grad_batches,
+        # reload_dataloaders_every_n_epochs=1,
+        # val_check_interval=1.0,
+        # check_val_every_n_epoch=args.max_epochs,
+        # accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
-        log_every_n_steps=1, #200,
-        #overfit_batches=0.1,
+        log_every_n_steps=1,  # 200,
+        overfit_batches=0.1,
     )
     return trainer, model_module
 

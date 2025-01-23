@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models.backbones.vitT import BitLinear, activation_quant_real, weight_quant_real
+from models.backbones.vitT import (BitLinear, activation_quant_real,
+                                   weight_quant_real)
 
 
 # Constants as fixtures

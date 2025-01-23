@@ -258,15 +258,16 @@ class Attention(nn.Module):
         # Output transformation
         self.to_out = nn.Sequential(BitLinear(inner_dim, dim), nn.Dropout(dropout))
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
         # compute q, k, v
         x = self.lnorm1(x)
         qkv = self.to_qkv(x).chunk(3, dim=-1)
         q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), qkv)
 
         # attention
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-        attn = self.attend(dots)
+        attn_map = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        attn = self.attend(attn_map)
+
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
@@ -274,7 +275,10 @@ class Attention(nn.Module):
         # out projection
         out = self.lnorm2(out)
         out = self.to_out(out)
-        return out
+        if return_attn:
+            return out, attn_map
+        else:
+            return out
 
 
 class Transformer(nn.Module):
@@ -309,11 +313,20 @@ class Transformer(nn.Module):
                 )
             )
 
-    def forward(self, x):
-        for attn, ff in self.layers:
-            x = attn(x) + x
-            x = ff(x) + x
-        return x
+    def forward(self, x, return_attn=False):
+        if return_attn:
+            attentions = []
+            for attn, ff in self.layers:
+                x_attn, attn_map = attn(x, return_attn=True)
+                attentions.append(attn_map)
+                x = x_attn + x
+                x = ff(x) + x
+            return x, torch.stack(attentions).permute(1, 0, 2, 3, 4)
+        else:
+            for attn, ff in self.layers:
+                x = attn(x) + x
+                x = ff(x) + x
+            return x
 
 
 class ViT(nn.Module):
@@ -361,7 +374,9 @@ class ViT(nn.Module):
             dropout,
         )
         model_type = (
-            "VittinyT" if self.dim == 192 else "VitsmallT" if self.dim == 384 else "VitbaseT"
+            "VittinyT"
+            if self.dim == 192
+            else "VitsmallT" if self.dim == 384 else "VitbaseT"
         )
         self.name = f"{model_type}{self.image_size}"
 
@@ -374,10 +389,16 @@ class ViT(nn.Module):
         x = self.dropout(x)
         x = self.transformer(x)
         return x
-    
-    def forward_cls(self, x):
-        x = self.forward(x)
-        return x[:, 0]
+
+    def forward_distill(self, x, return_attn=False):
+        x = self.to_patch_embedding(x)
+        b, n, _ = x.shape
+        cls_tokens = self.cls_token.expand(b, -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, : (n + 1)]
+        x = self.dropout(x)
+        x = self.transformer(x, return_attn=return_attn)
+        return x
 
     def deploy(self, use_bitblas=True):
         for module in self.modules():
@@ -390,20 +411,18 @@ class ViT(nn.Module):
                 module.set_qfactor(qfactor)
 
 
-
-
 def VittinyT(image_size=[224, 224]):
     return ViT(
         image_size=image_size[0],
-        patch_size=16,        # Larger patches to reduce sequence length
-        dim=192,             # Smaller embedding dimension
-        depth=6,             # Fewer transformer layers
-        heads=3,             # Fewer attention heads
-        mlp_dim=768,         # MLP dimension (4x dim)
+        patch_size=16,  # Larger patches to reduce sequence length
+        dim=192,  # Smaller embedding dimension
+        depth=6,  # Fewer transformer layers
+        heads=3,  # Fewer attention heads
+        mlp_dim=768,  # MLP dimension (4x dim)
         dropout=0.1,
         emb_dropout=0.1,
         channels=3,
-        dim_head=64,         # Dimension per head
+        dim_head=64,  # Dimension per head
     )
 
 

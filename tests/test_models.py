@@ -45,15 +45,15 @@ def test_available(backbone_arch, agg_arch, image_size, desc_divider_factor):
     assert torch.allclose(features[0].norm().detach().cpu(), torch.ones(1))
 
 
-
-
 @pytest.mark.parametrize(
     "backbone_arch", ["vitbase", "vitsmall", "vitbaset", "vitsmallt"]
 )
 @pytest.mark.parametrize("agg_arch", ["salad", "boq", "mixvpr", "salad"])
 @pytest.mark.parametrize("image_size", [[224, 224], [322, 322]])
 @pytest.mark.parametrize("desc_divider_factor", [None, 2, 4])
-def test_available_nonnormalized(backbone_arch, agg_arch, image_size, desc_divider_factor):
+def test_available_nonnormalized(
+    backbone_arch, agg_arch, image_size, desc_divider_factor
+):
     model = get_model(
         backbone_arch=backbone_arch,
         agg_arch=agg_arch,
@@ -78,7 +78,3 @@ def test_available_nonnormalized(backbone_arch, agg_arch, image_size, desc_divid
     assert features.ndim == 2
     assert features.dtype == torch.float32
     assert not torch.allclose(features[0].norm().detach().cpu(), torch.ones(1))
-
-
-
-

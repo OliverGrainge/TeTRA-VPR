@@ -5,8 +5,8 @@ import tarfile
 from io import BytesIO
 
 from PIL import Image
-from torch.utils.data import Dataset
 from prettytable import PrettyTable
+from torch.utils.data import Dataset
 
 
 class JPGDataset(Dataset):
@@ -14,10 +14,10 @@ class JPGDataset(Dataset):
         # Convert single directory to list for consistent handling
         if isinstance(data_directories, str):
             data_directories = [data_directories]
-        
+
         self.image_paths = []
         total_images = 0
-        
+
         # Create a dictionary to store directory counts
         dir_counts = {}
 
@@ -25,7 +25,9 @@ class JPGDataset(Dataset):
             print(f"\nScanning directory: {data_directory}")
             # Recursively find all jpg files in the directory
             for root, _, files in os.walk(data_directory):
-                jpg_files = [os.path.join(root, f) for f in files if f.lower().endswith('.jpg')]
+                jpg_files = [
+                    os.path.join(root, f) for f in files if f.lower().endswith(".jpg")
+                ]
                 num_images = len(jpg_files)
                 if num_images > 0:
                     relative_path = os.path.relpath(root, data_directory)
@@ -39,14 +41,14 @@ class JPGDataset(Dataset):
         table.align["Directory"] = "l"  # Left align directory
         table.align["Image Count"] = "r"  # Right align count
         table.max_width["Directory"] = 80  # Limit directory column width
-        
+
         # Add rows to the table
         for directory, count in dir_counts.items():
             table.add_row([directory, f"{count:,}"])
-        
+
         # Add total row
         table.add_row(["TOTAL", f"{total_images:,}"])
-        
+
         print("\nDirectory Statistics:")
         print(table)
 
@@ -60,16 +62,16 @@ class JPGDataset(Dataset):
         # Skip known bad images
         while idx in self.bad_images and len(self.bad_images) < len(self.image_paths):
             idx = (idx + 1) % len(self.image_paths)
-            
+
         image_path = self.image_paths[idx]
         try:
             with Image.open(image_path) as image:
-                image = image.convert('RGB')
-                
+                image = image.convert("RGB")
+
                 # Continue processing the image as usual
                 width, height = image.size
 
-                # crop image if it is panoramic and a random direction 
+                # crop image if it is panoramic and a random direction
                 if width > height and width > 2 * height:
                     height, height = 512, 512
                     left = random.randint(0, width - height)
@@ -78,19 +80,19 @@ class JPGDataset(Dataset):
                     image = image.crop((left, 0, right, bottom))
 
                 return image
-                
+
         except Exception as e:
             # Add to bad images cache
             self.bad_images.add(idx)
-            
+
             # If we've found too many bad images, raise an error
             if len(self.bad_images) >= len(self.image_paths):
                 raise RuntimeError("All images appear to be corrupted!")
-                
+
             # Try the next image
             return self.__getitem__((idx + 1) % len(self.image_paths))
-        
-        
+
+
 class DistillDataset(Dataset):
     def __init__(self, dataset, student_transform, teacher_transform):
         self.dataset = dataset

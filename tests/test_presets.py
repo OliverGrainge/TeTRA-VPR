@@ -35,8 +35,9 @@ def test_feature_extraction(preset_name):
     assert features.ndim == 2
     assert features.dtype == torch.float32
 
+
 @pytest.mark.parametrize("preset_name", ["DinoV2_BoQ", "DinoSalad"])
-def test_unormalized_features(preset_name): 
+def test_unormalized_features(preset_name):
     model = get_model(preset=preset_name, normalize=False)
     transform = get_transform(preset=preset_name)
     image = Image.fromarray(

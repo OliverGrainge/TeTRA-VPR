@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Tuple, Union
 
 
-
 @dataclass
 class ModelConfig:
     # training model
@@ -39,8 +38,10 @@ class ModelConfig:
 @dataclass
 class EvalConfig:
     # evaluation dataset
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets" # directory for evaluation datasets
-    checkpoints_dir: str = "./checkpoints/TeTRA/" # directory for TeTRA checkpoints
+    val_dataset_dir: str = (
+        "/home/oliver/datasets_drive/vpr_datasets"  # directory for evaluation datasets
+    )
+    checkpoints_dir: str = "./checkpoints/TeTRA/"  # directory for TeTRA checkpoints
 
     # which evals to run
     val_set_names: Tuple[str] = ()
@@ -60,13 +61,14 @@ class EvalConfig:
     num_workers: int = 4
     image_size: Tuple[int] = (224, 224)
     silent: bool = False
-   
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("Eval")
-        
-        group.add_argument("--val_dataset_dir", type=str, default=EvalConfig.val_dataset_dir)
+
+        group.add_argument(
+            "--val_dataset_dir", type=str, default=EvalConfig.val_dataset_dir
+        )
         group.add_argument(
             "--val_set_names", type=str, nargs="+", default=EvalConfig.val_set_names
         )
@@ -133,10 +135,11 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # list of directories containing jpg images to be used for distillation
-    train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",)#, "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
-    #train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
+    train_dataset_dir: Tuple[str] = (
+        "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",
+    )  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    # train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
     # Teacher model settings
-    teacher_preset: str = "DinoSalad"
 
     # Training hyperparameters
     lr: float = 0.0007
@@ -144,7 +147,7 @@ class DistillConfig:
     accumulate_grad_batches: int = 2
     max_epochs: int = 5
     weight_decay: float = 0.01
-    latent_dim: int = 1024
+    use_attn_loss: bool = False
     # Data processing
     image_size: Tuple[int] = (322, 322)
     augmentation_level: str = "Severe"
@@ -157,9 +160,6 @@ class DistillConfig:
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
         group = parent_parser.add_argument_group("Distillation")
-        group.add_argument(
-            "--teacher_preset", type=str, default=DistillConfig.teacher_preset
-        )
         group.add_argument("--lr", type=float, default=DistillConfig.lr)
         group.add_argument("--batch_size", type=int, default=DistillConfig.batch_size)
         group.add_argument(
@@ -168,9 +168,11 @@ class DistillConfig:
             default=DistillConfig.accumulate_grad_batches,
         )
         group.add_argument("--max_epochs", type=int, default=DistillConfig.max_epochs)
-        group.add_argument("--latent_dim", type=int, default=DistillConfig.latent_dim)
         group.add_argument(
             "--weight_decay", type=float, default=DistillConfig.weight_decay
+        )
+        group.add_argument(
+            "--use_attn_loss", type=bool, default=DistillConfig.use_attn_loss
         )
         group.add_argument(
             "--image_size", type=int, nargs=2, default=DistillConfig.image_size
@@ -196,7 +198,9 @@ class DistillConfig:
 @dataclass
 class TeTRAConfig:
     # directory for gsv-cities dataset
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/" # my desktop
+    train_dataset_dir: str = (
+        "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"  # my desktop
+    )
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 100

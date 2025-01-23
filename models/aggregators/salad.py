@@ -147,5 +147,3 @@ class SALAD(nn.Module):
         )
         # f = nn.functional.normalize(f.flatten(1), p=2, dim=-1)
         return f
-
-
