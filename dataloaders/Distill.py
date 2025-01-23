@@ -38,7 +38,7 @@ class Distill(pl.LightningModule):
         augmentation_level: str,
         use_attn_loss: bool = False,
         token_loss_scale: float = 0.2,
-        attn_loss_scale: float = 0.4,
+        attn_loss_scale: float = 0.1,
     ):
         super().__init__()
         self.student_model_backbone_arch = student_model_backbone_arch
@@ -81,6 +81,8 @@ class Distill(pl.LightningModule):
             image_size=self.student_model_image_size,
         )
         backbone = student.backbone
+        print("============================================= STUDENT =============================================")
+        print(backbone)
         return backbone
 
     def _init_projections(self) -> None:
@@ -169,14 +171,16 @@ class Distill(pl.LightningModule):
     ):
         B = student_images.shape[0]
         if use_attn_loss:
-            teacher_features, teacher_attn = self.teacher.forward_distill(
-                teacher_images, return_attn=True
-            )
+            with torch.no_grad():
+                teacher_features, teacher_attn = self.teacher.forward_distill(
+                    teacher_images, return_attn=True
+                )
             student_features, student_attn = self.student.forward_distill(
                 student_images, return_attn=True
             )
         else:
-            teacher_features = self.teacher.forward_distill(teacher_images)
+            with torch.no_grad():
+                teacher_features = self.teacher.forward_distill(teacher_images)
             student_features = self.student.forward_distill(student_images)
         teacher_features = self.teacher_projection(teacher_features)
         student_features = self.student_projection(student_features)
@@ -205,7 +209,7 @@ class Distill(pl.LightningModule):
             student_attn.shape == teacher_attn.shape
         ), "Student and teacher attention maps must have the same shape"
 
-        # Reshape to (batch * n_layers * n_heads, n_tokens, n_tokens)
+        # Reshape to (batch * n_layers , n_tokens, n_tokens)
         B, L, H, N, N = student_attn.shape
         student_attn = student_attn.reshape(-1, N, N)
         teacher_attn = teacher_attn.reshape(-1, N, N)
@@ -280,9 +284,10 @@ class Distill(pl.LightningModule):
             augmentation_level=self.augmentation_level, image_size=self.image_size
         )
         teacher_transform = get_transform(preset="DinoV2_BoQ")
-
+        print("============================================= TRANSFORMS =============================================")
         print("Student transform: ", student_transform)
         print("Teacher transform: ", teacher_transform)
+        print("======================================================================================================")
         dataset = DistillDataset(
             dataset=train_dataset,
             student_transform=student_transform,

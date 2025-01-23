@@ -72,10 +72,10 @@ def setup_training(args):
         # reload_dataloaders_every_n_epochs=1,
         # val_check_interval=1.0,
         # check_val_every_n_epoch=args.max_epochs,
-        # accumulate_grad_batches=args.accumulate_grad_batches,
+        accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
         log_every_n_steps=1,  # 200,
-        overfit_batches=0.1,
+        limit_train_batches=13000,
     )
     return trainer, model_module
 

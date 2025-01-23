@@ -223,24 +223,36 @@ class BitLinear(nn.Linear):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0):
+    def __init__(self, dim, hidden_dim, dropout=0.0, layer_type="BitLinear"):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.LayerNorm(dim),
-            BitLinear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.LayerNorm(hidden_dim),
-            BitLinear(hidden_dim, dim),
-            nn.Dropout(dropout),
-        )
+        if layer_type.lower() == "bitlinear":
+            self.net = nn.Sequential(
+                nn.LayerNorm(dim),
+                BitLinear(dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.LayerNorm(hidden_dim),
+                BitLinear(hidden_dim, dim),
+                nn.Dropout(dropout),
+            )
+        elif layer_type.lower() == "linear":
+            self.net = nn.Sequential(
+                nn.LayerNorm(dim),
+                nn.Linear(dim, hidden_dim),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, dim),
+                nn.Dropout(dropout),
+            )
+        else:
+            raise ValueError(f"Invalid layer type: {layer_type}")
 
     def forward(self, x):
         return self.net(x)
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0, layer_type="BitLinear"):
         super().__init__()
         inner_dim = dim_head * heads
         self.heads = heads
@@ -251,12 +263,22 @@ class Attention(nn.Module):
         self.lnorm2 = nn.LayerNorm(inner_dim)
 
         # Attention mechanism
-        self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
+        if layer_type.lower() == "bitlinear":
+            self.to_qkv = BitLinear(dim, inner_dim * 3, bias=False)
+        elif layer_type.lower() == "linear":
+            self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
+        else:
+            raise ValueError(f"Invalid layer type: {layer_type}")
         self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
 
         # Output transformation
-        self.to_out = nn.Sequential(BitLinear(inner_dim, dim), nn.Dropout(dropout))
+        if layer_type.lower() == "bitlinear":
+            self.to_out = nn.Sequential(BitLinear(inner_dim, dim), nn.Dropout(dropout))
+        elif layer_type.lower() == "linear":
+            self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        else:
+            raise ValueError(f"Invalid layer type: {layer_type}")
 
     def forward(self, x, return_attn=False):
         # compute q, k, v
@@ -294,7 +316,8 @@ class Transformer(nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
-        for _ in range(depth):
+        for i in range(depth):
+            layer_type = "Linear" if i == depth-1 else "BitLinear"
             self.layers.append(
                 nn.ModuleList(
                     [
@@ -303,11 +326,13 @@ class Transformer(nn.Module):
                             heads=heads,
                             dim_head=dim_head,
                             dropout=dropout,
+                            layer_type=layer_type
                         ),
                         FeedForward(
                             dim,
                             mlp_dim,
                             dropout=dropout,
+                            layer_type=layer_type
                         ),
                     ]
                 )

@@ -270,7 +270,6 @@ class Attention(nn.Module):
 
         q, k, v = qkv[0] * self.scale, qkv[1], qkv[2]
         attn_map = q @ k.transpose(-2, -1)
-
         attn = attn_map.softmax(dim=-1)
         attn = self.attn_drop(attn)
 

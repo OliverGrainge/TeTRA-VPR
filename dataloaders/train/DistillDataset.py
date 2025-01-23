@@ -49,7 +49,7 @@ class JPGDataset(Dataset):
         # Add total row
         table.add_row(["TOTAL", f"{total_images:,}"])
 
-        print("\nDirectory Statistics:")
+        print("============================================= DATASET =============================================")
         print(table)
 
         # Add a cache for known bad images
