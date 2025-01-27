@@ -11,10 +11,14 @@ from . import aggregators, backbones
 def get_backbone(backbone_arch, image_size):
     if "vitbaset" == backbone_arch.lower():
         return backbones.VitbaseT(image_size=image_size)
-    elif "vitsmallt" == backbone_arch.lower():
-        return backbones.VitsmallT(image_size=image_size)
+    elif "vitbaset_partial" == backbone_arch.lower():
+        return backbones.VitbaseT_partial(image_size=image_size)
+    elif "vitbase_fp" == backbone_arch.lower():
+        return backbones.Vitbase_fp(image_size=image_size)
     elif "vittinyt" == backbone_arch.lower():
         return backbones.VittinyT(image_size=image_size)
+    elif "vittinyt_fp" == backbone_arch.lower():
+        return backbones.Vittiny_fp(image_size=image_size)
     else:
         raise Exception(f"Backbone {backbone_arch} not available")
 

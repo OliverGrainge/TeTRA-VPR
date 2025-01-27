@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.strategies import DDPStrategy
 
 torch.set_float32_matmul_precision("medium")
 
@@ -30,12 +31,21 @@ def setup_training(args):
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
         dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
-        filename="{epoch}-{train_loss:.3f}",
-        save_on_train_epoch_end=True,
+        filename="{epoch}-{step}-{train_loss:.4f}-{qfactor:.2f}",
+        save_on_train_epoch_end=False,
+        every_n_train_steps=250,
         auto_insert_metric_name=True,
         save_weights_only=True,
-        save_top_k=1,
+        save_top_k=3,
         mode="min",
+    )
+
+    final_checkpoint_cb = ModelCheckpoint(
+        dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
+        filename="final-{epoch}-{step}-{train_loss:.4f}-{qfactor:.2f}",
+        save_weights_only=True,
+        save_on_train_epoch_end=True,
+        save_last=True,
     )
 
     learning_rate_cb = LearningRateMonitor(logging_interval="step")
@@ -55,27 +65,22 @@ def setup_training(args):
     }
 
     wandb_logger = WandbLogger(
-        project="TeTRA-pretrain-experimental",
+        project="TeTRA-pretrain",
         name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
         config=hyperparameters,
     )
 
     trainer = pl.Trainer(
         enable_progress_bar=args.pbar,
-        devices=1,
-        strategy="auto",
+        strategy=DDPStrategy(find_unused_parameters=True),
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[checkpoint_cb, learning_rate_cb],
-        # reload_dataloaders_every_n_epochs=1,
-        # val_check_interval=1.0,
-        # check_val_every_n_epoch=args.max_epochs,
+        callbacks=[checkpoint_cb, final_checkpoint_cb, learning_rate_cb],
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
-        log_every_n_steps=1,  # 200,
-        limit_train_batches=13000,
+        log_every_n_steps=25,
     )
     return trainer, model_module
 

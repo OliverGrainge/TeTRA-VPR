@@ -12,6 +12,7 @@ import torch.optim as optim
 from PIL import Image
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
+import wandb 
 
 import wandb
 from dataloaders.train.DistillDataset import DistillDataset, JPGDataset
@@ -37,8 +38,8 @@ class Distill(pl.LightningModule):
         num_workers: int,
         augmentation_level: str,
         use_attn_loss: bool = False,
-        token_loss_scale: float = 0.2,
-        attn_loss_scale: float = 0.1,
+        token_loss_scale: float = 0.3,
+        attn_loss_scale: float = 0.02,
     ):
         super().__init__()
         self.student_model_backbone_arch = student_model_backbone_arch
@@ -119,10 +120,11 @@ class Distill(pl.LightningModule):
             self.teacher_projection = nn.Identity()
 
     def setup(self, stage=None):
-        if stage == "fit":
-            wandb.define_metric(f"cosine_loss", summary="min")
-            wandb.define_metric(f"euclidian_loss", summary="min")
+        if stage == "fit" and self.trainer.is_global_zero:
             wandb.define_metric(f"train_loss", summary="min")
+            wandb.define_metric(f"cls_loss", summary="min")
+            wandb.define_metric(f"token_loss", summary="min")
+            wandb.define_metric(f"attn_loss", summary="min")
 
     def freeze_model(self, model):
         for param in model.parameters():
@@ -131,11 +133,7 @@ class Distill(pl.LightningModule):
     def _progressive_quant_scheduler(self):
         x = (
             (
-                self.global_step
-                / (
-                    self.trainer.estimated_stepping_batches
-                    // self.trainer.accumulate_grad_batches
-                )
+                (self.global_step) / (self.trainer.estimated_stepping_batches)
             )
             * 12
         ) - 6
@@ -153,8 +151,7 @@ class Distill(pl.LightningModule):
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
             num_warmup_steps=0,
-            num_training_steps=self.trainer.estimated_stepping_batches
-            // self.trainer.accumulate_grad_batches,
+            num_training_steps=self.trainer.estimated_stepping_batches,
         )
 
         scheduler_config = {
@@ -204,15 +201,19 @@ class Distill(pl.LightningModule):
         )
 
     @staticmethod
-    def _compute_attn_loss(student_attn, teacher_attn, temperature=2.0, scale=50.0):
+    def _compute_attn_loss(student_attn, teacher_attn, temperature=4.0, scale=50.0, last_k=4):
+        student_attn = student_attn[:, -last_k:, :, :, :]  # shape = (B, last_k, H, N, N)
+        teacher_attn = teacher_attn[:, -last_k:, :, :, :]
+        student_attn = student_attn.mean(dim=2)  # now shape = (B, last_k, N, N)
+        teacher_attn = teacher_attn.mean(dim=2)
         assert (
             student_attn.shape == teacher_attn.shape
         ), "Student and teacher attention maps must have the same shape"
 
         # Reshape to (batch * n_layers , n_tokens, n_tokens)
-        B, L, H, N, N = student_attn.shape
-        student_attn = student_attn.reshape(-1, N, N)
-        teacher_attn = teacher_attn.reshape(-1, N, N)
+        B, Lk, N, _ = student_attn.shape  # Lk is last_k
+        student_attn = student_attn.view(B * Lk, N, N)
+        teacher_attn = teacher_attn.view(B * Lk, N, N)
 
         # Apply temperature scaling and compute distributions
         teacher_dist = torch.softmax(teacher_attn / temperature, dim=-1)
@@ -299,7 +300,3 @@ class Distill(pl.LightningModule):
             num_workers=self.num_workers,
             shuffle=True,
         )
-
-    def state_dict(self):
-        sd = self.student.state_dict()
-        return sd

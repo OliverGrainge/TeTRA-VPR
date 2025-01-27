@@ -135,14 +135,15 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # list of directories containing jpg images to be used for distillation
-    train_dataset_dir: Tuple[str] = (
-        "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",
-    )  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
-    # train_dataset_dir: Tuple[str] = ("/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database",)
+    #train_dataset_dir: Tuple[str] = (
+    #    "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",
+    #)  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    train_dataset_dir: Tuple[str] = ("/scratch/oeg1n18/datasets/vpr/gsvcities/Images","/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas",)
+
     # Teacher model settings
 
     # Training hyperparameters
-    lr: float = 0.0007
+    lr: float = 0.0001
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 5
