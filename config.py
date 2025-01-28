@@ -199,12 +199,11 @@ class DistillConfig:
 @dataclass
 class TeTRAConfig:
     # directory for gsv-cities dataset
-    train_dataset_dir: str = (
-        "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"  # my desktop
-    )
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/"
     # Training hyperparameters
     lr: float = 0.0001
-    batch_size: int = 100
+    batch_size: int = 128
     max_epochs: int = 4
     precision: str = "bf16-mixed"
 
@@ -224,6 +223,7 @@ class TeTRAConfig:
     freeze_all_except_last_n: int = 1
 
     # Cities
+    """
     cities: Tuple[str] = (
         "Bangkok",
         "BuenosAires",
@@ -249,10 +249,17 @@ class TeTRAConfig:
         "Osaka",
         "PRS",
     )
+    """
+
+    cities: Tuple[str] = (
+        "Boston",
+        "London",
+        "Melbourne",
+    )
 
     # validation set
     val_set_names: Tuple[str] = (
-        "msls",
+        #"msls",
         "Pitts30k",
     )
 
@@ -287,7 +294,11 @@ class TeTRAConfig:
             default=TeTRAConfig.freeze_all_except_last_n,
         )
         group.add_argument(
-            "--train_dataset_dir", type=str, default=DataConfig.train_dataset_dir
+            "--train_dataset_dir", type=str, default=TeTRAConfig.train_dataset_dir
+        )
+
+        group.add_argument(
+            "--val_dataset_dir", type=str, default=TeTRAConfig.val_dataset_dir
         )
         return parent_parser
 

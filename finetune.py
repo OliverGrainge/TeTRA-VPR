@@ -9,30 +9,47 @@ from pytorch_lightning.loggers import WandbLogger
 from config import ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
+import torch.nn as nn
 
 
-def _get_weights_path(backbone_arch, image_size):
-    folders = os.listdir("checkpoints/TeTRA-pretrain")
-    for folder in folders:
-        if (
-            backbone_arch.lower() + str(image_size[0]) in folder.lower()
-            and "progressivequant" in folder.lower()
-        ):
-            weights_folder = os.path.join("checkpoints/TeTRA-pretrain", folder)
-            weights_avail = os.listdir(weights_folder)
-            if len(weights_avail) > 0:
-                if len(weights_avail) > 1:
-                    print(
-                        f"Multiple weights available for {backbone_arch} {image_size}. Using latest."
-                    )
-                    return os.path.join(weights_folder, weights_avail[0])
-                elif len(weights_avail) == 1:
-                    return os.path.join(weights_folder, weights_avail[0])
-                else:
-                    print(f"No weights available for {backbone_arch} {image_size}")
-            else:
-                print(f"No weights available for {backbone_arch} {image_size}")
-    return None
+BACKBONE_WEIGHT_PATH = "/home/oliver/Documents/github/TeTRA-VPR/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=2-step=46000-train_loss_step=0.000.ckpt"
+
+def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
+    backbone = model.backbone
+
+    for param in backbone.parameters(): 
+        param.requires_grad = False
+
+    # set dropout to 0 for all layers except the last unfreeze_n_last_layers
+    for block in backbone.transformer.layers[:-unfreeze_n_last_layers]:
+        for name, module in block.named_modules(): 
+            if isinstance(module, nn.Dropout): 
+                module.p = 0.0
+                
+    # only train the last unfreeze_n_last_layers
+    for block in (backbone.transformer.layers[-unfreeze_n_last_layers:]):
+        for param in block.parameters(): 
+            param.requires_grad = True  
+    
+    # make sure the backbone is in fully quantized mode 
+    for module in model.modules(): 
+        if hasattr(module, "set_qfactor"):
+            module.set_qfactor(1.0) 
+
+    return model 
+
+
+
+def _load_backbone_weights(model: nn.Module, backbone_weights_path: str):
+    sd = torch.load(backbone_weights_path, weights_only=False)["state_dict"]
+    new_sd = {}
+    for key, value in sd.items(): 
+        if key.startswith("student"): 
+            new_sd[key.replace("student.", "")] = value 
+
+    model.backbone.load_state_dict(new_sd, strict=True)
+    return model 
+
 
 
 def load_model(args):
@@ -43,25 +60,15 @@ def load_model(args):
         desc_divider_factor=args.desc_divider_factor,
     )
 
-    weights_path = _get_weights_path(args.backbone_arch, args.image_size)
+    if not os.path.exists(BACKBONE_WEIGHT_PATH):
+        raise FileNotFoundError(
+            f"Backbone weights not found at: {BACKBONE_WEIGHT_PATH}\n"
+            "Please ensure the path is correct and the file exists."
+        )
 
-    model.backbone.eval()
-
-    if weights_path is not None:
-        if not os.path.exists(weights_path):
-            raise ValueError(f"Checkpoint {args.weights_path} does not exist")
-
-        sd = torch.load(weights_path, weights_only=False)["state_dict"]
-        for k, v in sd.items():
-            print(k, v.shape)
-        backbone_sd = {
-            k.replace("backbone.", ""): v
-            for k, v in sd.items()
-            if k.startswith("backbone.")
-        }
-        model.backbone.load_state_dict(backbone_sd, strict=False)
-        for param in model.backbone.parameters():
-            param.requires_grad = False
+    
+    model = _load_backbone_weights(model, backbone_weights_path=BACKBONE_WEIGHT_PATH)
+    model = _freeze_backbone(model, unfreeze_n_last_layers=1)
     model.train()
     return model
 
@@ -79,10 +86,10 @@ def setup_training(args, model):
         lr=args.lr,
         scheduler_type=args.quant_schedule,
     )
-
+    """
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"MSLS_val_q_R1",  # msls_val_q_R1
-        dirpath=f"./checkpoints/TeTRA-finetune/{str(model)}-DescDividerFactor[{args.desc_divider_factor}]",
+        monitor=f"Pittsburgh30k_val_q_R1",  # msls_val_q_R1
+        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
         filename="{epoch}-{MSLS_val_q_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -90,10 +97,10 @@ def setup_training(args, model):
         save_top_k=1,
         mode="max",
     )
-
+    """
     wandb_logger = WandbLogger(
         project="TeTRA-finetune",
-        name=f"{str(model)}",
+        name=f"{model.name}",
     )
 
     trainer = pl.Trainer(
@@ -103,10 +110,11 @@ def setup_training(args, model):
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[checkpoint_cb],
+        callbacks=[],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
-        check_val_every_n_epoch=args.max_epochs,
+        check_val_every_n_epoch=1,
+        log_every_n_steps=1,
     )
 
     return trainer, model_module

@@ -10,18 +10,22 @@ from pytorch_metric_learning.distances import CosineSimilarity
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
+import math 
 
 import wandb
-from config import DataConfig, ModelConfig, TeTRAConfig
+from config import ModelConfig, TeTRAConfig
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
-from dataloaders.utils.TeTRA.distances import HammingDistance, binarize
-from dataloaders.utils.TeTRA.losses import get_loss, get_miner
-from dataloaders.utils.TeTRA.schedulers import QuantScheduler
+from dataloaders.utils.distances import HammingDistance, binarize
+from dataloaders.utils.losses import get_loss, get_miner
+from dataloaders.utils.schedulers import QuantScheduler
 from matching.match_cosine import match_cosine
 from matching.match_hamming import match_hamming
 from models.transforms import get_transform
+from dataloaders.eval.accuracy import get_val_dataset, DATASET_MAPPING
+from dataloaders.eval.accuracy import get_recall_at_k, get_val_dataset
 
 
+    
 class TeTRA(pl.LightningModule):
     def __init__(
         self,
@@ -29,7 +33,7 @@ class TeTRA(pl.LightningModule):
         train_dataset_dir,
         val_dataset_dir,
         batch_size=32,
-        image_size=[224, 224],
+        image_size=[322, 322],
         num_workers=4,
         val_set_names=["pitts30k"],
         cities=["London", "Melbourne", "Boston"],
@@ -108,48 +112,12 @@ class TeTRA(pl.LightningModule):
                 augmentation_level="None", image_size=self.image_size
             )
             for val_set_name in self.val_set_names:
-                if "pitts30k" in val_set_name.lower():
-                    from dataloaders.val.PittsburghDataset import \
-                        PittsburghDataset30k
+                self.val_datasets.append(get_val_dataset(val_set_name, self.val_dataset_dir, val_transform))
+                
+            for val_set_name in self.val_set_names:
+                wandb.define_metric(f"{val_set_name}_R1", summary="max")
 
-                    self.val_datasets.append(
-                        PittsburghDataset30k(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                elif "msls" in val_set_name.lower():
-                    from dataloaders.val.MapillaryDataset import MSLS
 
-                    self.val_datasets.append(
-                        MSLS(
-                            val_dataset_dir=self.val_dataset_dir,
-                            input_transform=val_transform,
-                            which_set="val",
-                        )
-                    )
-                else:
-                    raise NotImplementedError(
-                        f"Evaluation set {val_set_name} not implemented"
-                    )
-
-                for val_set_name in self.val_set_names:
-                    wandb.define_metric(f"{val_set_name}_R1", summary="max")
-
-    def _setup_schedulers(self):
-        self.schedulers = {
-            "quant": QuantScheduler(
-                total_steps=self.trainer.estimated_stepping_batches,
-                scheduler_type=self.scheduler_type,
-            )
-        }
-
-    def _step_schedulers(self, batch_idx):
-        if (batch_idx + 1) % self.trainer.accumulate_grad_batches == 0:
-            for param_name, schd in self.schedulers.items():
-                schd.step()
-                self.log(param_name, schd.get_last_lr()[0], on_step=True)
 
     def reload(self):
         self.train_dataset = GSVCitiesDataset(
@@ -176,27 +144,35 @@ class TeTRA(pl.LightningModule):
     def forward(self, x):
         x = self.model(x)
         return x
+    
+    def configure_optimizers(self): 
+        backbone_params = self.model.backbone.parameters()
+        aggregation_params = self.model.aggregation.parameters()
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
+        param_groups = [
+            {'params': backbone_params, 'lr': self.lr * 0.1},  # Lower lr for backbone
+            {'params': aggregation_params, 'lr': self.lr}  # Higher lr for aggregator
+        ]
 
-        total_steps = self.trainer.estimated_stepping_batches
-        # warmup_steps = int(0.1 * total_steps)  # 10% of total steps for warmup
-        warmup_steps = 0
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer, num_warmup_steps=warmup_steps, num_training_steps=total_steps
-        )
-
-        self._setup_schedulers()
+        optimizer = torch.optim.AdamW(param_groups)
+    
+        #total_steps = self.trainer.estimated_stepping_batches
+        #scheduler = get_cosine_schedule_with_warmup(
+        #    optimizer, 
+        #    num_warmup_steps=int(0.1 * total_steps),
+        #    num_training_steps=total_steps
+        #)
+        #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",
-                "frequency": 1,
-            },
-        }
+            #"lr_scheduler": {
+            #    "scheduler": scheduler,
+            #    "interval": "step",
+            #    "frequency": 1,
+            #},
+    }
+
 
     def _fp_loss_func(self, descriptors, labels):
         miner_outputs = self.fp_miner(descriptors, labels)
@@ -231,6 +207,16 @@ class TeTRA(pl.LightningModule):
             logger=True,
         )
         return loss
+    
+    def _progressive_quant_scheduler(self):
+        x = (
+            (
+                (self.global_step) / (self.trainer.estimated_stepping_batches)
+            )
+            * 12
+        ) - 6
+        qfactor = 1 / (1 + math.exp(-x))
+        return qfactor
 
     def training_step(self, batch, batch_idx):
         places, labels = batch
@@ -244,19 +230,17 @@ class TeTRA(pl.LightningModule):
         images1, images2 = images[:split_size], images[split_size : 2 * split_size]
         # Process each half separately and concatenate
         descriptors1 = self(images1).to(torch.bfloat16)
-        print("==============================================", descriptors1.dtype)
         descriptors2 = self(images2).to(torch.bfloat16)
-        print("==============================================", descriptors1.dtype)
         descriptors = torch.cat([descriptors1, descriptors2], dim=0)
 
         fp_loss = self._fp_loss_func(descriptors, labels)
         q_loss = self._q_loss_func(descriptors, labels)
-
-        q_lambda = self.schedulers["quant"].get_last_lr()[0]
-        loss = (1 - q_lambda) * fp_loss + q_lambda * q_loss
-        # self._step_schedulers(batch_idx)
-        self.log("fp_loss", fp_loss, prog_bar=True, logger=True)
-        self.log("q_loss", q_loss, prog_bar=True, logger=True)
+        #qfactor = self._progressive_quant_scheduler()
+        qfactor = 0.0
+        loss = (1 - qfactor) * fp_loss + qfactor * q_loss
+        self.log("qfactor", qfactor, logger=True)
+        self.log("fp_loss", fp_loss, logger=True)
+        self.log("q_loss", q_loss, logger=True)
         self.log("loss", loss, prog_bar=True, logger=True)
         return loss
 
@@ -280,65 +264,26 @@ class TeTRA(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         """Process the validation outputs stored in self.validation_outputs_global."""
-
-        full_recalls_dict = {}
+        table = PrettyTable()
+        table.field_names = ["Dataset", "Float32 R@1", "Binary R@1"]
+        table.float_format = '.2'
+        
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             descriptors = torch.concat(set_outputs, dim=0)
 
-            fp_recalls_dict, _, search_time = match_cosine(
-                descriptors,
-                num_references=val_dataset.num_references,
-                ground_truth=val_dataset.ground_truth,
-                k_values=[1, 5, 10],
-            )
+            recall_float32 = get_recall_at_k(descriptors, val_dataset, k_values=[1], precision="float32")[0]
+            recall_binary = get_recall_at_k(descriptors, val_dataset, k_values=[1], precision="binary")[0]
 
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R1"] = fp_recalls_dict[
-                "R1"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R5"] = fp_recalls_dict[
-                "R5"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_R10"] = fp_recalls_dict[
-                "R10"
-            ]
-            full_recalls_dict[f"{val_dataset.__repr__()}_fp32_search_time"] = (
-                search_time
-            )
+            dataset_name = repr(val_dataset).replace("_val", "").replace("_test", "")
+            self.log(f"{dataset_name}_binary_R1", recall_binary, prog_bar=True, logger=True)
+            self.log(f"{dataset_name}_float32_R1", recall_float32, prog_bar=True, logger=True)
+            
+            table.add_row([dataset_name, f"{recall_float32:.1f}%", f"{recall_binary:.1f}%"])
 
-            q_recalls_dict, _, search_time = match_hamming(
-                descriptors,
-                num_references=val_dataset.num_references,
-                ground_truth=val_dataset.ground_truth,
-                k_values=[1, 5, 10],
-            )
-
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R1"] = q_recalls_dict["R1"]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R5"] = q_recalls_dict["R5"]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_R10"] = q_recalls_dict["R10"]
-            full_recalls_dict[f"{val_dataset.__repr__()}_q_search_time"] = search_time
-        self.log_dict(
-            full_recalls_dict,
-            logger=True,
-        )
-        table = PrettyTable()
-        table.field_names = ["Metric", "Value"]
-        for metric, value in full_recalls_dict.items():
-            table.add_row([metric, f"{value:.4f}"])
-
-        print(f"\nResults for {val_set_name}:")
+        print("\nValidation Results:")
         print(table)
-        return full_recalls_dict
 
     def state_dict(self):
         # Override the state_dict method to return only the student model's state dict
         return self.model.state_dict()
-
-
-if __name__ == "__main__":
-    torch.set_float32_matmul_precision("medium")
-
-    parser = argparse.ArgumentParser()
-    for config in [DataConfig, ModelConfig, TeTRAConfig]:
-        parser = config.add_argparse_args(parser)
-    args = parser.parse_args()
