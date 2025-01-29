@@ -135,10 +135,10 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # list of directories containing jpg images to be used for distillation
-    train_dataset_dir: Tuple[str] = (
-        "/home/oliver/datasets_drive/vpr_datasets/SFU/dry",
-    )  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
-    #train_dataset_dir: Tuple[str] = ("/scratch/oeg1n18/datasets/vpr/gsvcities/Images","/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas",)
+    #train_dataset_dir: Tuple[str] = (
+    #    "/home/oliver/datasets_drive/vpr_datasets/SFU/dry",
+    #)  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    train_dataset_dir: Tuple[str] = ("/scratch/oeg1n18/datasets/vpr/gsvcities/Images","/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas",)
 
     # Teacher model settings
 
