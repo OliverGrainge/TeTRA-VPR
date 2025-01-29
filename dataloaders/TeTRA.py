@@ -112,7 +112,7 @@ class TeTRA(pl.LightningModule):
                 augmentation_level="None", image_size=self.image_size
             )
             for val_set_name in self.val_set_names:
-                self.val_datasets.append(get_val_dataset(val_set_name, self.val_dataset_dir, val_transform))
+                self.val_datasets.append(get_val_dataset(val_set_name, self.val_dataset_dir, val_transform, which_set="val"))
                 
             for val_set_name in self.val_set_names:
                 wandb.define_metric(f"{val_set_name}_R1", summary="max")
@@ -150,27 +150,26 @@ class TeTRA(pl.LightningModule):
         aggregation_params = self.model.aggregation.parameters()
 
         param_groups = [
-            {'params': backbone_params, 'lr': self.lr * 0.1},  # Lower lr for backbone
+            {'params': backbone_params, 'lr': self.lr * 0.5},  # Lower lr for backbone
             {'params': aggregation_params, 'lr': self.lr}  # Higher lr for aggregator
         ]
 
         optimizer = torch.optim.AdamW(param_groups)
     
-        #total_steps = self.trainer.estimated_stepping_batches
-        #scheduler = get_cosine_schedule_with_warmup(
-        #    optimizer, 
-        #    num_warmup_steps=int(0.1 * total_steps),
-        #    num_training_steps=total_steps
-        #)
-        #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
+        total_steps = self.trainer.estimated_stepping_batches
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer, 
+            num_warmup_steps=0,
+            num_training_steps=total_steps
+        )
 
         return {
             "optimizer": optimizer,
-            #"lr_scheduler": {
-            #    "scheduler": scheduler,
-            #    "interval": "step",
-            #    "frequency": 1,
-            #},
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "step",
+                "frequency": 1,
+            },
     }
 
 
@@ -235,8 +234,7 @@ class TeTRA(pl.LightningModule):
 
         fp_loss = self._fp_loss_func(descriptors, labels)
         q_loss = self._q_loss_func(descriptors, labels)
-        #qfactor = self._progressive_quant_scheduler()
-        qfactor = 0.0
+        qfactor = self._progressive_quant_scheduler()
         loss = (1 - qfactor) * fp_loss + qfactor * q_loss
         self.log("qfactor", qfactor, logger=True)
         self.log("fp_loss", fp_loss, logger=True)

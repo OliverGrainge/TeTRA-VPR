@@ -146,7 +146,7 @@ class DistillConfig:
     lr: float = 0.0001
     batch_size: int = 128
     accumulate_grad_batches: int = 2
-    max_epochs: int = 5
+    max_epochs: int = 30
     weight_decay: float = 0.01
     use_attn_loss: bool = False
     # Data processing
@@ -199,12 +199,12 @@ class DistillConfig:
 @dataclass
 class TeTRAConfig:
     # directory for gsv-cities dataset
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/"
+    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities/"
+    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/"
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 128
-    max_epochs: int = 4
+    max_epochs: int = 20
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
@@ -223,7 +223,7 @@ class TeTRAConfig:
     freeze_all_except_last_n: int = 1
 
     # Cities
-    """
+    
     cities: Tuple[str] = (
         "Bangkok",
         "BuenosAires",
@@ -256,7 +256,7 @@ class TeTRAConfig:
         "London",
         "Melbourne",
     )
-
+    """
     # validation set
     val_set_names: Tuple[str] = (
         #"msls",
@@ -309,32 +309,4 @@ class TeTRAConfig:
         )
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser = DataConfig.add_argparse_args(parser)
-    parser = ModelConfig.add_argparse_args(parser)
 
-    # Create separate parsers for Distill and TeTRA configs
-    distill_parser = ArgumentParser()
-    distill_parser = DataConfig.add_argparse_args(distill_parser)
-    distill_parser = ModelConfig.add_argparse_args(distill_parser)
-    distill_parser = DistillConfig.add_argparse_args(distill_parser)
-    args = distill_parser.parse_args()
-    distill_config = DistillConfig.from_argparse_args(args)
-
-    print("")
-    print("========= Distill CONFIG =========")
-    for key, value in distill_config.__dict__.items():
-        print(f"{key}: {value}")
-
-    tetra_parser = ArgumentParser()
-    tetra_parser = DataConfig.add_argparse_args(tetra_parser)
-    tetra_parser = ModelConfig.add_argparse_args(tetra_parser)
-    tetra_parser = TeTRAConfig.add_argparse_args(tetra_parser)
-    args = tetra_parser.parse_args()
-    tetra_config = TeTRAConfig.from_argparse_args(args)
-
-    print("")
-    print("========= TETRA CONFIG =========")
-    for key, value in tetra_config.__dict__.items():
-        print(f"{key}: {value}")

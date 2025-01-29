@@ -3,7 +3,7 @@ import os
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
 from config import ModelConfig, TeTRAConfig
@@ -12,7 +12,7 @@ from models.helper import get_model
 import torch.nn as nn
 
 
-BACKBONE_WEIGHT_PATH = "/home/oliver/Documents/github/TeTRA-VPR/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=2-step=46000-train_loss_step=0.000.ckpt"
+BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=7-step=61500-train_loss=0.0513-qfactor=1.00.ckpt"
 
 def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     backbone = model.backbone
@@ -86,9 +86,9 @@ def setup_training(args, model):
         lr=args.lr,
         scheduler_type=args.quant_schedule,
     )
-    """
+
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"Pittsburgh30k_val_q_R1",  # msls_val_q_R1
+        monitor=f"Pittsburgh30k_float32_R1",  # msls_val_q_R1
         dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
         filename="{epoch}-{MSLS_val_q_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
@@ -97,7 +97,10 @@ def setup_training(args, model):
         save_top_k=1,
         mode="max",
     )
-    """
+
+
+    learning_rate_cb = LearningRateMonitor(logging_interval="step")
+
     wandb_logger = WandbLogger(
         project="TeTRA-finetune",
         name=f"{model.name}",
@@ -110,11 +113,12 @@ def setup_training(args, model):
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[],
+        callbacks=[learning_rate_cb, checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=1,
+        limit_train_batches=10,
     )
 
     return trainer, model_module

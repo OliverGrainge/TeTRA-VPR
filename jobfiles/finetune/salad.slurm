@@ -9,35 +9,9 @@
 #SBATCH --mem=128G
 #SBATCH --output=jobfiles/finetune/logs/salad.log
 #SBATCH --error=jobfiles/finetune/logs/salad.err
-#SBATCH --partition=swarm_a100
+#SBATCH --partition=a100
 
 source tetraenv/bin/activate
 export WANDB_MODE=offline
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 1
-
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 1
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 1
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 1
-
-
-
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 2
-
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 2
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 2
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 2
-
-
-
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 4
-
-python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 4
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 322 322 --batch_size 100 --num_workers 12 --desc_divider_factor 4
-
-python finetune.py --agg_arch salad --backbone_arch vitsmallt --image_size 224 224 --batch_size 100 --num_workers 12 --desc_divider_factor 4
+python finetune.py --agg_arch salad --backbone_arch vitbaset --image_size 322 322 --batch_size 128 --num_workers 12 --desc_divider_factor 1
 
