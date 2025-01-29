@@ -39,7 +39,7 @@ class Distill(pl.LightningModule):
         augmentation_level: str,
         use_attn_loss: bool = False,
         token_loss_scale: float = 0.3,
-        attn_loss_scale: float = 0.02,
+        attn_loss_scale: float = 0.05,
     ):
         super().__init__()
         self.student_model_backbone_arch = student_model_backbone_arch
@@ -135,7 +135,7 @@ class Distill(pl.LightningModule):
             (
                 (self.global_step) / (self.trainer.estimated_stepping_batches)
             )
-            * 12
+            * 16
         ) - 6
         qfactor = 1 / (1 + math.exp(-x))
         return qfactor
@@ -150,7 +150,7 @@ class Distill(pl.LightningModule):
         # Calculate the total number of training steps
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=0,
+            num_warmup_steps=int(0.05 * self.trainer.estimated_stepping_batches),
             num_training_steps=self.trainer.estimated_stepping_batches,
         )
 
