@@ -9,9 +9,11 @@
 #SBATCH --mem=128G
 #SBATCH --output=jobfiles/finetune/logs/boq.log
 #SBATCH --error=jobfiles/finetune/logs/boq.err
-#SBATCH --partition=a100
+#SBATCH --partition=swarm_h100
 
 source tetraenv/bin/activate
 export WANDB_MODE=offline
-python finetune.py --agg_arch boq --backbone_arch vitbaset --image_size 322 322 --batch_size 128 --num_workers 12 --desc_divider_factor 1
-
+python finetune.py --agg_arch boq --backbone_arch vitbaset --image_size 322 322 --batch_size 200 --num_workers 12 --desc_divider_factor 1
+python finetune.py --agg_arch boq --backbone_arch vitbaset --image_size 322 322 --batch_size 200 --num_workers 12 --desc_divider_factor 2
+python finetune.py --agg_arch boq --backbone_arch vitbaset --image_size 322 322 --batch_size 200 --num_workers 12 --desc_divider_factor 4
+python finetune.py --agg_arch boq --backbone_arch vitbaset --image_size 322 322 --batch_size 200 --num_workers 12 --desc_divider_factor 8

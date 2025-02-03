@@ -135,15 +135,15 @@ class EvalConfig:
 @dataclass
 class DistillConfig:
     # list of directories containing jpg images to be used for distillation
-    train_dataset_dir: Tuple[str] = (
-        "/home/oliver/datasets_drive/vpr_datasets/SFU/dry",
-    )  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
-    #train_dataset_dir: Tuple[str] = ("/scratch/oeg1n18/datasets/vpr/gsvcities/Images","/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas",)
+    #train_dataset_dir: Tuple[str] = (
+    #    "/home/oliver/datasets_drive/vpr_datasets/SFU/dry",
+    #)  # , "/home/oliver/datasets_drive/vpr_datasets/amstertime/images/test/database") # my desktop
+    train_dataset_dir: Tuple[str] = ("/scratch/oeg1n18/datasets/vpr/gsvcities/Images","/scratch/oeg1n18/datasets/vpr/sf_xl/raw/train/panoramas",)
 
     # Teacher model settings
 
     # Training hyperparameters
-    lr: float = 0.0001
+    lr: float = 0.0004
     batch_size: int = 128
     accumulate_grad_batches: int = 2
     max_epochs: int = 30
@@ -203,8 +203,8 @@ class TeTRAConfig:
     val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/"
     # Training hyperparameters
     lr: float = 0.0001
-    batch_size: int = 128
-    max_epochs: int = 20
+    batch_size: int = 200
+    max_epochs: int = 40
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
@@ -216,7 +216,7 @@ class TeTRAConfig:
 
     # Runtime settings
     pbar: bool = False
-    num_workers: int = 0
+    num_workers: int = 12
     checkpoint_dir: str = ""
 
     # backbone freezing
@@ -259,8 +259,7 @@ class TeTRAConfig:
     """
     # validation set
     val_set_names: Tuple[str] = (
-        #"msls",
-        "Pitts30k",
+        "MSLS",
     )
 
     @staticmethod

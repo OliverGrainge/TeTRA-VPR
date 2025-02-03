@@ -12,7 +12,7 @@ from models.helper import get_model
 import torch.nn as nn
 
 
-BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=7-step=61500-train_loss=0.0513-qfactor=1.00.ckpt"
+BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=17-step=138750-train_loss=0.0463-qfactor=1.00.ckpt"
 
 def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     backbone = model.backbone
@@ -88,9 +88,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"Pittsburgh30k_float32_R1",  # msls_val_q_R1
+        monitor=f"MSLS_binary_R1",  # msls_val_q_R1
         dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
-        filename="{epoch}-{MSLS_val_q_R1:.2f}",  # msls_val_q_R1
+        filename="{epoch}-{MSLS_binary_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -98,12 +98,9 @@ def setup_training(args, model):
         mode="max",
     )
 
-
-    learning_rate_cb = LearningRateMonitor(logging_interval="step")
-
     wandb_logger = WandbLogger(
         project="TeTRA-finetune",
-        name=f"{model.name}",
+        name=f"{model.name}-DD[{args.desc_divider_factor}]",
     )
 
     trainer = pl.Trainer(
@@ -113,12 +110,11 @@ def setup_training(args, model):
         num_sanity_val_steps=0,
         precision=args.precision,
         max_epochs=args.max_epochs,
-        callbacks=[learning_rate_cb, checkpoint_cb],
+        callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
         check_val_every_n_epoch=1,
-        log_every_n_steps=1,
-        limit_train_batches=10,
+        log_every_n_steps=10,
     )
 
     return trainer, model_module

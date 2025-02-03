@@ -11,6 +11,8 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 from transformers import get_cosine_schedule_with_warmup
 import math 
+import torch.optim as optim
+import torch.nn.functional as F
 
 import wandb
 from config import ModelConfig, TeTRAConfig
@@ -24,6 +26,22 @@ from models.transforms import get_transform
 from dataloaders.eval.accuracy import get_val_dataset, DATASET_MAPPING
 from dataloaders.eval.accuracy import get_recall_at_k, get_val_dataset
 
+
+class BinarizeSTE(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        ctx.save_for_backward(input)
+        return input.sign()  # Returns -1 or 1
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_tensors
+        # Create gradient mask: 1 for inputs in [-1,1], 0 otherwise
+        grad_mask = (input.abs() <= 1).float()
+        return grad_output * grad_mask
+
+def binarize(x):
+    return BinarizeSTE.apply(x)
 
     
 class TeTRA(pl.LightningModule):
@@ -50,19 +68,11 @@ class TeTRA(pl.LightningModule):
         self.cities = cities
         self.batch_acc = []
         # full precision loss and miner
-        self.fp_loss_fn = losses.MultiSimilarityLoss(
+        self.loss_fn = losses.MultiSimilarityLoss(
             alpha=1.0, beta=50, base=0.0, distance=CosineSimilarity()
         )
-        self.fp_miner = miners.MultiSimilarityMiner(
+        self.miner = miners.MultiSimilarityMiner(
             epsilon=0.1, distance=CosineSimilarity()
-        )
-
-        # quantization aware loss and miner
-        self.q_loss_fn = losses.MultiSimilarityLoss(
-            alpha=1.0, beta=50, base=0.0, distance=HammingDistance()
-        )
-        self.q_miner = miners.MultiSimilarityMiner(
-            epsilon=0.1, distance=HammingDistance()
         )
 
         self.model = model
@@ -115,7 +125,8 @@ class TeTRA(pl.LightningModule):
                 self.val_datasets.append(get_val_dataset(val_set_name, self.val_dataset_dir, val_transform, which_set="val"))
                 
             for val_set_name in self.val_set_names:
-                wandb.define_metric(f"{val_set_name}_R1", summary="max")
+                wandb.define_metric(f"{val_set_name}_binary_R1", summary="max")
+                wandb.define_metric(f"{val_set_name}_float32_R1", summary="max")
 
 
 
@@ -150,32 +161,33 @@ class TeTRA(pl.LightningModule):
         aggregation_params = self.model.aggregation.parameters()
 
         param_groups = [
-            {'params': backbone_params, 'lr': self.lr * 0.5},  # Lower lr for backbone
+            {'params': backbone_params, 'lr': self.lr * 0.1},  # Lower lr for backbone
             {'params': aggregation_params, 'lr': self.lr}  # Higher lr for aggregator
         ]
 
-        optimizer = torch.optim.AdamW(param_groups)
+        optimizer = torch.optim.AdamW(param_groups, weight_decay=0.001)
     
-        total_steps = self.trainer.estimated_stepping_batches
-        scheduler = get_cosine_schedule_with_warmup(
-            optimizer, 
-            num_warmup_steps=0,
-            num_training_steps=total_steps
-        )
+        def lr_lambda(epoch):
+            if (epoch + 1) < 3:
+                return (epoch + 1) / 3  # Linear warmup
+            else:
+                return 0.3 ** sum(epoch >= milestone for milestone in [10, 20, 30])
+            
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step",
-                "frequency": 1,
-            },
-    }
-
+                "interval": "epoch",  # Step every epoch
+                "frequency": 1,  # Step once per epoch
+            }
+        }
+    
 
     def _fp_loss_func(self, descriptors, labels):
-        miner_outputs = self.fp_miner(descriptors, labels)
-        loss = self.fp_loss_fn(descriptors, labels, miner_outputs)
+        miner_outputs = self.miner(descriptors, labels)
+        loss = self.loss_fn(descriptors, labels, miner_outputs)
 
         nb_samples = descriptors.shape[0]
         nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
@@ -183,7 +195,7 @@ class TeTRA(pl.LightningModule):
 
         self.batch_acc.append(batch_acc)
         self.log(
-            "fp_b_acc",
+            "fp_acc",
             sum(self.batch_acc) / len(self.batch_acc),
             prog_bar=True,
             logger=True,
@@ -191,8 +203,10 @@ class TeTRA(pl.LightningModule):
         return loss
 
     def _q_loss_func(self, descriptors, labels):
-        miner_outputs = self.q_miner(descriptors, labels)
-        loss = self.q_loss_fn(descriptors, labels, miner_outputs)
+        miner_outputs = self.miner(descriptors, labels)
+        bin_descriptors = binarize(descriptors) 
+        bin_descriptors = F.normalize(bin_descriptors, dim=-1)
+        loss = self.loss_fn(bin_descriptors, labels, miner_outputs)
 
         nb_samples = descriptors.shape[0]
         nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
@@ -200,7 +214,7 @@ class TeTRA(pl.LightningModule):
 
         self.batch_acc.append(batch_acc)
         self.log(
-            "q_b_acc",
+            "binary_acc",
             sum(self.batch_acc) / len(self.batch_acc),
             prog_bar=True,
             logger=True,
@@ -236,6 +250,10 @@ class TeTRA(pl.LightningModule):
         q_loss = self._q_loss_func(descriptors, labels)
         qfactor = self._progressive_quant_scheduler()
         loss = (1 - qfactor) * fp_loss + qfactor * q_loss
+
+        for i, param_group in enumerate(self.optimizers().param_groups):
+            self.log(f'lr_group_{i}', param_group['lr'], logger=True)
+
         self.log("qfactor", qfactor, logger=True)
         self.log("fp_loss", fp_loss, logger=True)
         self.log("q_loss", q_loss, logger=True)
