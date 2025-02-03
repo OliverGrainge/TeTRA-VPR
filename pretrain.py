@@ -80,7 +80,7 @@ def setup_training(args):
         callbacks=[checkpoint_cb, final_checkpoint_cb, learning_rate_cb],
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
-        log_every_n_steps=1,#25,
+        log_every_n_steps=50,
     )
     return trainer, model_module
 
