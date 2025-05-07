@@ -1306,18 +1306,6 @@ def get_trained_boq(backbone_name="resnet50", output_dim=16384, normalize=True):
     return vpr_model
 
 
-
-def DinoV2_BoQ_Backbone(image_size=[224, 224], normalize=True):
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
-        io.StringIO()
-    ):
-        model = get_trained_boq(
-            backbone_name="dinov2", output_dim=12288, normalize=normalize
-        ).backbone
-    model.name = f"DINOv2"
-    return model
-
-
 def bitlinear_quantize_model(model: nn.Module) -> nn.Module:
     # First collect all the modules that need to be replaced
     replacements = {}
@@ -1339,7 +1327,21 @@ def bitlinear_quantize_model(model: nn.Module) -> nn.Module:
     return model
 
 
-def DinoV2_BoQ_Backbone_Ternary(image_size=[224, 224], normalize=True):
+
+def BoQ_Backbone(image_size=[224, 224], normalize=True):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
+        model = get_trained_boq(
+            backbone_name="dinov2", output_dim=12288, normalize=normalize
+        ).backbone
+    model.name = f"DINOBoQ"
+    return model
+
+
+
+
+def BoQ_Backbone_Ternary(image_size=[224, 224], normalize=True):
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()
     ):
@@ -1347,6 +1349,26 @@ def DinoV2_BoQ_Backbone_Ternary(image_size=[224, 224], normalize=True):
             backbone_name="dinov2", output_dim=12288, normalize=normalize
         ).backbone
     model = bitlinear_quantize_model(model)
-    model.name = f"DINOv2T"
+    model.name = f"DINOBoQT"
+    return model
+
+
+def DINO_Backbone(image_size=[224, 224], normalize=True):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
+        model = DinoV2()
+    model.name = f"DINO"
+    return model
+
+
+
+def DINO_Backbone_Ternary(image_size=[224, 224], normalize=True):
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+        io.StringIO()
+    ):
+        model = DinoV2()
+    model = bitlinear_quantize_model(model)
+    model.name = f"DINOT"
     return model
 

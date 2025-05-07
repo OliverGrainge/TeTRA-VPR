@@ -26,6 +26,24 @@ from models.transforms import get_transform
 from dataloaders.eval.accuracy import get_val_dataset, DATASET_MAPPING
 from dataloaders.eval.accuracy import get_recall_at_k, get_val_dataset
 
+def _linear_schedule(step, total_steps):
+    return min(step / total_steps, 1.0)
+
+def _cosine_schedule(step, total_steps):
+    s = min(step / total_steps, 1.0)
+    return 0.5 * (1 - math.cos(math.pi * s))
+
+def _logistic_schedule(step, total_steps, k=16, shift=6):
+    # your existing “sigmoid” trick
+    x = (step / total_steps) * k - shift
+    return 1 / (1 + math.exp(-x))
+
+QUANT_SCHEDULES = {
+    "linear": _linear_schedule,
+    "cosine": _cosine_schedule,
+    "logistic": _logistic_schedule,
+}
+
 
 class BinarizeSTE(torch.autograd.Function):
     @staticmethod
@@ -58,7 +76,7 @@ class TeTRA(pl.LightningModule):
         lr=0.0001,
         img_per_place=4,
         min_img_per_place=4,
-        scheduler_type="simgmoid",
+        quant_schedule="simgmoid",
     ):
         super().__init__()
         # Model parameters
@@ -87,7 +105,7 @@ class TeTRA(pl.LightningModule):
         self.random_sample_from_each_place = True
         self.train_dataset = None
         self.val_datasets = []
-        self.scheduler_type = scheduler_type
+        self.quant_scheduler = QUANT_SCHEDULES[quant_schedule]
 
         # Train and valid transforms
         self.train_transform = get_transform(
@@ -221,15 +239,9 @@ class TeTRA(pl.LightningModule):
         )
         return loss
     
+
     def _progressive_quant_scheduler(self):
-        x = (
-            (
-                (self.global_step) / (self.trainer.estimated_stepping_batches)
-            )
-            * 12
-        ) - 6
-        qfactor = 1 / (1 + math.exp(-x))
-        return qfactor
+        return self.quant_scheduler(self.global_step, self.trainer.estimated_stepping_batches)
 
     def training_step(self, batch, batch_idx):
         places, labels = batch
