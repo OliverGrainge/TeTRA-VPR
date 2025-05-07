@@ -28,6 +28,7 @@ def setup_training(args):
         use_attn_loss=args.use_attn_loss,
     )
 
+
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
         dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
