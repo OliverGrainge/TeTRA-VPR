@@ -406,7 +406,7 @@ class ViT(nn.Module):
             if self.dim == 192
             else "VitsmallT" if self.dim == 384 else "VitbaseT"
         )
-        self.name = f"{model_type}{self.image_size}"
+        self.name = f"TeTRA-{model_type}{self.image_size}"
 
     def forward(self, img):
         x = self.to_patch_embedding(img)

@@ -12,13 +12,20 @@ from models.helper import get_model
 import torch.nn as nn
 
 
-BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=17-step=138750-train_loss=0.0463-qfactor=1.00.ckpt"
+#BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=17-step=138750-train_loss=0.0463-qfactor=1.00.ckpt"
 
-def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
+def _freeze_module(module): 
+    for param in module.parameters(): 
+        param.requires_grad = False
+
+def _unfreeze_module(module): 
+    for param in module.parameters(): 
+        param.requires_grad = True
+
+def _freeze_tetra_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     backbone = model.backbone
 
-    for param in backbone.parameters(): 
-        param.requires_grad = False
+    _freeze_module(backbone)
 
     # set dropout to 0 for all layers except the last unfreeze_n_last_layers
     for block in backbone.transformer.layers[:-unfreeze_n_last_layers]:
@@ -28,8 +35,7 @@ def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
                 
     # only train the last unfreeze_n_last_layers
     for block in (backbone.transformer.layers[-unfreeze_n_last_layers:]):
-        for param in block.parameters(): 
-            param.requires_grad = True  
+        _unfreeze_module(block)
     
     # make sure the backbone is in fully quantized mode 
     for module in model.modules(): 
@@ -39,6 +45,20 @@ def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     return model 
 
 
+def _freeze_dino_backbone(model: nn.Module, unfreeze_n_last_layers: int = 3):
+    _freeze_module(model.backbone.dino.patch_embed) 
+
+    for blk in model.backbone.dino.blocks[:-unfreeze_n_last_layers]: 
+        _freeze_module(blk)
+        
+    return model 
+
+
+def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
+    if model.name.lower().startswith("dino"): 
+        return _freeze_dino_backbone(model, unfreeze_n_last_layers)
+    else: 
+        return _freeze_tetra_backbone(model, unfreeze_n_last_layers)
 
 def _load_backbone_weights(model: nn.Module, backbone_weights_path: str):
     sd = torch.load(backbone_weights_path, weights_only=False)["state_dict"]
@@ -47,7 +67,7 @@ def _load_backbone_weights(model: nn.Module, backbone_weights_path: str):
         if key.startswith("student"): 
             new_sd[key.replace("student.", "")] = value 
 
-    model.backbone.load_state_dict(new_sd, strict=True)
+    model.backbone.load_state_dict(new_sd)
     return model 
 
 
@@ -60,17 +80,20 @@ def load_model(args):
         desc_divider_factor=args.desc_divider_factor,
     )
 
-    if not os.path.exists(BACKBONE_WEIGHT_PATH):
-        raise FileNotFoundError(
-            f"Backbone weights not found at: {BACKBONE_WEIGHT_PATH}\n"
-            "Please ensure the path is correct and the file exists."
-        )
+    if args.backbone_checkpoint is not None: 
+        model = _load_backbone_weights(model, backbone_weights_path=args.backbone_checkpoint)
+        print("=================================================================")
+        print("Loaded backbone weights from: ", args.backbone_checkpoint)
+        print("=================================================================")
 
-    
-    model = _load_backbone_weights(model, backbone_weights_path=BACKBONE_WEIGHT_PATH)
-    model = _freeze_backbone(model, unfreeze_n_last_layers=1)
+    if args.freeze_backbone: 
+        model = _freeze_backbone(model, unfreeze_n_last_layers=1)
+        print("=================================================================")
+        print("Frozen backbone weights")
+        print("=================================================================")
     model.train()
     return model
+
 
 
 def setup_training(args, model):
@@ -84,12 +107,12 @@ def setup_training(args, model):
         num_workers=args.num_workers,
         cities=args.cities,
         lr=args.lr,
-        scheduler_type=args.quant_schedule,
+        quant_schedule=args.quant_schedule,
     )
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"MSLS_binary_R1",  # msls_val_q_R1
-        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
+        dirpath=f"./checkpoints/TeTRA-finetune/{args.quant_schedule}/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
         filename="{epoch}-{MSLS_binary_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -115,6 +138,7 @@ def setup_training(args, model):
         logger=wandb_logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=10,
+        limit_train_batches=50,
     )
 
     return trainer, model_module

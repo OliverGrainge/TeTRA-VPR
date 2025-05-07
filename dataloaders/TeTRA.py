@@ -239,7 +239,6 @@ class TeTRA(pl.LightningModule):
         )
         return loss
     
-
     def _progressive_quant_scheduler(self):
         return self.quant_scheduler(self.global_step, self.trainer.estimated_stepping_batches)
 

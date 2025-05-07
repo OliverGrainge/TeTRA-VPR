@@ -208,7 +208,9 @@ class TeTRAConfig:
     precision: str = "bf16-mixed"
 
     # Loss and mining settings
-    quant_schedule: str = "sigmoid"
+    quant_schedule: str = "logistic" # either "logistic", "linear" or "cosine"
+    backbone_checkpoint: str = None # path to the checkpoint of the backbone model
+    freeze_backbone: bool = False
 
     # Data processing
     image_size: Tuple[int] = (224, 224)
@@ -286,6 +288,12 @@ class TeTRAConfig:
         )
         group.add_argument(
             "--quant_schedule", type=str, default=TeTRAConfig.quant_schedule
+        )
+        group.add_argument(
+            "--backbone_checkpoint", type=str, default=TeTRAConfig.backbone_checkpoint
+        )
+        group.add_argument(
+            "--freeze_backbone", type=bool, default=TeTRAConfig.freeze_backbone
         )
         group.add_argument(
             "--freeze_all_except_last_n",

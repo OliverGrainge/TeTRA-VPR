@@ -83,7 +83,7 @@ class VPRModel(nn.Module):
         self.aggregation = aggregation
         self.normalize = normalize
 
-        self.name = f"TeTRA-{self.backbone.name}_{self.aggregation.name}"
+        self.name = f"{self.backbone.name}_{self.aggregation.name}"
 
     def forward(self, x):
         x = self.backbone(x)
