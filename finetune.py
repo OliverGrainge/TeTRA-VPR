@@ -138,7 +138,7 @@ def setup_training(args, model):
         logger=wandb_logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=10,
-        limit_train_batches=50,
+        #limit_train_batches=50,
     )
 
     return trainer, model_module

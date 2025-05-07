@@ -199,8 +199,10 @@ class DistillConfig:
 @dataclass
 class TeTRAConfig:
     # directory for gsv-cities dataset
-    train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities/"
-    val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/"
+    #train_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/gsvcities/"
+    #val_dataset_dir: str = "/scratch/oeg1n18/datasets/vpr/"
+    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"
+    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/"
     # Training hyperparameters
     lr: float = 0.0001
     batch_size: int = 200
