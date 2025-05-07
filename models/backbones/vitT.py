@@ -150,10 +150,13 @@ class BitLinear(nn.Linear):
         if mode:
             self._buffers.clear()
         else:
-            qweight, scale = weight_quant_real(self.weight)
-            self.qweight = qweight
-            self.scale = scale
+            # Only quantize if we haven't deployed yet
+            if not (self.deployed_real or self.deployed_fake):
+                qweight, scale = weight_quant_real(self.weight)
+                self.qweight = qweight
+                self.scale = scale
         self = super().train(mode)
+        
 
     def deploy(self, use_bitblas=True, opt_M=None):
         try:

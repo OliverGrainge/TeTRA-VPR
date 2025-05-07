@@ -17,7 +17,7 @@ def get_backbone(backbone_arch, image_size):
         raise Exception(f"Backbone {backbone_arch} not available")
 
 
-def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=None):
+def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=1):
     config = {}
     if "gem" in agg_arch.lower():
         config["features_dim"] = features_dim

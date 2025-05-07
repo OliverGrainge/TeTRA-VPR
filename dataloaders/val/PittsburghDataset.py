@@ -15,7 +15,6 @@ from torch.utils.data import Dataset
 
 class PittsburghDataset30k(Dataset):
     def __init__(self, val_dataset_dir=None, input_transform=None, which_set="val"):
-
         assert which_set.lower() in ["val", "test"]
 
         self.input_transform = input_transform
@@ -39,6 +38,8 @@ class PittsburghDataset30k(Dataset):
             f"dataloaders/val/image_paths/pitts30k_{which_set}_gt.npy",
             allow_pickle=True,
         )
+
+        print(len(self.dbImages), len(self.qImages), len(self.ground_truth))
 
         # reference images then query images
         self.images = np.concatenate((self.dbImages, self.qImages))
