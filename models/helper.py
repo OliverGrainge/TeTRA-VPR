@@ -13,6 +13,10 @@ def get_backbone(backbone_arch, image_size):
         return backbones.VitbaseT(image_size=image_size)
     elif "vittinyt" == backbone_arch.lower():
         return backbones.VittinyT(image_size=image_size)
+    elif "dinov2" == backbone_arch.lower():
+        return backbones.DinoV2_BoQ_Backbone(image_size=image_size)
+    elif "dinov2t" == backbone_arch.lower():
+        return backbones.DinoV2_BoQ_Backbone_Ternary(image_size=image_size)
     else:
         raise Exception(f"Backbone {backbone_arch} not available")
 
