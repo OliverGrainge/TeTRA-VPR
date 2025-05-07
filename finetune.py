@@ -112,7 +112,7 @@ def setup_training(args, model):
 
     checkpoint_cb = ModelCheckpoint(
         monitor=f"MSLS_binary_R1",  # msls_val_q_R1
-        dirpath=f"./checkpoints/TeTRA-finetune/{args.quant_schedule}/{model.name}-DescDividerFactor[{args.desc_divider_factor}]",
+        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-QSch[{args.quant_schedule}]-Frozen[{args.freeze_backbone}]",
         filename="{epoch}-{MSLS_binary_R1:.2f}",  # msls_val_q_R1
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,

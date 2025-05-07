@@ -38,10 +38,14 @@ def _logistic_schedule(step, total_steps, k=16, shift=6):
     x = (step / total_steps) * k - shift
     return 1 / (1 + math.exp(-x))
 
+def _no_schedule(step, total_steps):
+    return 1.0
+
 QUANT_SCHEDULES = {
     "linear": _linear_schedule,
     "cosine": _cosine_schedule,
     "logistic": _logistic_schedule,
+    "none": _no_schedule,
 }
 
 
@@ -76,7 +80,7 @@ class TeTRA(pl.LightningModule):
         lr=0.0001,
         img_per_place=4,
         min_img_per_place=4,
-        quant_schedule="simgmoid",
+        quant_schedule="logistic",
     ):
         super().__init__()
         # Model parameters
