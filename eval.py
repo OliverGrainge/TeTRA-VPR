@@ -108,7 +108,13 @@ def _load_model_and_transform(args):
     state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if "state_dict" in state_dict.keys():
         state_dict = state_dict["state_dict"]
-        model.load_state_dict(state_dict)
+        
+        new_sd = {}
+        for key, value in state_dict.items():
+            new_key = key.replace("backbone.", "backbone.dino.")
+            new_sd[new_key] = value
+        
+        model.load_state_dict(new_sd)
 
     for param in model.parameters():
         param.requires_grad = False

@@ -53,7 +53,6 @@ def _freeze_dino_backbone(model: nn.Module, unfreeze_n_last_layers: int = 3):
         
     return model 
 
-
 def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     if model.name.lower().startswith("dino"): 
         return _freeze_dino_backbone(model, unfreeze_n_last_layers)
@@ -91,6 +90,8 @@ def load_model(args):
         print("=================================================================")
         print("Frozen backbone weights")
         print("=================================================================")
+    else: 
+        _unfreeze_module(model)
     model.train()
     return model
 
