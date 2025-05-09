@@ -32,36 +32,26 @@ Welcome to the official codebase that accompanies the paper **“TeTRA‑VPR: A 
 
 ---
 
-## Requirements & Installation
+## Requirements & Installation
+
+All dependencies are pinned in **`requirements.txt`** (generated with [pip‑chill](https://github.com/acl21/pip-chill)). Install everything in one line:
 
 ```bash
-# Create a fresh environment (tested with Python 3.10)
-conda create -n tetra_vpr python=3.10
-conda activate tetra_vpr
-
-# Core dependencies
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install pytorch-lightning==2.2.2 timm==0.9.16 faiss-gpu==1.7.4
-pip install opencv-python scikit-learn pandas tqdm yacs
-
-# (Optional) Mixed‑precision & BF16 support
-pip install xformers==0.0.26
+python -m pip install -r requirements.txt
 ```
 
-> **GPU:** All results were obtained on NVIDIA H100 (80 GB, SM90). Training also fits on ≥24 GB GPUs (A6000, 4090) with `--accumulate_grad_batches` set appropriately.
+> **GPU:** All results were obtained on NVIDIA H100 (80 GB, SM90). Training also fits on ≥24 GB GPUs (A6000, 4090) with `--accumulate_grad_batches` set appropriately.
 
 ---
 
 ## Repository Structure
 
 ```text
-├── configs.py              # Dataclass definitions: ModelConfig, DistillConfig, TeTRAConfig
+├── config.py               # Dataclass definitions: ModelConfig, DistillConfig, TeTRAConfig
 ├── pretrain.py             # Stage 1 – progressive ternary distillation
 ├── finetune.py             # Stage 2 – supervised binary fine‑tuning
-├── data/                   # Data loaders & augmentation pipelines
+├── dataloaders/            # Data loaders for pretrain.py and finetune.py
 ├── models/                 # ViT backbone, quantisation ops, aggregation heads
-├── losses/                 # Distillation + Multi‑Similarity losses
-├── scripts/                # Utility scripts (evaluation, export, plotting)
 └── README.md               # You are here 🚀
 ```
 
@@ -69,26 +59,33 @@ pip install xformers==0.0.26
 
 ## Datasets
 
-### 1. **Unlabelled distillation data**
+> **License notice:** Check the terms for each dataset—some require explicit attribution or restrict redistribution.
 
-* **San Francisco XL panoramas** and **GSV‑Cities/Images**. Place the raw JPEGs under a single root folder, e.g.:
+### 1. Unlabelled distillation data. 
 
-  ```text
-  /data/vpr_datasets/gsv-cities/Images/Bangkok/...
-  ```
+* **San Francisco XL** panoramas \[[application form](https://github.com/gmberton/CosPlace?tab=readme-ov-file)] 
 
-### 2. **Supervised fine‑tuning & validation**
+Place the raw JPEGs under a single root folder, e.g.:
 
-* **GSV‑Cities** (training)   – `--train_dataset_dir`
-* **MSLS**, **Pitts30k**, **Tokyo247**, **SVOX‑{Night,Rain,Snow,Sun}** (validation) – group them under `--val_dataset_dir`:
+```text
+/data/vpr_datasets/sf_xl
+```
 
-  ```text
-  /data/vpr_datasets/MSLS/...
-  /data/vpr_datasets/Pitts30k/...
-  ...
-  ```
+### 2. Supervised fine‑tuning & validation
 
-> Dataset download links and scripts are provided in `scripts/download_datasets.sh`.
+* **GSV‑Cities** – used for finetuning (download from \[[Kaggle](https://www.kaggle.com/datasets/amaralibey/gsv-cities)])
+* **MSLS** – used for validation during fine‑tuning – official download \[[Mapillary Places](https://www.mapillary.com/dataset/places)] and the script for formatting it can be found here \[[VPR‑datasets‑downloader](https://github.com/gmberton/VPR-datasets-downloader)].
+
+### Required directory layout
+
+To reproduce the paper's results, organise your datasets as follows:
+
+````text
+/path/to/vpr_datasets/msls/...        # (formatted for VPR)
+/path/to/vpr_datasets/gsv-cities/...
+/path/to/vpr_datasets/sf_xl/raw/panoramas/...
+````
+
 
 ---
 
@@ -110,7 +107,7 @@ Train the ternary ViT backbone from scratch using unlabeled images.
 
 ```bash
 python pretrain.py \
-  --train_dataset_dir /data/vpr_datasets/gsv-cities/Images \
+  --train_dataset_dir /path/to/sf_xl/raw/panoramas/ \
   --backbone_arch ternaryvitbase \
   --agg_arch boq \
   --lr 4e-4 \
@@ -124,13 +121,13 @@ python pretrain.py \
 
 Outputs:
 
-* `./checkpoints/pretrain_epoch=29.ckpt` – lightning checkpoint (≈ 47 MB).
-* `./logs/` – TensorBoard event files with loss curves & quant λ(t).
+* `./checkpoints/model_name/**step=N-train_loss=M-qfactor-1.0.ckpt` – lightning checkpoint
+    - here qfactor, refers to the progressive quantization factor (read the paper for more info)
 
 ⚠️ **Tips**
 
-* Use `--noramlize False` if you plan to integrate with aggregation heads that already normalise outputs.
 * Mixed precision speeds up training by \~30 % on Ampere and newer GPUs.
+* Uncomment DDPStrategy in pretrain.py if in multi-gpu environment. 
 
 ---
 
@@ -141,9 +138,8 @@ Fine‑tune aggregation head + final ViT block using place labels.
 ```bash
 python finetune.py \
   --pretrain_checkpoint ./checkpoints/pretrain_epoch=29.ckpt \
-  --train_dataset_dir /data/vpr_datasets/gsv-cities \
-  --val_dataset_dir   /data/vpr_datasets \
-  --cities Bangkok London Rome "LosAngeles" \
+  --train_dataset_dir /path/to/gsv-cities \
+  --val_dataset_dir   /path/to/vpr_datasets/ # msls should be inside here \
   --agg_arch boq \
   --quant_schedule logistic \
   --freeze_backbone True \
@@ -156,28 +152,8 @@ python finetune.py \
 
 Outputs:
 
-* `./checkpoints/finetune_boQ_epoch=39.ckpt` – final binary‑embedding model (≈ 49 MB).
-* `./embeddings/*.bin` – optional cached descriptors for validation sets.
-
----
-
-## Evaluation & Inference
-
-Generate binary descriptors & compute Recall\@1 on **Tokyo247**:
-
-```bash
-python scripts/eval.py \
-  --checkpoint ./checkpoints/finetune_boQ_epoch=39.ckpt \
-  --dataset Tokyo247 --topk 100
-```
-
-*Uses FAISS Hamming index; expects query/reference split under the dataset folder.*
-
-For **real‑time localisation** on a video stream:
-
-```bash
-python scripts/stream_localisation.py --checkpoint <ckpt> --source 0
-```
+* `./checkpoints/model_name/epoch=N-MSLS_binary_R1=***.ckpt` – final binary‑embedding model (≈ 49 MB).
+    - `MSLS_binary_R1` in the path records the recall@1 on msls validation set, with binary descriptors
 
 ---
 
@@ -192,15 +168,18 @@ python scripts/stream_localisation.py --checkpoint <ckpt> --source 0
 ---
 
 ## Reproducing the Paper
-
-To replicate Tables I & III from the manuscript:
+use these two pything scripts. The default configs, will reproduce the TeTRA-BoQ result, with a logistic 
+quantization schedule. Change the defaults in the cli to experiment further with TeTRA.
 
 ```bash
-bash scripts/reproduce_icra25.sh  # runs all benchmarks & logs metrics to CSV
-python scripts/plot_tradeoffs.py   # recreates Fig. 3 & 4
-```
+python pretrain.py 
+python finetune.py --pretrain_checkpoint /path/to/pretrain_checkpoint.ckpt
+````
 
-> **Expected hardware:** 1× A100 80GB or 4× RTX 4090 (gradient accumulation=3).
+> **Expected pretraining hardware:** 4× H100 80GB for pretraining (gradient accumulation=2) using the DDP distribution strategy.
+> **Expected finetuning hardward:** 1x H100 80GB for finetuning. 
+
+similar results can be achieved with less training and smaller models. Try the `--backbone_arch ternaryvitsmall` for faster training. 
 
 ---
 
@@ -209,12 +188,14 @@ python scripts/plot_tradeoffs.py   # recreates Fig. 3 & 4
 If you use this codebase or the pretrained models, please cite:
 
 ```bibtex
-@article{Grainge2025TeTRA,
-  title   = {TeTRA--VPR: A Ternary Transformer Approach for Compact Visual Place Recognition},
-  author  = {Oliver Grainge and Michael Milford and Indu Bodala and Sarvapali~D.~Ramchurn and Shoaib Ehsan},
-  journal = {IEEE Transactions on Robotics},
-  year    = {2025},
-  note    = {arXiv:2503.02511}
+@misc{grainge2025tetravpr,
+      title={TeTRA-VPR: A Ternary Transformer Approach for Compact Visual Place Recognition}, 
+      author={Oliver Grainge and Michael Milford and Indu Bodala and Sarvapali D. Ramchurn and Shoaib Ehsan},
+      year={2025},
+      eprint={2503.02511},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2503.02511}, 
 }
 ```
 
