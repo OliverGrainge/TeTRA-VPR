@@ -1,6 +1,6 @@
-# TeTRA‑VPR: Ternary Transformer for Efficient Visual Place Recognition
+# TeTRA-VPR: Ternary Transformer for Efficient Visual Place Recognition
 
-Welcome to the official codebase that accompanies the paper **“TeTRA‑VPR: A Ternary Transformer Approach for Compact Visual Place Recognition”** (ICRA 2025, pre‑print arXiv:2503.02511). This repository provides everything you need to reproduce the two‑stage training pipeline—**progressive distillation pre‑training** and **supervised fine‑tuning**—as well as scripts for evaluation and inference on common VPR benchmarks.
+Welcome to the official codebase that accompanies the paper **“TeTRA-VPR: A Ternary Transformer Approach for Compact Visual Place Recognition”** (ICRA 2025, pre-print arXiv:2503.02511). This repository provides everything you need to reproduce the two-stage training pipeline—**progressive distillation pre-training** and **supervised fine-tuning**—as well as scripts for evaluation and inference on common VPR benchmarks.
 
 ---
 
@@ -15,28 +15,90 @@ Welcome to the official codebase that accompanies the paper **“TeTRA‑VPR: A 
 ## Table of Contents
 
 1. [Key Features](#key-features)
-2. [Requirements & Installation](#requirements--installation)
-3. [Repository Structure](#repository-structure)
-4. [Datasets](#datasets)
-5. [Configuration System](#configuration-system)
-6. [Stage 1 – Progressive Distillation Pre‑Training](#stage-1--progressive-distillation-pre-training)
-7. [Stage 2 – Supervised Fine‑Tuning](#stage-2--supervised-fine-tuning)
-8. [Evaluation & Inference](#evaluation--inference)
-9. [Pre‑Trained Checkpoints](#pre-trained-checkpoints)
-10. [Reproducing the Paper](#reproducing-the-paper)
-11. [Citation](#citation)
-12. [License](#license)
-13. [Contact](#contact)
+2. [Quickstart with Torch Hub](#quickstart-with-torch-hub)
+3. [Requirements & Installation](#requirements--installation)
+4. [Repository Structure](#repository-structure)
+5. [Datasets](#datasets)
+6. [Configuration System](#configuration-system)
+7. [Stage 1 – Progressive Distillation Pre-Training](#stage-1--progressive-distillation-pre-training)
+8. [Stage 2 – Supervised Fine-Tuning](#stage-2--supervised-fine-tuning)
+9. [Evaluation & Inference](#evaluation--inference)
+10. [Pre-Trained Checkpoints](#pre-trained-checkpoints)
+11. [Reproducing the Paper](#reproducing-the-paper)
+12. [Citation](#citation)
+13. [License](#license)
+14. [Contact](#contact)
 
 ---
 
 ## Key Features
 
-* **Ultra‑low‑bit ViT backbone** – weights quantised to **2‑bit ternary** precision; final embeddings **1‑bit binary**.
-* **Progressive Quantisation‑Aware Training** – smooth sigmoid schedule for stable convergence (Eq. 9 / 10 in the paper).
-* **Multi‑level Distillation Loss** – aligns classification tokens, patch tokens and attention maps to a DinoV2‑BoQ teacher.
-* **Plug‑and‑Play Aggregation** – choose between **BoQ**, **SALAD**, **MixVPR** or **GeM** via `--agg_arch`.
-* **Turn‑key scripts** – `pretrain.py` and `finetune.py` reproduce all experiments with a single command.
+* **Ultra-low-bit ViT backbone** – weights quantised to **2-bit ternary** precision; final embeddings **1-bit binary**.
+* **Progressive Quantisation-Aware Training** – smooth sigmoid schedule for stable convergence (Eq. 9 / 10 in the paper).
+* **Multi-level Distillation Loss** – aligns classification tokens, patch tokens and attention maps to a DinoV2-BoQ teacher.
+* **Plug-and-Play Aggregation** – choose between **BoQ**, **SALAD**, **MixVPR** or **GeM** via `--agg_arch`.
+* **Torch Hub integration** – load the latest **TeTRA** checkpoints with **one line of code**, no manual cloning required.
+* **Turn-key scripts** – `pretrain.py` and `finetune.py` reproduce all experiments with a single command.
+
+---
+
+## Quickstart with Torch Hub
+
+If you only need **inference** and do **not** plan to train, the quickest way to use TeTRA-VPR is via **[torch.hub](https://pytorch.org/docs/stable/hub.html)**. The call below automatically **downloads the weights** and returns a ready-to-use model on your default device.
+
+```python
+import torch
+import torchvision.transforms as T
+import numpy as np
+from PIL import Image
+
+# Load pre-trained models (BoQ and SALAD aggregation heads)
+tetra_boq   = torch.hub.load(
+    repo_or_dir='OliverGrainge/TeTRA-VPR',
+    model='TeTRA',
+    aggregation_arch='boq',
+    pretrained=True
+)
+
+tetra_salad = torch.hub.load(
+    repo_or_dir='OliverGrainge/TeTRA-VPR',
+    model='TeTRA',
+    aggregation_arch='salad',
+    pretrained=True
+)
+
+# Image preprocessing (same as training)
+transform = T.Compose([
+    T.Resize((322, 322)),           # Resize to ViT patch-friendly size
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]),
+])
+
+# Dummy RGB image for demo purposes
+img = Image.fromarray(
+    np.random.randint(0, 255, (322, 322, 3), dtype=np.uint8)
+)
+img = transform(img)[None]  # add batch dimension
+
+with torch.inference_mode():
+    desc_boq   = tetra_boq(img)   # (B, 12 288), dtype=torch.uint8
+    desc_salad = tetra_salad(img) # (B, 8 448), dtype=torch.uint8
+
+print(desc_boq.shape, desc_boq.dtype)
+print(desc_salad.shape, desc_salad.dtype)
+```
+
+**Output**
+
+```
+torch.Size([1, 12288]) torch.uint8
+torch.Size([1, 8448]) torch.uint8
+```
+
+Each descriptor is already L2-normalised and binary-packed (1 bit / dim). For nearest-neighbour search we recommend **FAISS IVF-PQ** or **mAP+HNSW**.
+
+> **Tip 💡** `torch.hub.load` fully supports offline use. Call it **once** with an internet connection to cache the weights under `~/.cache/torch/hub/` and you are good to go.
 
 ---
 
@@ -169,9 +231,9 @@ Outputs:
 
 | Model        | Aggregation | Descriptor Dim | R\@1 (Tokyo247) | Size  | Link                                              |
 | ------------ | ----------- | -------------- | --------------- | ----- | ------------------------------------------------- |
-| TeTRA‑BoQ    | BoQ         | 1024 (binary)  | **88.6 %**      | 49 MB | [download](https://example.com/tetra_boQ.ckpt)    |
-| TeTRA‑SALAD  | SALAD       | 256 (binary)   | 85.4 %          | 45 MB | [download](https://example.com/tetra_salad.ckpt)  |
-| TeTRA‑MixVPR | MixVPR      | 512 (binary)   | 82.5 %          | 46 MB | [download](https://example.com/tetra_mixvpr.ckpt) |
+| TeTRA‑BoQ    | BoQ         | 12288 (binary) | **86.6 %**      | 49 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip)    |
+| TeTRA‑SALAD  | SALAD       | 8448 (binary)  | 84.7 %          | 45 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip)  |
+
 
 ---
 
@@ -180,7 +242,10 @@ use these two pything scripts. The default configs, will reproduce the TeTRA-BoQ
 quantization schedule. Change the defaults in the cli to experiment further with TeTRA.
 
 ```bash
+# run pretrain
 python pretrain.py 
+
+# run finetune
 python finetune.py --pretrain_checkpoint /path/to/pretrain_checkpoint.ckpt
 ````
 
