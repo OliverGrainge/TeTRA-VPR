@@ -155,3 +155,5 @@ if __name__ == "__main__":
     model = load_model(args)
     trainer, model_module = setup_training(args, model)
     trainer.fit(model_module)
+
+

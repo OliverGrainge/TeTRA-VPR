@@ -183,7 +183,7 @@ class TeTRA(pl.LightningModule):
         aggregation_params = self.model.aggregation.parameters()
 
         param_groups = [
-            {'params': backbone_params, 'lr': self.lr * 0.1},  # Lower lr for backbone
+            {'params': backbone_params, 'lr': self.lr},  # Lower lr for backbone
             {'params': aggregation_params, 'lr': self.lr}  # Higher lr for aggregator
         ]
 
