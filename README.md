@@ -286,4 +286,3 @@ This project is released under the **MIT License**. See [`LICENSE`](LICENSE) fo
 * **Ollie Grainge** – [oeg1n18@soton.ac.uk](mailto:oeg1n18@soton.ac.uk)
 * Pull requests are welcome! Open an issue for feature requests or bug reports.
 
-> *“A place is worth a bag of ternary queries.”*  – TeTRA motto 🛰️🚀
