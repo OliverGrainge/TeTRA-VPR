@@ -72,6 +72,7 @@ def evaluate(args, model, example_input):
             model, example_input
         )
 
+
     if args.descriptor_size:
         get_size_fn = (
             memory.get_binary_descriptor_size_bytes
