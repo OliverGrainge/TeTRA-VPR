@@ -82,8 +82,8 @@ img = Image.fromarray(
 img = transform(img)[None]  # add batch dimension
 
 with torch.inference_mode():
-    desc_boq   = tetra_boq(img)   # (B, 12 288), dtype=torch.uint8
-    desc_salad = tetra_salad(img) # (B, 8 448), dtype=torch.uint8
+    desc_boq   = tetra_boq(img)  
+    desc_salad = tetra_salad(img) 
 
 print(desc_boq.shape)
 print(desc_salad.shape)
@@ -92,8 +92,8 @@ print(desc_salad.shape)
 **Output**
 
 ```
-torch.Size([1, 12288]) torch.uint8
-torch.Size([1, 8448]) torch.uint8
+torch.Size([1, 12288])
+torch.Size([1, 8448])
 ```
 
 Each descriptor is already L2-normalised and binary-packed (1 bit / dim). For nearest-neighbour search we recommend **FAISS IVF-PQ** or **mAP+HNSW**.
