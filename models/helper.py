@@ -1,6 +1,3 @@
-import importlib
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,71 +6,54 @@ from . import aggregators, backbones
 
 
 def get_backbone(backbone_arch, image_size):
-    if "vitbaset" == backbone_arch.lower():
-        return backbones.VitbaseT(image_size=image_size)
-    elif "vittinyt" == backbone_arch.lower():
-        return backbones.VittinyT(image_size=image_size)
-    elif "dino" == backbone_arch.lower():
-        return backbones.DINO_Backbone(image_size=image_size)
-    elif "dinot" == backbone_arch.lower():
-        return backbones.DINO_Backbone_Ternary(image_size=image_size)
-    elif "dinoboq" == backbone_arch.lower():
-        return backbones.BoQ_Backbone(image_size=image_size)
-    elif "dinoboqt" == backbone_arch.lower():
-        return backbones.BoQ_Backbone_Ternary(image_size=image_size)
+    if "ternaryvitbase" == backbone_arch.lower():
+        return backbones.TernaryVitBase(image_size=image_size)
+    elif "ternaryvitsmall" == backbone_arch.lower():
+        return backbones.TernaryVitSmall(image_size=image_size)
     else:
         raise Exception(f"Backbone {backbone_arch} not available")
 
 
-def get_aggregator(agg_arch, features_dim, image_size, desc_divider_factor=1):
-    config = {}
-    if "gem" in agg_arch.lower():
-        config["features_dim"] = features_dim
-        config["out_dim"] = 2048
-        if desc_divider_factor is not None:
-            config["out_dim"] = config["out_dim"] // desc_divider_factor
-        return aggregators.GeM(**config)
+def get_aggregator(agg_arch, features_dim, image_size):
+    arch = agg_arch.lower()
 
-    elif "mixvpr" in agg_arch.lower():
-        config["in_channels"] = features_dim[1]
-        config["in_h"] = int((features_dim[0] - 1) ** 0.5)
-        config["in_w"] = int((features_dim[0] - 1) ** 0.5)
-        config["out_channels"] = 1024
-        config["mix_depth"] = 4
-        config["mlp_ratio"] = 1
-        config["out_rows"] = 4
-        config["patch_size"] = 14
-        config["image_size"] = image_size
-        if desc_divider_factor is not None:
-            config["out_channels"] = config["out_channels"] // desc_divider_factor
-        return aggregators.MixVPR(**config)
+    if "gem" in arch:
+        return aggregators.GeM(features_dim=features_dim, out_dim=2048)
 
-    elif "salad" in agg_arch.lower():
-        config["num_channels"] = features_dim[1]
-        config["token_dim"] = 256
-        config["num_clusters"] = 64
-        config["cluster_dim"] = 128
-        if desc_divider_factor is not None:
-            config["cluster_dim"] = int(
-                config["cluster_dim"] / np.sqrt(desc_divider_factor)
-            )
-            config["num_clusters"] = int(
-                config["num_clusters"] / np.sqrt(desc_divider_factor)
-            )
+    elif "mixvpr" in arch:
+        h_w = int((features_dim[0] - 1) ** 0.5)
+        return aggregators.MixVPR(
+            in_channels=features_dim[1],
+            in_h=h_w,
+            in_w=h_w,
+            out_channels=1024,
+            mix_depth=4,
+            mlp_ratio=1,
+            out_rows=4,
+            patch_size=14,
+            image_size=image_size,
+        )
 
-        return aggregators.SALAD(**config)
+    elif "salad" in arch:
+        return aggregators.SALAD(
+            num_channels=features_dim[1],
+            token_dim=256,
+            num_clusters=64,
+            cluster_dim=128,
+        )
 
-    elif "boq" in agg_arch.lower():
-        config["patch_size"] = 14
-        config["image_size"] = image_size
-        config["in_channels"] = features_dim[1]
-        config["proj_channels"] = 512
-        config["num_queries"] = 64
-        config["row_dim"] = 12288 // config["proj_channels"]
+    elif "boq" in arch:
+        return aggregators.BoQ(
+            patch_size=14,
+            image_size=image_size,
+            in_channels=features_dim[1],
+            proj_channels=512,
+            num_queries=64,
+            row_dim=12288 // 512,
+        )
 
-        if desc_divider_factor is not None:
-            config["row_dim"] = config["row_dim"] // desc_divider_factor
-        return aggregators.BoQ(**config)
+    else:
+        raise ValueError(f"Unknown aggregator architecture: {agg_arch}")
 
 
 class VPRModel(nn.Module):
@@ -98,25 +78,16 @@ class VPRModel(nn.Module):
 
 
 def get_model(
-    image_size=[224, 224],
-    backbone_arch="vitsmall",
-    agg_arch="salad",
-    preset=None,
-    desc_divider_factor=None,
+    image_size=[322, 322],
+    backbone_arch="ternaryvitbase",
+    agg_arch="boq",
     normalize=True,
 ):
-    if preset is not None:
-        module = importlib.import_module(f"models.presets.{preset}")
-        model = getattr(module, preset)
-        return model(normalize=normalize)
-
     image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
     backbone = get_backbone(backbone_arch, image_size=image_size)
     image = torch.randn(3, *(image_size))
     features = backbone(image[None, :])
     features_dim = list(features[0].shape)
-    aggregation = get_aggregator(
-        agg_arch, features_dim, image_size, desc_divider_factor
-    )
+    aggregation = get_aggregator(agg_arch, features_dim, image_size)
     model = VPRModel(backbone, aggregation, normalize=normalize)
     return model

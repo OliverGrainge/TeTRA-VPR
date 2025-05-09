@@ -1,45 +1,43 @@
 import argparse
+import math
 from collections import defaultdict
 
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
+import torch.optim as optim
 from prettytable import PrettyTable
 from pytorch_metric_learning import losses, miners
 from pytorch_metric_learning.distances import CosineSimilarity
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
-from transformers import get_cosine_schedule_with_warmup
-import math 
-import torch.optim as optim
-import torch.nn.functional as F
 
 import wandb
-from config import ModelConfig, TeTRAConfig
+from dataloaders.eval.accuracy import DATASET_MAPPING, get_recall_at_k, get_val_dataset
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
-from dataloaders.utils.distances import HammingDistance, binarize
-from dataloaders.utils.losses import get_loss, get_miner
-from dataloaders.utils.schedulers import QuantScheduler
-from matching.match_cosine import match_cosine
-from matching.match_hamming import match_hamming
+from dataloaders.utils.distances import binarize
 from models.transforms import get_transform
-from dataloaders.eval.accuracy import get_val_dataset, DATASET_MAPPING
-from dataloaders.eval.accuracy import get_recall_at_k, get_val_dataset
+
 
 def _linear_schedule(step, total_steps):
     return min(step / total_steps, 1.0)
 
+
 def _cosine_schedule(step, total_steps):
     s = min(step / total_steps, 1.0)
     return 0.5 * (1 - math.cos(math.pi * s))
+
 
 def _logistic_schedule(step, total_steps, k=16, shift=6):
     # your existing “sigmoid” trick
     x = (step / total_steps) * k - shift
     return 1 / (1 + math.exp(-x))
 
+
 def _no_schedule(step, total_steps):
     return 1.0
+
 
 QUANT_SCHEDULES = {
     "linear": _linear_schedule,
@@ -54,18 +52,19 @@ class BinarizeSTE(torch.autograd.Function):
     def forward(ctx, input):
         ctx.save_for_backward(input)
         return input.sign()  # Returns -1 or 1
-    
+
     @staticmethod
     def backward(ctx, grad_output):
-        input, = ctx.saved_tensors
+        (input,) = ctx.saved_tensors
         # Create gradient mask: 1 for inputs in [-1,1], 0 otherwise
         grad_mask = (input.abs() <= 1).float()
         return grad_output * grad_mask
 
+
 def binarize(x):
     return BinarizeSTE.apply(x)
 
-    
+
 class TeTRA(pl.LightningModule):
     def __init__(
         self,
@@ -144,13 +143,18 @@ class TeTRA(pl.LightningModule):
                 augmentation_level="None", image_size=self.image_size
             )
             for val_set_name in self.val_set_names:
-                self.val_datasets.append(get_val_dataset(val_set_name, self.val_dataset_dir, val_transform, which_set="val"))
-                
+                self.val_datasets.append(
+                    get_val_dataset(
+                        val_set_name,
+                        self.val_dataset_dir,
+                        val_transform,
+                        which_set="val",
+                    )
+                )
+
             for val_set_name in self.val_set_names:
                 wandb.define_metric(f"{val_set_name}_binary_R1", summary="max")
                 wandb.define_metric(f"{val_set_name}_float32_R1", summary="max")
-
-
 
     def reload(self):
         self.train_dataset = GSVCitiesDataset(
@@ -177,24 +181,24 @@ class TeTRA(pl.LightningModule):
     def forward(self, x):
         x = self.model(x)
         return x
-    
-    def configure_optimizers(self): 
+
+    def configure_optimizers(self):
         backbone_params = self.model.backbone.parameters()
         aggregation_params = self.model.aggregation.parameters()
 
         param_groups = [
-            {'params': backbone_params, 'lr': self.lr},  # Lower lr for backbone
-            {'params': aggregation_params, 'lr': self.lr}  # Higher lr for aggregator
+            {"params": backbone_params, "lr": self.lr},  # Lower lr for backbone
+            {"params": aggregation_params, "lr": self.lr},  # Higher lr for aggregator
         ]
 
         optimizer = torch.optim.AdamW(param_groups, weight_decay=0.001)
-    
+
         def lr_lambda(epoch):
             if (epoch + 1) < 3:
                 return (epoch + 1) / 3  # Linear warmup
             else:
                 return 0.3 ** sum(epoch >= milestone for milestone in [10, 20, 30])
-            
+
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
         return {
@@ -203,9 +207,8 @@ class TeTRA(pl.LightningModule):
                 "scheduler": scheduler,
                 "interval": "epoch",  # Step every epoch
                 "frequency": 1,  # Step once per epoch
-            }
+            },
         }
-    
 
     def _fp_loss_func(self, descriptors, labels):
         miner_outputs = self.miner(descriptors, labels)
@@ -219,14 +222,14 @@ class TeTRA(pl.LightningModule):
         self.log(
             "fp_acc",
             sum(self.batch_acc) / len(self.batch_acc),
-            prog_bar=True,
+            prog_bar=False,
             logger=True,
         )
         return loss
 
     def _q_loss_func(self, descriptors, labels):
         miner_outputs = self.miner(descriptors, labels)
-        bin_descriptors = binarize(descriptors) 
+        bin_descriptors = binarize(descriptors)
         bin_descriptors = F.normalize(bin_descriptors, dim=-1)
         loss = self.loss_fn(bin_descriptors, labels, miner_outputs)
 
@@ -238,13 +241,15 @@ class TeTRA(pl.LightningModule):
         self.log(
             "binary_acc",
             sum(self.batch_acc) / len(self.batch_acc),
-            prog_bar=True,
+            prog_bar=False,
             logger=True,
         )
         return loss
-    
+
     def _progressive_quant_scheduler(self):
-        return self.quant_scheduler(self.global_step, self.trainer.estimated_stepping_batches)
+        return self.quant_scheduler(
+            self.global_step, self.trainer.estimated_stepping_batches
+        )
 
     def training_step(self, batch, batch_idx):
         places, labels = batch
@@ -267,11 +272,11 @@ class TeTRA(pl.LightningModule):
         loss = (1 - qfactor) * fp_loss + qfactor * q_loss
 
         for i, param_group in enumerate(self.optimizers().param_groups):
-            self.log(f'lr_group_{i}', param_group['lr'], logger=True)
+            self.log(f"lr_group_{i}", param_group["lr"], logger=True)
 
-        self.log("qfactor", qfactor, logger=True)
-        self.log("fp_loss", fp_loss, logger=True)
-        self.log("q_loss", q_loss, logger=True)
+        self.log("qfactor", qfactor, logger=False)
+        self.log("fp_loss", fp_loss, logger=False)
+        self.log("q_loss", q_loss, logger=False)
         self.log("loss", loss, prog_bar=True, logger=True)
         return loss
 
@@ -281,13 +286,9 @@ class TeTRA(pl.LightningModule):
         for name in self.val_set_names:
             self.validation_outputs[name] = []
 
-    # For validation, we will also iterate step by step over the validation set
-    # this is the way Pytorch Lghtning is made. All about modularity, folks.
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         places, _ = batch
-        # calculate descriptors
         descriptors = self(places)
-        # store the outputs
         self.validation_outputs[self.val_set_names[dataloader_idx]].append(
             descriptors.detach().cpu()
         )
@@ -297,20 +298,33 @@ class TeTRA(pl.LightningModule):
         """Process the validation outputs stored in self.validation_outputs_global."""
         table = PrettyTable()
         table.field_names = ["Dataset", "Float32 R@1", "Binary R@1"]
-        table.float_format = '.2'
-        
+        table.float_format = ".2"
+
         for val_set_name, val_dataset in zip(self.val_set_names, self.val_datasets):
             set_outputs = self.validation_outputs[val_set_name]
             descriptors = torch.concat(set_outputs, dim=0)
 
-            recall_float32 = get_recall_at_k(descriptors, val_dataset, k_values=[1], precision="float32")[0]
-            recall_binary = get_recall_at_k(descriptors, val_dataset, k_values=[1], precision="binary")[0]
+            recall_float32 = get_recall_at_k(
+                descriptors, val_dataset, k_values=[1], precision="float32"
+            )[0]
+            recall_binary = get_recall_at_k(
+                descriptors, val_dataset, k_values=[1], precision="binary"
+            )[0]
 
             dataset_name = repr(val_dataset).replace("_val", "").replace("_test", "")
-            self.log(f"{dataset_name}_binary_R1", recall_binary, prog_bar=True, logger=True)
-            self.log(f"{dataset_name}_float32_R1", recall_float32, prog_bar=True, logger=True)
-            
-            table.add_row([dataset_name, f"{recall_float32:.1f}%", f"{recall_binary:.1f}%"])
+            self.log(
+                f"{dataset_name}_binary_R1", recall_binary, prog_bar=True, logger=True
+            )
+            self.log(
+                f"{dataset_name}_float32_R1",
+                recall_float32,
+                prog_bar=False,
+                logger=True,
+            )
+
+            table.add_row(
+                [dataset_name, f"{recall_float32:.1f}%", f"{recall_binary:.1f}%"]
+            )
 
         print("\nValidation Results:")
         print(table)

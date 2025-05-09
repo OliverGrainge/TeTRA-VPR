@@ -1,6 +1,5 @@
 import torch
-from pytorch_metric_learning.distances import BaseDistance, CosineSimilarity
-from pytorch_metric_learning.losses import MultiSimilarityLoss
+from pytorch_metric_learning.distances import BaseDistance
 from torch.autograd import Function
 
 

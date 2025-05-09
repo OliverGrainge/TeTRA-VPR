@@ -3,97 +3,75 @@ import os
 
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+import torch.nn as nn
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 from config import ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
-import torch.nn as nn
 
 
-#BACKBONE_WEIGHT_PATH = "/home/oeg1n18/QuantPlaceFinder/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=17-step=138750-train_loss=0.0463-qfactor=1.00.ckpt"
-
-def _freeze_module(module): 
-    for param in module.parameters(): 
+def _freeze_module(module):
+    for param in module.parameters():
         param.requires_grad = False
 
-def _unfreeze_module(module): 
-    for param in module.parameters(): 
+
+def _unfreeze_module(module):
+    for param in module.parameters():
         param.requires_grad = True
 
-def _freeze_tetra_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
+
+def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
     backbone = model.backbone
 
     _freeze_module(backbone)
 
     # set dropout to 0 for all layers except the last unfreeze_n_last_layers
     for block in backbone.transformer.layers[:-unfreeze_n_last_layers]:
-        for name, module in block.named_modules(): 
-            if isinstance(module, nn.Dropout): 
+        for name, module in block.named_modules():
+            if isinstance(module, nn.Dropout):
                 module.p = 0.0
-                
+
     # only train the last unfreeze_n_last_layers
-    for block in (backbone.transformer.layers[-unfreeze_n_last_layers:]):
+    for block in backbone.transformer.layers[-unfreeze_n_last_layers:]:
         _unfreeze_module(block)
-    
-    # make sure the backbone is in fully quantized mode 
-    for module in model.modules(): 
+
+    # make sure the backbone is in fully quantized mode
+    for module in model.modules():
         if hasattr(module, "set_qfactor"):
-            module.set_qfactor(1.0) 
+            module.set_qfactor(1.0)
 
-    return model 
-
-
-def _freeze_dino_backbone(model: nn.Module, unfreeze_n_last_layers: int = 3):
-    _freeze_module(model.backbone.dino.patch_embed) 
-
-    for blk in model.backbone.dino.blocks[:-unfreeze_n_last_layers]: 
-        _freeze_module(blk)
-        
-    return model 
+    return model
 
 
-def _freeze_backbone(model: nn.Module, unfreeze_n_last_layers: int = 1):
-    if model.name.lower().startswith("dino"): 
-        return _freeze_dino_backbone(model, unfreeze_n_last_layers)
-    else: 
-        return _freeze_tetra_backbone(model, unfreeze_n_last_layers)
-
-def _load_backbone_weights(model: nn.Module, backbone_weights_path: str):
-    sd = torch.load(backbone_weights_path, weights_only=False)["state_dict"]
+def _load_backbone_weights(model: nn.Module, pretrain_checkpoint_path: str):
+    assert os.path.exists(
+        pretrain_checkpoint_path
+    ), f"Backbone weights path {pretrain_checkpoint_path} does not exist"
+    sd = torch.load(pretrain_checkpoint_path, weights_only=False)["state_dict"]
     new_sd = {}
-    for key, value in sd.items(): 
-        if key.startswith("student"): 
-            new_sd[key.replace("student.", "")] = value 
+    for key, value in sd.items():
+        if key.startswith("student"):
+            new_sd[key.replace("student.", "")] = value
 
     model.backbone.load_state_dict(new_sd)
-    return model 
-
+    return model
 
 
 def load_model(args):
     model = get_model(
-        args.image_size,
-        args.backbone_arch,
-        args.agg_arch,
-        desc_divider_factor=args.desc_divider_factor,
+        image_size=args.image_size,
+        backbone_arch=args.backbone_arch,
+        agg_arch=args.agg_arch,
     )
 
-    if args.backbone_checkpoint is not None: 
-        model = _load_backbone_weights(model, backbone_weights_path=args.backbone_checkpoint)
-        print("=================================================================")
-        print("Loaded backbone weights from: ", args.backbone_checkpoint)
-        print("=================================================================")
-
-    if args.freeze_backbone: 
-        model = _freeze_backbone(model, unfreeze_n_last_layers=1)
-        print("=================================================================")
-        print("Frozen backbone weights")
-        print("=================================================================")
+    model = _load_backbone_weights(
+        model, pretrain_checkpoint_path=args.pretrain_checkpoint
+    )
+    model = _freeze_backbone(model, unfreeze_n_last_layers=1)
     model.train()
     return model
-
 
 
 def setup_training(args, model):
@@ -111,9 +89,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"MSLS_binary_R1",  # msls_val_q_R1
-        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-QSch[{args.quant_schedule}]-Frozen[{args.freeze_backbone}]",
-        filename="{epoch}-{MSLS_binary_R1:.2f}",  # msls_val_q_R1
+        monitor=f"MSLS_binary_R1", 
+        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-QSch[{args.quant_schedule}]",
+        filename="{epoch}-{MSLS_binary_R1:.2f}",  
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -123,7 +101,7 @@ def setup_training(args, model):
 
     wandb_logger = WandbLogger(
         project="TeTRA-finetune",
-        name=f"{model.name}-DD[{args.desc_divider_factor}]",
+        name=model.name,
     )
 
     trainer = pl.Trainer(
@@ -138,7 +116,7 @@ def setup_training(args, model):
         logger=wandb_logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=10,
-        #limit_train_batches=50,
+        limit_train_batches=25,
     )
 
     return trainer, model_module
@@ -147,6 +125,7 @@ def setup_training(args, model):
 if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
+    # Parse arguments 
     parser = argparse.ArgumentParser()
     for config in [ModelConfig, TeTRAConfig]:
         parser = config.add_argparse_args(parser)
@@ -155,5 +134,3 @@ if __name__ == "__main__":
     model = load_model(args)
     trainer, model_module = setup_training(args, model)
     trainer.fit(model_module)
-
-

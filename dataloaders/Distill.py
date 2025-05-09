@@ -12,10 +12,10 @@ import torch.optim as optim
 from PIL import Image
 from torch.utils.data.dataloader import DataLoader
 from transformers import get_cosine_schedule_with_warmup
-import wandb 
 
 import wandb
 from dataloaders.train.DistillDataset import DistillDataset, JPGDataset
+from models.backbones import DINOv2_BoQ
 from models.helper import get_model
 from models.transforms import get_transform
 
@@ -69,9 +69,7 @@ class Distill(pl.LightningModule):
         self.student.set_qfactor(0.0)
 
     def _setup_teacher(self) -> nn.Module:
-        teacher = get_model(
-            preset="DinoV2_BoQ",
-        )
+        teacher = DINOv2_BoQ()
         backbone = teacher.backbone
         return backbone
 
@@ -82,7 +80,9 @@ class Distill(pl.LightningModule):
             image_size=self.student_model_image_size,
         )
         backbone = student.backbone
-        print("============================================= STUDENT =============================================")
+        print(
+            "============================================= STUDENT ============================================="
+        )
         print(backbone)
         return backbone
 
@@ -131,12 +131,7 @@ class Distill(pl.LightningModule):
             param.requires_grad = False
 
     def _progressive_quant_scheduler(self):
-        x = (
-            (
-                (self.global_step) / (self.trainer.estimated_stepping_batches)
-            )
-            * 16
-        ) - 6
+        x = (((self.global_step) / (self.trainer.estimated_stepping_batches)) * 16) - 6
         qfactor = 1 / (1 + math.exp(-x))
         return qfactor
 
@@ -201,8 +196,12 @@ class Distill(pl.LightningModule):
         )
 
     @staticmethod
-    def _compute_attn_loss(student_attn, teacher_attn, temperature=4.0, scale=50.0, last_k=4):
-        student_attn = student_attn[:, -last_k:, :, :, :]  # shape = (B, last_k, H, N, N)
+    def _compute_attn_loss(
+        student_attn, teacher_attn, temperature=4.0, scale=50.0, last_k=4
+    ):
+        student_attn = student_attn[
+            :, -last_k:, :, :, :
+        ]  # shape = (B, last_k, H, N, N)
         teacher_attn = teacher_attn[:, -last_k:, :, :, :]
         student_attn = student_attn.mean(dim=2)  # now shape = (B, last_k, N, N)
         teacher_attn = teacher_attn.mean(dim=2)
@@ -285,10 +284,14 @@ class Distill(pl.LightningModule):
             augmentation_level=self.augmentation_level, image_size=self.image_size
         )
         teacher_transform = get_transform(preset="DinoV2_BoQ")
-        print("============================================= TRANSFORMS =============================================")
+        print(
+            "============================================= TRANSFORMS ============================================="
+        )
         print("Student transform: ", student_transform)
         print("Teacher transform: ", teacher_transform)
-        print("======================================================================================================")
+        print(
+            "======================================================================================================"
+        )
         dataset = DistillDataset(
             dataset=train_dataset,
             student_transform=student_transform,

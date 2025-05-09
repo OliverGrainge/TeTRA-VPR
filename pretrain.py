@@ -28,7 +28,6 @@ def setup_training(args):
         use_attn_loss=args.use_attn_loss,
     )
 
-
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
         dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{args.augmentation_level}]",
@@ -73,7 +72,7 @@ def setup_training(args):
 
     trainer = pl.Trainer(
         enable_progress_bar=args.pbar,
-        strategy=DDPStrategy(find_unused_parameters=True),
+        # strategy=DDPStrategy(find_unused_parameters=True), # Use this for multi-GPU training
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=args.precision,
@@ -81,16 +80,15 @@ def setup_training(args):
         callbacks=[checkpoint_cb, final_checkpoint_cb, learning_rate_cb],
         accumulate_grad_batches=args.accumulate_grad_batches,
         logger=wandb_logger,
-        log_every_n_steps=50,
     )
     return trainer, model_module
 
 
 if __name__ == "__main__":
-    # Set precision for float32 matrix multiplication
+    # Set precision to maximise tensor core usage
     torch.set_float32_matmul_precision("medium")
 
-    # Parse arguments
+    # Parse distillation arguments
     parser = argparse.ArgumentParser()
     for config in [ModelConfig, DistillConfig]:
         parser = config.add_argparse_args(parser)
