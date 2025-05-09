@@ -4,6 +4,14 @@ Welcome to the official codebase that accompanies the paper **“TeTRA‑VPR: A 
 
 ---
 
+## Visual Abstract
+
+<p align="center">
+  <img src="models/assets/TeTRA.jpg" alt="TeTRA-VPR Block Diagram" width="700"/>
+</p>
+
+---
+
 ## Table of Contents
 
 1. [Key Features](#key-features)
