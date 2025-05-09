@@ -1,6 +1,6 @@
 # TeTRA-VPR: Ternary Transformer for Efficient Visual Place Recognition
 
-Welcome to the official codebase that accompanies the paper **“TeTRA-VPR: A Ternary Transformer Approach for Compact Visual Place Recognition”** (ICRA 2025, pre-print arXiv:2503.02511). This repository provides everything you need to reproduce the two-stage training pipeline—**progressive distillation pre-training** and **supervised fine-tuning**—as well as scripts for evaluation and inference on common VPR benchmarks.
+Welcome to the official codebase that accompanies the paper **“TeTRA-VPR: A Ternary Transformer Approach for Compact Visual Place Recognition”**. This repository provides everything you need to reproduce the two-stage training pipeline—**progressive distillation pre-training** and **supervised fine-tuning**—as well as scripts for evaluation and inference on common VPR benchmarks.
 
 ---
 
@@ -85,8 +85,8 @@ with torch.inference_mode():
     desc_boq   = tetra_boq(img)   # (B, 12 288), dtype=torch.uint8
     desc_salad = tetra_salad(img) # (B, 8 448), dtype=torch.uint8
 
-print(desc_boq.shape, desc_boq.dtype)
-print(desc_salad.shape, desc_salad.dtype)
+print(desc_boq.shape)
+print(desc_salad.shape)
 ```
 
 **Output**
