@@ -31,7 +31,7 @@ class DistillConfig:
     # add a list of folders containing images to be used for distillation
     # We used the SF_XL panoramas.
     train_dataset_dir: Tuple[str] = (
-        "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images",
+        "/path/to/sf_xl/raw/panoramas/",
     )
 
     # Training hyperparameters
@@ -92,9 +92,9 @@ class DistillConfig:
 @dataclass
 class TeTRAConfig:
     # path to GSV-Cities Dataset
-    train_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/gsv-cities/"
+    train_dataset_dir: str = "/path/to/gsv-cities/"
     # path to folder with validation sets e.g. msls
-    val_dataset_dir: str = "/home/oliver/datasets_drive/vpr_datasets/"
+    val_dataset_dir: str = "/path/to/vpr_datasets/"
 
     # Training hyperparameters
     lr: float = 0.0001 # finetuning learning rate 

@@ -1,0 +1,15 @@
+aiohttp==3.11.18
+backports.tarfile==1.2.0
+einops==0.8.1
+faiss-cpu==1.11.0
+importlib-metadata==8.0.0
+jaraco.collections==5.1.0
+pip-chill==1.0.3
+prettytable==3.16.0
+pytorch-lightning==2.5.1.post0
+pytorch-metric-learning==2.8.1
+tomli==2.0.1
+torchvision==0.22.0
+transformers==4.51.3
+triton==3.3.0
+wandb==0.19.11
