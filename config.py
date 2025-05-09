@@ -55,6 +55,8 @@ class EvalConfig:
     dataset_descriptor_memory: bool = False
     dataset_total_memory: bool = False
     compile: bool = False
+    checkpoint_path: str = ""
+    postfix: str = "" 
 
     # evaluation runtime
     batch_size: int = 32
@@ -79,6 +81,12 @@ class EvalConfig:
             "--dataset_descriptor_memory",
             action="store_true",
             help="Run dataset descriptor memory evaluation",
+        )
+        group.add_argument(
+            "--postfix",
+            type=str,
+            default=EvalConfig.postfix,
+            help="Postfix to add to the model id",
         )
         group.add_argument(
             "--dataset_total_memory",
@@ -112,6 +120,9 @@ class EvalConfig:
             "--dataset_retrieval_latency",
             action="store_true",
             help="Run dataset retrieval latency evaluation",
+        )
+        group.add_argument(
+            "--checkpoint_path", type=str, default=EvalConfig.checkpoint_path
         )
         group.add_argument("--compile", action="store_true", help="Run compilation")
         group.add_argument("--batch_size", type=int, default=EvalConfig.batch_size)

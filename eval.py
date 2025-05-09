@@ -97,9 +97,14 @@ def _load_model_and_transform(args):
         )
         transform = get_transform(augmentation_level="None", image_size=args.image_size)
 
-    checkpoint_path = _get_weights_path(
-        args.backbone_arch, args.agg_arch, args.image_size, args.desc_divider_factor
-    )
+    if args.checkpoint_path:
+        print(f"Loading model from {args.checkpoint_path}")
+        checkpoint_path = args.checkpoint_path
+        assert os.path.exists(checkpoint_path), f"Checkpoint path {checkpoint_path} does not exist"
+    else:
+        checkpoint_path = _get_weights_path(
+            args.backbone_arch, args.agg_arch, args.image_size, args.desc_divider_factor
+        )
     state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if "state_dict" in state_dict.keys():
         state_dict = state_dict["state_dict"]
@@ -111,11 +116,11 @@ def _load_model_and_transform(args):
     return model, transform
 
 
-def _get_model_id(args):
+def _get_model_id(args, postfix=""):
     if args.preset is not None:
         return args.preset
     else:
-        return f"TeTRA-{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DD[{args.desc_divider_factor}]"
+        return f"TeTRA-{args.backbone_arch}{args.image_size[0]}_{args.agg_arch}-DD[{args.desc_divider_factor}]" + postfix
 
 
 def _get_example_input(args, transform):
@@ -154,7 +159,7 @@ def eval(args):
     example_input = _get_example_input(args, transform)
     model = _prepare_model(args, model)
     results = evaluate(args, model, example_input)
-    results["id"] = _get_model_id(args)
+    results["id"] = _get_model_id(args, args.postfix)
 
     # Print results as a pretty table
     results_df = pd.DataFrame([results])
