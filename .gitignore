@@ -4,7 +4,6 @@
 *LOGS/
 lightning_logs
 cache/
-*experiments.sh
 */logs/*
 */wandb/*
 /checkpoints/
