@@ -250,6 +250,7 @@ python finetune.py --pretrain_checkpoint /path/to/pretrain_checkpoint.ckpt
 ````
 
 > **Expected pretraining hardware:** 4× H100 80GB for pretraining (gradient accumulation=2) using the DDP distribution strategy.
+
 > **Expected finetuning hardward:** 1x H100 80GB for finetuning. 
 
 similar results can be achieved with less training and smaller models. Try the `--backbone_arch ternaryvitsmall` for faster training. 
