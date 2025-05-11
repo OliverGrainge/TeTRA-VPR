@@ -6,11 +6,42 @@ import torch
 import torch.nn as nn
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from omegaconf import OmegaConf
 
 from config import ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 
+CITIES = (
+        "Bangkok",
+        "BuenosAires",
+        "LosAngeles",
+        "MexicoCity",
+        "OSL",
+        "Rome",
+        "Barcelona",
+        "Chicago",
+        "Madrid",
+        "Miami",
+        "Phoenix",
+        "TRT",
+        "Boston",
+        "Lisbon",
+        "Medellin",
+        "Minneapolis",
+        "PRG",
+        "WashingtonDC",
+        "Brussels",
+        "London",
+        "Melbourne",
+        "Osaka",
+        "PRS",
+    )
+
+def _parseargs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="myyaml.yaml")
+    return parser.parse_args()
 
 def _freeze_module(module):
     for param in module.parameters():
@@ -59,38 +90,40 @@ def _load_backbone_weights(model: nn.Module, pretrain_checkpoint_path: str):
     return model
 
 
-def load_model(args):
+def load_model(conf):
     model = get_model(
-        image_size=args.image_size,
-        backbone_arch=args.backbone_arch,
-        agg_arch=args.agg_arch,
+        image_size=conf.image_size,
+        backbone_arch=conf.backbone_arch,
+        agg_arch=conf.agg_arch,
     )
 
     model = _load_backbone_weights(
-        model, pretrain_checkpoint_path=args.pretrain_checkpoint
+        model, pretrain_checkpoint_path=conf.pretrain_checkpoint
     )
     model = _freeze_backbone(model, unfreeze_n_last_layers=1)
     model.train()
     return model
 
 
-def setup_training(args, model):
+def setup_training(conf, model):
+
     model_module = TeTRA(
         model,
-        train_dataset_dir=args.train_dataset_dir,
-        val_dataset_dir=args.val_dataset_dir,
-        val_set_names=args.val_set_names,
-        batch_size=args.batch_size,
-        image_size=args.image_size,
-        num_workers=args.num_workers,
-        cities=args.cities,
-        lr=args.lr,
-        quant_schedule=args.quant_schedule,
+        train_dataset_dir=conf.train_dataset_dir,
+        val_dataset_dir=conf.val_dataset_dir,
+        val_set_names=conf.val_set_names,
+        batch_size=conf.batch_size,
+        image_size=conf.image_size,
+        num_workers=conf.num_workers,
+        cities=CITIES,
+        lr=conf.lr,
+        quant_schedule=conf.quant_schedule,
     )
 
+    config_name = os.path.splitext(os.path.basename(args.config))[0]
     checkpoint_cb = ModelCheckpoint(
         monitor=f"MSLS_binary_R1",
-        dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-QSch[{args.quant_schedule}]",
+        dirpath=f"./checkpoints/TeTRA-finetune/{config_name}",
         filename="{epoch}-{MSLS_binary_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
@@ -105,18 +138,19 @@ def setup_training(args, model):
     )
 
     trainer = pl.Trainer(
-        enable_progress_bar=args.pbar,
+        enable_progress_bar=conf.pbar,
         strategy="auto",
         accelerator="auto",
         num_sanity_val_steps=0,
-        precision=args.precision,
-        max_epochs=args.max_epochs,
+        precision=conf.precision,
+        max_epochs=conf.max_epochs,
         callbacks=[checkpoint_cb],
         reload_dataloaders_every_n_epochs=1,
         logger=wandb_logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=10,
         limit_train_batches=25,
+        
     )
 
     return trainer, model_module
@@ -126,11 +160,8 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
     # Parse arguments
-    parser = argparse.ArgumentParser()
-    for config in [ModelConfig, TeTRAConfig]:
-        parser = config.add_argparse_args(parser)
-    args = parser.parse_args()
-
-    model = load_model(args)
-    trainer, model_module = setup_training(args, model)
+    args = _parseargs()
+    conf = OmegaConf.load(args.config)
+    model = load_model(conf)
+    trainer, model_module = setup_training(conf, model)
     trainer.fit(model_module)

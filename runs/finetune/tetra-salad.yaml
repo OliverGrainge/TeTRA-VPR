@@ -1,0 +1,29 @@
+
+# Model
+pretrain_checkpoint: ""
+backbone_arch: "ternaryvitbase"
+agg_arch: "boq"
+normalize: True
+
+# Data
+train_dataset_dir: /home/oliver/datasets_drive/vpr_datasets/gsv-cities/
+val_dataset_dir: ""
+
+# Training
+lr: 0.0001
+batch_size: 200
+max_epochs: 40
+precision: "bf16-mixed"
+quant_schedule: "logistic"
+freeze_backbone: True
+freeze_all_except_last_n: 1
+augment_level: "LightAugment"
+pbar: False
+num_workers: 12
+
+image_size: 
+  - 322
+  - 322
+val_set_names:
+  - "MSLS"
+

@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 class MSLS(Dataset):
     """Dataset class for Mapillary Street Level Sequences visual place recognition benchmark"""
     
-    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="val"):
+    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="msls"):
         """Initialize the dataset
         
         Args:
@@ -40,7 +40,7 @@ class MSLS(Dataset):
         Returns:
             tuple: (image, index)
         """
-        img_path = os.path.join(self.dataset_root, self.images[index])
+        img_path = os.path.join(self.dataset_root, self.images[index].lstrip("/"))
         img = Image.open(img_path).convert("RGB")
         
         if self.input_transform:

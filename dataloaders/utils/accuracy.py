@@ -26,7 +26,7 @@ DATASET_MAPPING = {
 
 
 def get_val_dataset(
-    val_set_name: str, val_dataset_dir: str, transform, which_set: str = "test"
+    val_set_name: str, val_dataset_dir: str, transform
 ):
     val_set_name = val_set_name.lower()
 
@@ -46,7 +46,6 @@ def get_val_dataset(
     return dataset_class(
         val_dataset_dir=val_dataset_dir,
         input_transform=transform,
-        which_set=which_set if "msls" not in val_set_name else "val",
     )
 
 

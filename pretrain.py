@@ -3,7 +3,7 @@ import torch
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.strategies import DDPStrategy
-import omegaconf 
+from omegaconf import OmegaConf
 
 torch.set_float32_matmul_precision("medium")
 
@@ -81,14 +81,8 @@ if __name__ == "__main__":
     # Set precision to maximise tensor core usage
     torch.set_float32_matmul_precision("medium")
 
-    # Parse distillation arguments
-    #parser = argparse.ArgumentParser()
-    #for config in [ModelConfig, DistillConfig]:
-    #    parser = config.add_argparse_args(parser)
-    #args = parser.parse_args()
-
     args = _argparse()
-    conf = omegaconf.OmegaConf.load(args.config)
+    conf = OmegaConf.load(args.config)
     print(conf)
     # Setup and run training
     trainer, model_module = setup_training(conf)
