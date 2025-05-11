@@ -1,0 +1,26 @@
+
+
+# Model
+backbone_arch: "ternaryvitbase"
+normalize: true
+
+# Training
+train_dataset_dir: 
+  #- /path/to/sf_xl/raw/panoramas/
+  - /home/oliver/datasets_drive/vpr_datasets/gsv-cities/Images
+lr: 0.0004
+#batch_size: 128
+batch_size: 8
+weight_decay: 0.01
+max_epochs: 30
+use_attn_loss: True
+image_size: 
+  - 322
+  - 322
+augmentation_level: "Severe"
+num_workers: 12
+pbar: True
+precision: "bf16-mixed"
+accumulate_grad_batches: 2
+use_ddp: False
+use_ddp: True 
