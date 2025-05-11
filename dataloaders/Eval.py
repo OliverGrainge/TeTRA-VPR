@@ -97,6 +97,7 @@ def evaluate(args, model, example_input):
 
     # Accuracy evaluations
     k_values = [1]
+    
     if len(args.val_set_names) > 0:
         transform = get_eval_transform(args)
         for val_set_name in args.val_set_names:

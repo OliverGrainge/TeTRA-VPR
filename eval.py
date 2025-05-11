@@ -172,7 +172,7 @@ def eval(args):
     print("\nEvaluation Results:")
     print(tabulate(results_df.T, headers=["Metric", "Value"], tablefmt="pretty"))
 
-    save_results(results)
+    #save_results(results)
 
 
 if __name__ == "__main__":

@@ -1362,7 +1362,6 @@ def DINO_Backbone(image_size=[224, 224], normalize=True):
     return model
 
 
-
 def DINO_Backbone_Ternary(image_size=[224, 224], normalize=True):
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
         io.StringIO()

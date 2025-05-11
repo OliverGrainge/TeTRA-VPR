@@ -44,7 +44,7 @@ class EvalConfig:
     checkpoints_dir: str = "./checkpoints/TeTRA/"  # directory for TeTRA checkpoints
 
     # which evals to run
-    val_set_names: Tuple[str] = ()
+    val_set_names: Tuple[str] = ('pitts30k', 'tokyo247', 'svox-night')
     accuracy: bool = False
     model_memory: bool = False
     runtime_memory: bool = False

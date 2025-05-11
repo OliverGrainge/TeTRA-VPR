@@ -13,7 +13,7 @@ class SVOX(Dataset):
         val_dataset_dir=None,
         input_transform=None,
         which_set="test",
-        condition=None,
+        condition="night",
     ):
         if which_set != "test":
             raise ValueError("SVOX only supports test set")
