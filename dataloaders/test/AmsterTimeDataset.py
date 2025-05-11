@@ -40,7 +40,7 @@ class AmsterTime(Dataset):
         Returns:
             tuple: (image, index)
         """
-        img_path = os.path.join(self.dataset_root, self.images[index])
+        img_path = os.path.join(self.dataset_root, self.images[index].lstrip("/"))
         img = Image.open(img_path).convert("RGB")
         
         if self.input_transform:

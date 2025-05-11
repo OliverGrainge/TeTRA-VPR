@@ -42,7 +42,7 @@ class SVOX(Dataset):
         self.num_queries = len(self.qImages)
 
     def __getitem__(self, index):
-        img = Image.open(os.path.join(self.dataset_root, self.images[index])).convert(
+        img = Image.open(os.path.join(self.dataset_root, self.images[index].lstrip("/"))).convert(
             "RGB"
         )
         if self.input_transform:

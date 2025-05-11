@@ -15,7 +15,7 @@ class Tokyo247(Dataset):
         Args:
             val_dataset_dir: Root directory containing the dataset
             input_transform: Optional transforms to apply to images
-            dataset_folder: Name of the dataset folder (e.g. "tokyo247" or if you have named it differently, e.g. "tokyo247_test")
+            dataset_folder: Name of the dataset folder
         """
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, dataset_folder)
@@ -40,7 +40,7 @@ class Tokyo247(Dataset):
         Returns:
             tuple: (image, index)
         """
-        img_path = os.path.join(self.dataset_root, self.images[index])
+        img_path = os.path.join(self.dataset_root, self.images[index].lstrip("/"))
         img = Image.open(img_path)
         
         if self.input_transform:
