@@ -13,8 +13,9 @@ class AmsterTime(Dataset):
         """Initialize the dataset
         
         Args:
-            val_dataset_dir: Root directory containing dataset images
+            val_dataset_dir: Root directory containing the dataset
             input_transform: Optional transforms to apply to images
+            dataset_folder: Name of the dataset folder
         """
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, dataset_folder)
