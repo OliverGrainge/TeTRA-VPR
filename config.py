@@ -5,9 +5,9 @@ from typing import Tuple, Union
 
 @dataclass
 class ModelConfig:
-    backbone_arch: str = "ternaryvitbase" # "ternaryvitbase" or "ternaryvitsmall"
-    agg_arch: str = "boq" # "boq" or "salad", "mixvpr", "gem"
-    noramlize: bool = True # normalize the output descriptors in the forward pass 
+    backbone_arch: str = "ternaryvitbase"  # "ternaryvitbase" or "ternaryvitsmall"
+    agg_arch: str = "boq"  # "boq" or "salad", "mixvpr", "gem"
+    noramlize: bool = True  # normalize the output descriptors in the forward pass
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -30,17 +30,15 @@ class ModelConfig:
 class DistillConfig:
     # add a list of folders containing images to be used for distillation
     # We used the SF_XL panoramas.
-    train_dataset_dir: Tuple[str] = (
-        "/path/to/sf_xl/raw/panoramas/",
-    )
+    train_dataset_dir: Tuple[str] = ("/path/to/sf_xl/raw/panoramas/",)
 
     # Training hyperparameters
-    lr: float = 0.0004 # pretraining learning rate 
-    batch_size: int = 128 # training batch size 
-    accumulate_grad_batches: int = 2 # number of gradient accumulation steps 
-    max_epochs: int = 30 # number of epochs 
-    weight_decay: float = 0.01 # weight decay 
-    use_attn_loss: bool = True # use attention loss in the distillation loss 
+    lr: float = 0.0004  # pretraining learning rate
+    batch_size: int = 128  # training batch size
+    accumulate_grad_batches: int = 2  # number of gradient accumulation steps
+    max_epochs: int = 30  # number of epochs
+    weight_decay: float = 0.01  # weight decay
+    use_attn_loss: bool = True  # use attention loss in the distillation loss
 
     # Data processing
     image_size: Tuple[int] = (322, 322)
@@ -97,29 +95,35 @@ class TeTRAConfig:
     val_dataset_dir: str = "/path/to/vpr_datasets/"
 
     # Training hyperparameters
-    lr: float = 0.0001 # finetuning learning rate 
-    batch_size: int = 200 # finetuning batch size 
-    max_epochs: int = 40 # number of epochs 
-    precision: str = "bf16-mixed" # precision 
+    lr: float = 0.0001  # finetuning learning rate
+    batch_size: int = 200  # finetuning batch size
+    max_epochs: int = 40  # number of epochs
+    precision: str = "bf16-mixed"  # precision
 
     # Loss and mining settings
-    quant_schedule: str = "logistic" # quantization schedule (can choose from "logistic", "linear", "cosine", "none")
-    pretrain_checkpoint: str = None # path to the pretrained checkpoint 
-    freeze_backbone: bool = False # freeze the backbone 
-    freeze_all_except_last_n: int = 1 # number of layers to leave unfrozen (if freezing is desired)
+    quant_schedule: str = (
+        "logistic"  # quantization schedule (can choose from "logistic", "linear", "cosine", "none")
+    )
+    pretrain_checkpoint: str = None  # path to the pretrained checkpoint
+    freeze_backbone: bool = False  # freeze the backbone
+    freeze_all_except_last_n: int = (
+        1  # number of layers to leave unfrozen (if freezing is desired)
+    )
 
     # Data processing
-    image_size: Tuple[int] = (322, 322) # image size 
-    augment_level: str = "LightAugment" # augmentation level (can choose from "LightAugment", "SevereAugment")
+    image_size: Tuple[int] = (322, 322)  # image size
+    augment_level: str = (
+        "LightAugment"  # augmentation level (can choose from "LightAugment", "SevereAugment")
+    )
 
     # Runtime settings
-    pbar: bool = False # show progress bar during finetuning
-    num_workers: int = 12 # number of dataloader workers 
+    pbar: bool = False  # show progress bar during finetuning
+    num_workers: int = 12  # number of dataloader workers
 
     # validation set
     val_set_names: Tuple[str] = ("MSLS",)
 
-    # Cities of GSV-Cities Dataset for finetuning 
+    # Cities of GSV-Cities Dataset for finetuning
     cities: Tuple[str] = (
         "Bangkok",
         "BuenosAires",
@@ -145,8 +149,6 @@ class TeTRAConfig:
         "Osaka",
         "PRS",
     )
-
-
 
     @staticmethod
     def add_argparse_args(parent_parser: ArgumentParser) -> ArgumentParser:

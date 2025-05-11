@@ -14,22 +14,25 @@ def download_with_progress(url: str, dst_path: str):
     """
     Download a file from `url` to `dst_path`, showing a progress bar using tqdm.
     """
+
     class DownloadProgressBar(tqdm):
         def update_to(self, b=1, bsize=1, tsize=None):
             if tsize is not None:
                 self.total = tsize
             self.update(b * bsize - self.n)
 
-    with DownloadProgressBar(unit='B', unit_scale=True,
-                           miniters=1, desc=os.path.basename(dst_path)) as t:
+    with DownloadProgressBar(
+        unit="B", unit_scale=True, miniters=1, desc=os.path.basename(dst_path)
+    ) as t:
         urlretrieve(url, dst_path, reporthook=t.update_to)
 
 
 def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
     aggregation_arch = aggregation_arch.lower()
-    assert aggregation_arch in ['boq', 'salad'], (
-        f"Unknown aggregation_arch '{aggregation_arch}'; only 'boq' and 'salad' are supported."
-    )
+    assert aggregation_arch in [
+        "boq",
+        "salad",
+    ], f"Unknown aggregation_arch '{aggregation_arch}'; only 'boq' and 'salad' are supported."
 
     # instantiate the model on CPU (user can .to(device) afterwards)
     model = get_model(
@@ -49,7 +52,7 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
             download_with_progress(WEIGHTS_URL, zip_path)
 
         # 2) extract into cache_dir
-        with zipfile.ZipFile(zip_path, 'r') as zf:
+        with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(cache_dir)
 
         # 3) locate the directory containing weights

@@ -89,9 +89,9 @@ def setup_training(args, model):
     )
 
     checkpoint_cb = ModelCheckpoint(
-        monitor=f"MSLS_binary_R1", 
+        monitor=f"MSLS_binary_R1",
         dirpath=f"./checkpoints/TeTRA-finetune/{model.name}-QSch[{args.quant_schedule}]",
-        filename="{epoch}-{MSLS_binary_R1:.2f}",  
+        filename="{epoch}-{MSLS_binary_R1:.2f}",
         auto_insert_metric_name=True,
         save_on_train_epoch_end=False,
         save_weights_only=True,
@@ -125,7 +125,7 @@ def setup_training(args, model):
 if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
-    # Parse arguments 
+    # Parse arguments
     parser = argparse.ArgumentParser()
     for config in [ModelConfig, TeTRAConfig]:
         parser = config.add_argparse_args(parser)

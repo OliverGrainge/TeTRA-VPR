@@ -6,10 +6,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 
-class MSLS(Dataset):
-    """Dataset class for Mapillary Street Level Sequences visual place recognition benchmark"""
+class AmsterTime(Dataset):
+    """Dataset class for AmsterTime visual place recognition benchmark"""
     
-    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="val"):
+    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="amstertime"):
         """Initialize the dataset
         
         Args:
@@ -20,9 +20,9 @@ class MSLS(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, dataset_folder)
         
         # Load image paths and ground truth
-        self.dbImages = np.load("dataloaders/image_paths/msls_val_dbImages.npy")
-        self.qImages = np.load("dataloaders/image_paths/msls_val_qImages.npy") 
-        self.ground_truth = np.load("dataloaders/image_paths/msls_val_gt.npy",
+        self.dbImages = np.load("dataloaders/image_paths/amstertime_test_dbImages.npy")
+        self.qImages = np.load("dataloaders/image_paths/amstertime_test_qImages.npy")
+        self.ground_truth = np.load("dataloaders/image_paths/amstertime_test_gt.npy",
                                    allow_pickle=True)
 
         # Combine reference and query images
@@ -51,4 +51,4 @@ class MSLS(Dataset):
         return len(self.images)
 
     def __repr__(self):
-        return "MSLS"
+        return "AmsterTime"
