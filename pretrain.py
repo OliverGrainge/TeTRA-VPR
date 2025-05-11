@@ -33,11 +33,12 @@ def setup_training(conf):
         augmentation_level=conf.augmentation_level,
         use_attn_loss=conf.use_attn_loss,
     )
-
+    config_name = os.path.splitext(os.path.basename(args.config))[0]
+    
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
-        dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{conf.augmentation_level}]",
-        filename="{epoch}-{step}-{train_loss:.4f}-{qfactor:.2f}",
+        dirpath=f"./checkpoints/TeTRA-pretrain/{config_name}",
+        filename="{epoch}-{train_loss:.4f}-{qfactor:.2f}",
         save_on_train_epoch_end=False,
         every_n_train_steps=250,
         auto_insert_metric_name=True,
@@ -47,8 +48,8 @@ def setup_training(conf):
     )
 
     final_checkpoint_cb = ModelCheckpoint(
-        dirpath=f"./checkpoints/TeTRA-pretrain/Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{conf.augmentation_level}]",
-        filename="final-{epoch}-{step}-{train_loss:.4f}-{qfactor:.2f}",
+        dirpath=f"./checkpoints/TeTRA-pretrain/",
+        filename="final-{epoch}-{train_loss:.4f}-{qfactor:.2f}",
         save_weights_only=True,
         save_on_train_epoch_end=True,
         save_last=True,
@@ -60,7 +61,7 @@ def setup_training(conf):
     wandb_logger = WandbLogger(
         project="TeTRA-pretrain",
         name=f"Student[{model_module.student.name}]-Teacher[{model_module.teacher.name}]-Aug[{conf.augmentation_level}]",
-        config=omegaconf.OmegaConf.to_container(conf, resolve=True),
+        config=OmegaConf.to_container(conf, resolve=True),
     )
 
     trainer = pl.Trainer(
@@ -73,6 +74,9 @@ def setup_training(conf):
         callbacks=[checkpoint_cb, final_checkpoint_cb, learning_rate_cb],
         accumulate_grad_batches=conf.accumulate_grad_batches,
         logger=wandb_logger,
+        limit_train_batches=25,
+        val_check_interval=25, # Check validation every 25 batches
+        check_val_every_n_epoch=None # Disable epoch-based validation
     )
     return trainer, model_module
 
