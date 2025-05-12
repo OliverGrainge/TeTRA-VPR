@@ -35,7 +35,7 @@ def float_to_binary(desc: torch.Tensor) -> torch.Tensor:
     binary = binary.view(binary.shape[0], -1, 8)
     weights = 2 ** torch.arange(7, -1, -1, dtype=torch.uint8, device=binary.device)
     packed = torch.sum(binary * weights, dim=2)
-    return packed
+    return packed.to(torch.uint8)
     
 def replace_model_forward(model: nn.Module) -> nn.Module:
     """
