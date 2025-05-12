@@ -49,7 +49,7 @@ def setup_training(conf):
     )
 
     final_checkpoint_cb = ModelCheckpoint(
-        dirpath=f"./checkpoints/TeTRA-pretrain/",
+        dirpath=f"./checkpoints/TeTRA-pretrain/{config_name}",
         filename="final-{epoch}-{train_loss:.4f}-{qfactor:.2f}",
         save_weights_only=True,
         save_on_train_epoch_end=True,
