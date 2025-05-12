@@ -37,6 +37,8 @@ def _get_transform(conf):
 
 
 def _load_model(conf):
+    if conf.baseline_name is not None: 
+        return get_model(baseline_name=conf.baseline_name)
     model = get_model(
         backbone_arch=conf.backbone_arch,
         agg_arch=conf.agg_arch,
@@ -53,6 +55,7 @@ def _load_model(conf):
 
 def _setup_eval(conf):
     model = _load_model(conf)
+    print(model)
     transform = _get_transform(conf)
 
     eval_module = Eval(
