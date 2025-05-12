@@ -6,6 +6,7 @@ import zipfile
 import sys
 from urllib.request import urlretrieve
 from tqdm import tqdm
+import numpy as np
 
 WEIGHTS_URL = "https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip"
 
@@ -25,6 +26,34 @@ def download_with_progress(url: str, dst_path: str):
         unit="B", unit_scale=True, miniters=1, desc=os.path.basename(dst_path)
     ) as t:
         urlretrieve(url, dst_path, reporthook=t.update_to)
+
+
+def float_to_binary(desc: torch.Tensor) -> torch.Tensor:
+    """Convert float descriptors to binary packed format in PyTorch."""
+    binary = (desc > 0).to(torch.uint8)
+    assert binary.shape[1] % 8 == 0, "Descriptor length must be divisible by 8."
+    binary = binary.view(binary.shape[0], -1, 8)
+    weights = 2 ** torch.arange(7, -1, -1, dtype=torch.uint8, device=binary.device)
+    packed = torch.sum(binary * weights, dim=2)
+    return packed
+    
+def replace_model_forward(model: nn.Module) -> nn.Module:
+    """
+    Monkey-patches `model` so that calling `model(x, desc_type="binary")`
+    will return the packed binary code.  If you call `model(x)` (no
+    desc_type), it just returns the original float descriptor.
+    """
+    old_forward = model.forward
+
+    def new_forward(x, binary_desc: bool = True) -> torch.Tensor:
+        desc = old_forward(x)     
+        if binary_desc == True:
+            desc = float_to_binary(desc)
+        return desc
+
+    model.forward = new_forward
+    return model
+
 
 
 def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:

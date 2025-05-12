@@ -1,33 +1,28 @@
 
 # Model
-pretrain_checkpoint: "/home/oliver/github/TeTRA-VPR/checkpoints/TeTRA-pretrain/Student[VitbaseT322]-Teacher[DinoV2]-Aug[Severe]/epoch=17-step=136250-train_loss=0.0460-qfactor=1.00.ckpt"
+pretrain_checkpoint: "/path/to/pretrain/checkpoint.ckpt"
 backbone_arch: "ternaryvitbase"
 agg_arch: "boq"
 normalize: True
 
 # Data
-train_dataset_dir: /home/oliver/datasets_drive/vpr_datasets/gsv-cities/
-val_dataset_dir: /home/oliver/datasets_drive/vpr_datasets/
+train_dataset_dir: /path/to/vpr_datasets/gsv-cities/
+val_dataset_dir: /path/to/vpr_datasets/
 
 # Training
 lr: 0.0001
-#batch_size: 200
-batch_size: 32
+batch_size: 200
 max_epochs: 40
 precision: "bf16-mixed"
 quant_schedule: "logistic"
 freeze_backbone: True
 freeze_all_except_last_n: 1
 augment_level: "LightAugment"
-#pbar: False
-pbar: True
+pbar: False
 num_workers: 12
 
-image_size: 
-  - 322
-  - 322
-val_set_names:
-  - "MSLS"
+image_size: [322, 322]
+val_set_names: ["MSLS",]
 
 
 
