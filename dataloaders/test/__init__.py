@@ -4,6 +4,8 @@ from .PittsburghDataset import Pitts30k, Pitts250k
 from .MapillaryDataset import MSLS
 from .AmsterTimeDataset import AmsterTime
 from .EynshamDataset import Eynsham
+from .sfxl import SFXLOcclusion
+from .stlucia import StLucia
 
 __all__ = [
     "Tokyo247",
@@ -17,6 +19,8 @@ __all__ = [
     "MSLS",
     "AmsterTime",
     "Eynsham",
+    "SFXLOcclusion",
+    "StLucia",
 ]
 
 
@@ -32,4 +36,6 @@ TEST_DATASETS = {
     "msls": MSLS,
     "amster_time": AmsterTime,
     "eynsham": Eynsham,
+    "sfxlocclusion": SFXLOcclusion,
+    "stlucia": StLucia,
 }

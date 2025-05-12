@@ -1,15 +1,18 @@
-from .dinoboq import DinoBoQ
-from .dinosalad import DinoSalad
-from .resnetboq import ResNetBoQ
+from .dinoboq import DinoBoQ, QDinoBoQ
+from .dinosalad import DinoSalad, QDinoSalad
+from .resnetboq import ResNetBoQ, QResNetBoQ
 from .cosplace import CosPlaceR18D128, CosPlaceR18D32, CosPlaceR18D64, CosPlaceR50D128, CosPlaceR50D2048, CosPlaceR50D32, CosPlaceR50D64
+from .cosplace import QCosPlaceR18D128, QCosPlaceR18D32, QCosPlaceR18D64, QCosPlaceR50D128, QCosPlaceR50D2048, QCosPlaceR50D32, QCosPlaceR50D64
 from .eigenplaces import EigenPlacesR18D256, EigenPlacesR18D512, EigenPlacesR50D128, EigenPlacesR50D2048, EigenPlacesR50D256, EigenPlacesR50D512
-
+from .eigenplaces import QEigenPlacesR18D256, QEigenPlacesR18D512, QEigenPlacesR50D128, QEigenPlacesR50D2048, QEigenPlacesR50D256, QEigenPlacesR50D512
 
 ALL_BASELINES = {
     "dinoboq": DinoBoQ,
+    "qdinoboq": QDinoBoQ,
     "dinosalad": DinoSalad,
+    "qdinosalad": QDinoSalad,
     "resnetboq": ResNetBoQ,
-    "cosplace": CosPlaceR50D64,
+    "qresnetboq": QResNetBoQ,
     "cosplacer18d128": CosPlaceR18D128,
     "cosplacer18d32": CosPlaceR18D32,
     "cosplacer18d64": CosPlaceR18D64,
@@ -17,10 +20,24 @@ ALL_BASELINES = {
     "cosplacer50d2048": CosPlaceR50D2048,
     "cosplacer50d32": CosPlaceR50D32,
     "cosplacer50d64": CosPlaceR50D64,
+    "qcosplacer18d128": QCosPlaceR18D128,
+    "qcosplacer18d32": QCosPlaceR18D32,
+    "qcosplacer18d64": QCosPlaceR18D64,
+    "qcosplacer50d128": QCosPlaceR50D128,
+    "qcosplacer50d2048": QCosPlaceR50D2048,
+    "qcosplacer50d32": QCosPlaceR50D32,
+    "qcosplacer50d64": QCosPlaceR50D64,
     "eigenplacesr18d256": EigenPlacesR18D256,
     "eigenplacesr18d512": EigenPlacesR18D512,
     "eigenplacesr50d128": EigenPlacesR50D128,
     "eigenplacesr50d2048": EigenPlacesR50D2048,
     "eigenplacesr50d256": EigenPlacesR50D256,
     "eigenplacesr50d512": EigenPlacesR50D512,
+    "qeigenplacesr18d256": QEigenPlacesR18D256,
+    "qeigenplacesr18d512": QEigenPlacesR18D512,
+    "qeigenplacesr50d128": QEigenPlacesR50D128,
+    "qeigenplacesr50d2048": QEigenPlacesR50D2048,
+    "qeigenplacesr50d256": QEigenPlacesR50D256,
+    "qeigenplacesr50d512": QEigenPlacesR50D512,
+    
 }

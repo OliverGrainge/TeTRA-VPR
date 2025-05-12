@@ -1320,3 +1320,95 @@ def DinoBoQ(normalize=True):
         )
         model.name = f"DinoV2_BoQ"
     return model
+
+
+
+class QLinear(nn.Linear):
+    def __init__(self, in_features, out_features, bias=True, quant_mode="none"):
+        super().__init__(in_features, out_features, bias)
+        self.quant_mode = quant_mode
+        # Define quantization parameters for 8-bit
+        self.num_bits = 8
+        self.qmin = 0
+        self.qmax = 2**self.num_bits - 1
+
+    @classmethod
+    def from_linear(cls, linear, quant_mode="none"):
+        """
+        Create a QLinear layer from an existing nn.Linear layer.
+        
+        Args:
+            linear (nn.Linear): The existing linear layer
+            quant_mode (str): Quantization mode to use
+            
+        Returns:
+            QLinear: A quantized version of the input linear layer
+        """
+        qlinear = cls(
+            in_features=linear.in_features,
+            out_features=linear.out_features,
+            bias=linear.bias is not None,
+            quant_mode=quant_mode
+        )
+        
+        # Copy the parameters from the original linear layer
+        qlinear.weight.data.copy_(linear.weight.data)
+        if linear.bias is not None:
+            qlinear.bias.data.copy_(linear.bias.data)
+            
+        return qlinear
+
+    def fake_quantize(self, x, scale, zero_point):
+        # Quantize: x_q = round((x / scale) + zero_point)
+        x_q = torch.round(x / scale + zero_point)
+        # Clamp to ensure values stay within quantization range
+        x_q = torch.clamp(x_q, self.qmin, self.qmax)
+        # Dequantize: x_dq = (x_q - zero_point) * scale
+        x_dq = (x_q - zero_point) * scale
+        return x_dq
+
+    def forward(self, x):
+        # Per-channel activation quantization
+        x_abs_max = torch.max(torch.abs(x), dim=1, keepdim=True)[0].detach()
+        act_scale = x_abs_max / (self.qmax / 2)
+        act_zero_point = torch.full_like(act_scale, self.qmax / 2, dtype=torch.float32)
+        x_q = self.fake_quantize(x, act_scale, act_zero_point)
+
+        # Per-channel weight quantization
+        w_abs_max = torch.max(torch.abs(self.weight), dim=1, keepdim=True)[0].detach()
+        w_scale = w_abs_max / (self.qmax / 2)
+        w_zero_point = torch.full_like(w_scale, self.qmax / 2, dtype=torch.float32)
+        w_q = self.fake_quantize(self.weight, w_scale, w_zero_point)
+
+        # Use quantized weights for linear layer
+        return nn.functional.linear(x_q, w_q, self.bias)
+
+
+def quantize_linear(model):
+    """
+    Recursively replace all nn.Linear layers in the model with QLinear layers.
+    
+    Args:
+        model (nn.Module): The model to quantize
+        
+    Returns:
+        nn.Module: The quantized model
+    """
+    # Create a copy of the model to avoid modifying the original
+    model = model.deepcopy() if hasattr(model, 'deepcopy') else model
+    
+    # Recursively replace Linear modules
+    for name, module in model.named_children():
+        if isinstance(module, nn.Linear):
+            # Replace the Linear module with a QLinear module
+            setattr(model, name, QLinear.from_linear(module, quant_mode='none'))
+        elif len(list(module.children())) > 0:
+            # If the module has children, recursively quantize them
+            setattr(model, name, quantize_linear(module))
+    
+    return model
+
+
+def QDinoBoQ(normalize=True):
+    model = DinoBoQ(normalize=normalize)
+    return quantize_linear(model)

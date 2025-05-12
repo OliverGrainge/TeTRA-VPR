@@ -4,11 +4,11 @@ baseline_name: "CosPlaceR50D2048"
 
 image_size: [224, 224]
 
-test_set_names: ["svox_snow"]
+test_set_names: ["sfxlocclusion"]
 
 test_dataset_dir: "/home/oliver/datasets_drive/vpr_datasets"
 num_workers: 12
-batch_size: 32
+batch_size: 256
 k_values: [1, 5, 10]
 matching_precision: "float32"
 

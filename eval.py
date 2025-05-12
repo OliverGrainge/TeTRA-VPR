@@ -56,7 +56,6 @@ def _load_model(conf):
 def _setup_eval(conf):
     model = _load_model(conf)
     transform = _get_transform(conf)
-    print("==========" * 100, conf.test_set_names)
 
     eval_module = Eval(
         model=model,
