@@ -8,7 +8,11 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import numpy as np
 
-WEIGHTS_URL = "https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip"
+WEIGHTS_URL = {
+    "boq": "https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/boq.pth.zip",
+    "salad": "https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/salad.pth.zip",
+}
+
 
 
 def download_with_progress(url: str, dst_path: str):
@@ -73,7 +77,8 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
         # where to cache
         cache_dir = torch.hub.get_dir()
         os.makedirs(cache_dir, exist_ok=True)
-        zip_path = os.path.join(cache_dir, "tetra_weights.zip")
+        pth = "boq.pth.zip" if aggregation_arch == "boq" else "salad.pth.zip"
+        zip_path = os.path.join(cache_dir, pth)
 
         # 1) download with progress if the zip is missing or corrupted
         if not os.path.exists(zip_path) or os.path.getsize(zip_path) < 1024:
