@@ -26,7 +26,7 @@ TEST_DATASETS = {
     "svox_sun": SVOX_Sun,
     "svox_rain": SVOX_Rain,
     "svox_overcast": SVOX_Overcast,
-    "svoxt_snow": SVOX_Snow,
+    "svox_snow": SVOX_Snow,
     "pitts30k": Pitts30k,
     "pitts250k": Pitts250k,
     "msls": MSLS,

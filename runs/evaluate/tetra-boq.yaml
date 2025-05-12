@@ -2,7 +2,7 @@
 backbone_arch: "ternaryvitbase"
 agg_arch: "boq"
 image_size: [322, 322]
-pretrain_checkpoint: "checkpoints/TeTRA-finetune/TeTRA-VitbaseT322_BoQ-QSch[logistic]-Frozen[True]/epoch=16-MSLS_binary_R1=86.58.ckpt"
+pretrain_checkpoint: "/home/oliver/github/TeTRA-VPR/checkpoints/TeTRA-finetune/tetra-boq/epoch=16-MSLS_binary_R1=86.58.ckpt"
 
 test_set_names: ["svox_night", "pitts30k"]
 

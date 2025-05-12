@@ -37,7 +37,7 @@ def _get_transform(conf):
 
 
 def _load_model(conf):
-    if conf.baseline_name is not None: 
+    if hasattr(conf, "baseline_name"): 
         return get_model(baseline_name=conf.baseline_name)
     model = get_model(
         backbone_arch=conf.backbone_arch,
@@ -55,8 +55,8 @@ def _load_model(conf):
 
 def _setup_eval(conf):
     model = _load_model(conf)
-    print(model)
     transform = _get_transform(conf)
+    print("==========" * 100, conf.test_set_names)
 
     eval_module = Eval(
         model=model,
@@ -79,11 +79,27 @@ def _setup_eval(conf):
 
 
 if __name__ == "__main__":
+    torch.set_float32_matmul_precision('high')
     args = _parseargs()
     conf = OmegaConf.load(args.config)
     trainer, eval_module = _setup_eval(conf)
     trainer.test(eval_module)
+
     # Print table
     config_basename = os.path.basename(args.config)
+    base_name, _ = os.path.splitext(config_basename)
     print(f"\nTest Results: {config_basename}")
-    print(tabulate(eval_module.results, headers=eval_module.headers, tablefmt="grid"))
+    table_str = tabulate(eval_module.results, headers=eval_module.headers, tablefmt="grid")
+    print(table_str)
+
+    # Save results
+    os.makedirs("results", exist_ok=True)
+    result_path = os.path.join("results", f"{base_name}.txt")
+    
+    # Append to file if it exists, otherwise create new file
+    mode = "a" if os.path.exists(result_path) else "w"
+    with open(result_path, mode) as f:
+        f.write(f"Test Results: {config_basename}\n")
+        f.write(table_str)
+        f.write("\n\n")  # Add extra newlines for separation between multiple results
+    print(f"\nSaved results to {result_path}")
