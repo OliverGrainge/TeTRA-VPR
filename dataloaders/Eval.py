@@ -1,4 +1,4 @@
-import pytorch_lightning as pl 
+import pytorch_lightning as pl
 from typing import List, Tuple, Callable
 from models.transforms import get_transform
 from dataloaders.test import TEST_DATASETS
@@ -32,7 +32,7 @@ class Eval(pl.LightningModule):
         self.transform = transform
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.matching_precision = matching_precision 
+        self.matching_precision = matching_precision
         self.k_values = k_values
         self.transform = (
             self._default_transform(image_size) if transform is None else transform
@@ -55,7 +55,9 @@ class Eval(pl.LightningModule):
     def _check_test_set_names(self):
         for test_set_name in self.test_set_names:
             if test_set_name not in TEST_DATASETS:
-                raise ValueError(f"Invalid test set name: {test_set_name}, must be one of {TEST_DATASETS.keys()}")
+                raise ValueError(
+                    f"Invalid test set name: {test_set_name}, must be one of {TEST_DATASETS.keys()}"
+                )
 
     def setup(self, stage: str):
         self.test_datasets = [
@@ -90,14 +92,19 @@ class Eval(pl.LightningModule):
 
     def on_test_epoch_end(self):
         table_data = []
-        headers = ["Dataset",f"{self.matching_precision} R@1", f"{self.matching_precision} R@5", f"{self.matching_precision} R@10"]
+        headers = [
+            "Dataset",
+            f"{self.matching_precision} R@1",
+            f"{self.matching_precision} R@5",
+            f"{self.matching_precision} R@10",
+        ]
 
         for idx, test_set_name in enumerate(self.test_set_names):
             recall_at_k = get_recall_at_k(
                 desc=self.descriptors[self.test_set_names[idx]],
                 dataset=self.test_datasets[idx],
                 k_values=self.k_values,
-                precision=self.matching_precision
+                precision=self.matching_precision,
             )
             table_data.append(
                 [
@@ -109,4 +116,3 @@ class Eval(pl.LightningModule):
             )
         self.results = table_data
         self.headers = headers
-

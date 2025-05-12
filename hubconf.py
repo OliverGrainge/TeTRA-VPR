@@ -14,7 +14,6 @@ WEIGHTS_URL = {
 }
 
 
-
 def download_with_progress(url: str, dst_path: str):
     """
     Download a file from `url` to `dst_path`, showing a progress bar using tqdm.
@@ -40,7 +39,8 @@ def float_to_binary(desc: torch.Tensor) -> torch.Tensor:
     weights = 2 ** torch.arange(7, -1, -1, dtype=torch.uint8, device=binary.device)
     packed = torch.sum(binary * weights, dim=2)
     return packed.to(torch.uint8)
-    
+
+
 def replace_model_forward(model: nn.Module) -> nn.Module:
     """
     Monkey-patches `model` so that calling `model(x, desc_type="binary")`
@@ -50,7 +50,7 @@ def replace_model_forward(model: nn.Module) -> nn.Module:
     old_forward = model.forward
 
     def new_forward(x, binary_desc: bool = True) -> torch.Tensor:
-        desc = old_forward(x)     
+        desc = old_forward(x)
         if binary_desc == True:
             desc = float_to_binary(desc)
         return desc
@@ -85,6 +85,8 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
             download_with_progress(WEIGHTS_URL[aggregation_arch], zip_path)
 
         # 2) extract into cache_dir
+        # Open the downloaded zip file and extract all contents
+        # to the tetra_weights directory in the cache
         with zipfile.ZipFile(zip_path, "r") as zf:
             extract_dir = os.path.dirname(zip_path)  # → cache_dir/tetra_weights
             zf.extractall(extract_dir)

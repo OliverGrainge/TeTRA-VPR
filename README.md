@@ -53,21 +53,14 @@ import numpy as np
 from PIL import Image
 
 # Load pre-trained models (BoQ and SALAD aggregation heads)
-tetra_boq   = torch.hub.load(
+tetra   = torch.hub.load(
     repo_or_dir='OliverGrainge/TeTRA-VPR',
     model='TeTRA',
-    aggregation_arch='boq',
+    aggregation_arch='BoQ', 
     pretrained=True
 )
 
-tetra_salad = torch.hub.load(
-    repo_or_dir='OliverGrainge/TeTRA-VPR',
-    model='TeTRA',
-    aggregation_arch='salad',
-    pretrained=True
-)
-
-# Image preprocessing (same as training)
+# Image preprocessing
 transform = T.Compose([
     T.Resize((322, 322)),
     T.ToTensor(),
@@ -82,18 +75,15 @@ img = Image.fromarray(
 img = transform(img)[None]  # add batch dimension
 
 with torch.inference_mode():
-    desc_boq   = tetra_boq(img)  
-    desc_salad = tetra_salad(img)
+    desc = tetra(img, binary_desc=True)
 
-print(desc_boq.shape)
-print(desc_salad.shape)
+print(desc.shape, desc.dtype)
 ```
 
 **Output**
 
 ```
-torch.Size([1, 12288])
-torch.Size([1, 8448])
+torch.Size([1, 1536]) torch.uint8
 ```
 
 Each descriptor is already L2-normalised and binary-packed (1 bit / dim). For nearest-neighbour search we recommend **FAISS IVF-PQ** or **mAP+HNSW**.
@@ -191,8 +181,8 @@ python finetune.py --config runs/finetune/tetra-boq.yaml
 
 | Model       | Aggregation | Descriptor Dim | R\@1 (Tokyo247) | Size  | Link                                                                                            |
 | ----------- | ----------- | -------------- | --------------- | ----- | ----------------------------------------------------------------------------------------------- |
-| TeTRA‑BoQ   | BoQ         | 12288 (binary) | **86.6 %**      | 49 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip) |
-| TeTRA‑SALAD | SALAD       | 8448 (binary)  | 84.7 %          | 45 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/tetra_weights.zip) |
+| TeTRA‑BoQ   | BoQ         | 12288 (binary) | **86.6 %**      | 49 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/boq.pth.zip) |
+| TeTRA‑SALAD | SALAD       | 8448 (binary)  | 84.7 %          | 45 MB | [download](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/salad.pth.zip) |
 
 ---
 
@@ -216,7 +206,7 @@ python finetune.py --config runs/finetune/tetra-boq.yaml
 
 ## Evaluation & Inference
 
-To evaluate a trained model on benchmark datasets, first download and unzip the preprocessed query/database/ground truth files from [this link](https://example.com) and place them in:
+To evaluate a trained model on benchmark datasets, first download and unzip the preprocessed query/database/ground truth files from [this link](https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/image_paths.zip) and place them in:
 
 ```text
 ./dataloaders/image_paths/
