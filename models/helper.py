@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from . import aggregators, backbones
-from .presets import ALL_BASELINES
+from .baselines import ALL_BASELINES
 
 
 def get_backbone(backbone_arch, image_size):

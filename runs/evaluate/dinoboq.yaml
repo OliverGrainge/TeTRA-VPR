@@ -1,0 +1,16 @@
+
+
+baseline_name: "dinoboq"
+
+image_size: [322, 322]
+
+test_set_names: ["msls"]
+
+test_dataset_dir: "/home/oliver/datasets_drive/vpr_datasets"
+num_workers: 12
+batch_size: 32
+k_values: [1, 5, 10]
+matching_precision: "float32"
+
+
+
