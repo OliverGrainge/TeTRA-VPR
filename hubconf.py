@@ -55,7 +55,6 @@ def replace_model_forward(model: nn.Module) -> nn.Module:
     return model
 
 
-
 def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
     aggregation_arch = aggregation_arch.lower()
     assert aggregation_arch in [
@@ -105,6 +104,7 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
         # 6) load weights
         state_dict = torch.load(weight_path, map_location="cpu")
         model.load_state_dict(state_dict)
+        model = replace_model_forward(model)
         model.eval()
 
     return model
