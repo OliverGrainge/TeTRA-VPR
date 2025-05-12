@@ -19,6 +19,7 @@ from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
 from dataloaders.utils.distances import binarize
 from models.transforms import get_transform
 
+
 def _linear_schedule(step, total_steps):
     return min(step / total_steps, 1.0)
 

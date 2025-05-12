@@ -13,35 +13,37 @@ from dataloaders.TeTRA import TeTRA
 from models.helper import get_model
 
 CITIES = (
-        "Bangkok",
-        "BuenosAires",
-        "LosAngeles",
-        "MexicoCity",
-        "OSL",
-        "Rome",
-        "Barcelona",
-        "Chicago",
-        "Madrid",
-        "Miami",
-        "Phoenix",
-        "TRT",
-        "Boston",
-        "Lisbon",
-        "Medellin",
-        "Minneapolis",
-        "PRG",
-        "WashingtonDC",
-        "Brussels",
-        "London",
-        "Melbourne",
-        "Osaka",
-        "PRS",
-    )
+    "Bangkok",
+    "BuenosAires",
+    "LosAngeles",
+    "MexicoCity",
+    "OSL",
+    "Rome",
+    "Barcelona",
+    "Chicago",
+    "Madrid",
+    "Miami",
+    "Phoenix",
+    "TRT",
+    "Boston",
+    "Lisbon",
+    "Medellin",
+    "Minneapolis",
+    "PRG",
+    "WashingtonDC",
+    "Brussels",
+    "London",
+    "Melbourne",
+    "Osaka",
+    "PRS",
+)
+
 
 def _parseargs():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="myyaml.yaml")
     return parser.parse_args()
+
 
 def _freeze_module(module):
     for param in module.parameters():
@@ -150,7 +152,6 @@ def setup_training(conf, model):
         check_val_every_n_epoch=1,
         log_every_n_steps=10,
         limit_train_batches=25,
-        
     )
 
     return trainer, model_module

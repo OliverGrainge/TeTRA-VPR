@@ -25,9 +25,7 @@ DATASET_MAPPING = {
 }
 
 
-def get_val_dataset(
-    val_set_name: str, val_dataset_dir: str, transform
-):
+def get_val_dataset(val_set_name: str, val_dataset_dir: str, transform):
     val_set_name = val_set_name.lower()
 
     # Find the first matching dataset key

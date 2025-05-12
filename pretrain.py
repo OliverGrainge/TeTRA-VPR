@@ -15,10 +15,11 @@ from config import DistillConfig, ModelConfig
 from dataloaders.Distill import Distill
 
 
-def _argparse(): 
+def _argparse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="myyaml.yaml")
     return parser.parse_args()
+
 
 def setup_training(conf):
     model_module = Distill(  #
@@ -34,7 +35,7 @@ def setup_training(conf):
         use_attn_loss=conf.use_attn_loss,
     )
     config_name = os.path.splitext(os.path.basename(args.config))[0]
-    
+
     checkpoint_cb = ModelCheckpoint(
         monitor="train_loss",
         dirpath=f"./checkpoints/TeTRA-pretrain/{config_name}",
@@ -66,7 +67,9 @@ def setup_training(conf):
 
     trainer = pl.Trainer(
         enable_progress_bar=conf.pbar,
-        strategy=DDPStrategy(find_unused_parameters=True) if conf.use_ddp else "Auto", # Use this for multi-GPU training
+        strategy=(
+            DDPStrategy(find_unused_parameters=True) if conf.use_ddp else "Auto"
+        ),  # Use this for multi-GPU training
         accelerator="auto",
         num_sanity_val_steps=0,
         precision=conf.precision,
@@ -75,8 +78,8 @@ def setup_training(conf):
         accumulate_grad_batches=conf.accumulate_grad_batches,
         logger=wandb_logger,
         limit_train_batches=25,
-        val_check_interval=25, # Check validation every 25 batches
-        check_val_every_n_epoch=None # Disable epoch-based validation
+        val_check_interval=25,  # Check validation every 25 batches
+        check_val_every_n_epoch=None,  # Disable epoch-based validation
     )
     return trainer, model_module
 

@@ -9,9 +9,14 @@ from torch.utils.data import Dataset
 class Pitts30k(Dataset):
     """Dataset class for Pittsburgh 30k visual place recognition benchmark"""
 
-    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="Pittsburgh-Query"):
+    def __init__(
+        self,
+        val_dataset_dir=None,
+        input_transform=None,
+        dataset_folder="Pittsburgh-Query",
+    ):
         """Initialize the dataset
-        
+
         Args:
             val_dataset_dir: Root directory containing the dataset
             input_transform: Optional transforms to apply to images
@@ -19,14 +24,17 @@ class Pitts30k(Dataset):
         """
         self.input_transform = input_transform
         self.dataset_root = os.path.join(val_dataset_dir, dataset_folder)
-        
+
         # Load image paths and ground truth
-        self.dbImages = np.load("dataloaders/image_paths/pitts30k_test_dbImages.npy",
-                               allow_pickle=True)
-        self.qImages = np.load("dataloaders/image_paths/pitts30k_test_qImages.npy", 
-                              allow_pickle=True)
-        self.ground_truth = np.load("dataloaders/image_paths/pitts30k_test_gt.npy",
-                                   allow_pickle=True)
+        self.dbImages = np.load(
+            "dataloaders/image_paths/pitts30k_test_dbImages.npy", allow_pickle=True
+        )
+        self.qImages = np.load(
+            "dataloaders/image_paths/pitts30k_test_qImages.npy", allow_pickle=True
+        )
+        self.ground_truth = np.load(
+            "dataloaders/image_paths/pitts30k_test_gt.npy", allow_pickle=True
+        )
 
         # Combine reference and query images
         self.images = np.concatenate((self.dbImages, self.qImages))
@@ -35,19 +43,19 @@ class Pitts30k(Dataset):
 
     def __getitem__(self, index):
         """Get an image and its index
-        
+
         Args:
             index: Index of image to retrieve
-            
+
         Returns:
             tuple: (image, index)
         """
         img_path = os.path.join(self.dataset_root, self.images[index].lstrip("/"))
         img = Image.open(img_path)
-        
+
         if self.input_transform:
             img = self.input_transform(img)
-            
+
         return img, index
 
     def __len__(self):
@@ -59,10 +67,15 @@ class Pitts30k(Dataset):
 
 class Pitts250k(Dataset):
     """Dataset class for Pittsburgh 250k visual place recognition benchmark"""
-    
-    def __init__(self, val_dataset_dir=None, input_transform=None, dataset_folder="Pittsburgh-Query"):
+
+    def __init__(
+        self,
+        val_dataset_dir=None,
+        input_transform=None,
+        dataset_folder="Pittsburgh-Query",
+    ):
         """Initialize the dataset
-        
+
         Args:
             val_dataset_dir: Root directory containing dataset images
             input_transform: Optional transforms to apply to images
@@ -71,12 +84,15 @@ class Pitts250k(Dataset):
         self.dataset_root = os.path.join(val_dataset_dir, dataset_folder)
 
         # Load image paths and ground truth
-        self.dbImages = np.load("dataloaders/image_paths/pitts250k_test_dbImages.npy",
-                               allow_pickle=True)
-        self.qImages = np.load("dataloaders/image_paths/pitts250k_test_qImages.npy",
-                              allow_pickle=True)
-        self.ground_truth = np.load("dataloaders/image_paths/pitts250k_test_gt.npy",
-                                   allow_pickle=True)
+        self.dbImages = np.load(
+            "dataloaders/image_paths/pitts250k_test_dbImages.npy", allow_pickle=True
+        )
+        self.qImages = np.load(
+            "dataloaders/image_paths/pitts250k_test_qImages.npy", allow_pickle=True
+        )
+        self.ground_truth = np.load(
+            "dataloaders/image_paths/pitts250k_test_gt.npy", allow_pickle=True
+        )
 
         # Combine reference and query images
         self.images = np.concatenate((self.dbImages, self.qImages))
@@ -85,19 +101,19 @@ class Pitts250k(Dataset):
 
     def __getitem__(self, index):
         """Get an image and its index
-        
+
         Args:
             index: Index of image to retrieve
-            
+
         Returns:
             tuple: (image, index)
         """
         img_path = os.path.join(self.dataset_root, self.images[index])
         img = Image.open(img_path)
-        
+
         if self.input_transform:
             img = self.input_transform(img)
-            
+
         return img, index
 
     def __len__(self):
