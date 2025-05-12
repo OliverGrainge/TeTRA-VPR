@@ -39,8 +39,6 @@ class Eval(pl.LightningModule):
         )
         self._check_test_set_names()
 
-        print("=============" * 100, self.k_values, type(self.k_values))
-
     def forward(self, x):
         return self.model(x)
 
@@ -92,7 +90,7 @@ class Eval(pl.LightningModule):
 
     def on_test_epoch_end(self):
         table_data = []
-        headers = ["Dataset", "R@1", "R@5", "R@10"]
+        headers = ["Dataset",f"{self.matching_precision} R@1", f"{self.matching_precision} R@5", f"{self.matching_precision} R@10"]
 
         for idx, test_set_name in enumerate(self.test_set_names):
             recall_at_k = get_recall_at_k(
@@ -109,7 +107,6 @@ class Eval(pl.LightningModule):
                     f"{recall_at_k[2]:.2f}",
                 ]
             )
+        self.results = table_data
+        self.headers = headers
 
-        # Print table
-        print("\nTest Results:")
-        print(tabulate(table_data, headers=headers, tablefmt="grid"))

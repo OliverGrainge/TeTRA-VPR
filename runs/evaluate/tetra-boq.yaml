@@ -2,15 +2,15 @@
 backbone_arch: "ternaryvitbase"
 agg_arch: "boq"
 image_size: [322, 322]
-pretrain_checkpoint: "/path/to/pretrained/checkpoint"
+pretrain_checkpoint: "checkpoints/TeTRA-finetune/TeTRA-VitbaseT322_BoQ-QSch[logistic]-Frozen[True]/epoch=16-MSLS_binary_R1=86.58.ckpt"
 
-test_set_names: ["svox_night"]
+test_set_names: ["svox_night", "pitts30k"]
 
 test_dataset_dir: "/home/oliver/datasets_drive/vpr_datasets"
 num_workers: 12
 batch_size: 32
 k_values: [1, 5, 10]
-matching_precision: "float32"
+matching_precision: "binary"
 
 
 

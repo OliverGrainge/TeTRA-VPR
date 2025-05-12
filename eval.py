@@ -5,14 +5,23 @@ import pytorch_lightning as pl
 import argparse
 from omegaconf import OmegaConf
 from models.transforms import get_transform
+import torch 
+from tabulate import tabulate
 
 def _parseargs(): 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     return parser.parse_args()
 
+
 def _load_checkpoint(model, checkpoint_path):
-    return model 
+    assert os.path.exists(
+        checkpoint_path
+    ), f"Backbone weights path {checkpoint_path} does not exist"
+    sd = torch.load(checkpoint_path, weights_only=False)["state_dict"]
+    model.load_state_dict(sd)
+    print(f"Loaded checkpoint from {checkpoint_path}")
+    return model
 
 def _freeze_model(model):
     for param in model.parameters():
@@ -67,3 +76,7 @@ if __name__ == "__main__":
     conf = OmegaConf.load(args.config)
     trainer, eval_module = _setup_eval(conf)
     trainer.test(eval_module)
+            # Print table
+    config_basename = os.path.basename(args.config)
+    print(f"\nTest Results: {config_basename}")
+    print(tabulate(eval_module.results, headers=eval_module.headers, tablefmt="grid"))
