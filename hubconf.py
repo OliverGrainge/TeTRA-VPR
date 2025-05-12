@@ -78,8 +78,7 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
         cache_dir = torch.hub.get_dir()
         os.makedirs(cache_dir, exist_ok=True)
         os.makedirs(os.path.join(cache_dir, "tetra_weights"), exist_ok=True)
-        pth = "tetra_weights/boq.zip" if aggregation_arch == "boq" else "tetra_weights/salad.zip"
-        zip_path = os.path.join(cache_dir, pth)
+        zip_path = os.path.join(cache_dir, "tetra_weights", f"{aggregation_arch}.zip")
 
         # 1) download with progress if the zip is missing or corrupted
         if not os.path.exists(zip_path) or os.path.getsize(zip_path) < 1024:
@@ -87,7 +86,8 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
 
         # 2) extract into cache_dir
         with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall(cache_dir)
+            extract_dir = os.path.dirname(zip_path)  # → cache_dir/tetra_weights
+            zf.extractall(extract_dir)
 
         # 3) locate the directory containing weights
         default_dir = os.path.join(cache_dir, "tetra_weights")
