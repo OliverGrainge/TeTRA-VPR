@@ -10,7 +10,6 @@ def match_cosine(
     ground_truth: "np.ndarray",
     k_values: list[int] = [1],
 ) -> tuple[np.ndarray, np.ndarray]:
-    
     """Compute cosine similarity matching accuracy using FAISS.
 
     Args:
@@ -41,12 +40,11 @@ def match_cosine(
 
     # Create and configure FAISS index
     index = faiss.IndexFlatIP(reference_desc.shape[1])
-    for i in range(10): 
+    for i in range(10):
         print("ref norm", np.linalg.norm(reference_desc[i]))
         print("query norm", np.linalg.norm(query_desc[i]))
-    #index = faiss.IndexFlatL2(reference_desc.shape[1])
+    # index = faiss.IndexFlatL2(reference_desc.shape[1])
     index.add(reference_desc)
-
 
     # Perform similarity search
 

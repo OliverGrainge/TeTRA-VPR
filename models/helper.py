@@ -78,20 +78,18 @@ class VPRModel(nn.Module):
             self.backbone.deploy(use_bitblas=use_bitblas)
 
 
-
-
-
 def get_model(
     image_size=[322, 322],
     backbone_arch="ternaryvitbase",
     agg_arch="boq",
     normalize=True,
     baseline_name=None,
-):  
-    
-   
-    if baseline_name is not None: 
-        assert baseline_name.lower() in ALL_BASELINES.keys(), f"Baseline {baseline_name} not available, choose from {ALL_BASELINES.keys()}"
+):
+
+    if baseline_name is not None:
+        assert (
+            baseline_name.lower() in ALL_BASELINES.keys()
+        ), f"Baseline {baseline_name} not available, choose from {ALL_BASELINES.keys()}"
         return ALL_BASELINES[baseline_name.lower()]()
     image_size = (image_size, image_size) if isinstance(image_size, int) else image_size
     backbone = get_backbone(backbone_arch, image_size=image_size)

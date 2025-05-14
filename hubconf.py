@@ -1,12 +1,14 @@
-from models.helper import get_model
-import torch.nn as nn
-import torch
 import os
-import zipfile
 import sys
+import zipfile
 from urllib.request import urlretrieve
-from tqdm import tqdm
+
 import numpy as np
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+
+from models.helper import get_model
 
 WEIGHTS_URL = {
     "boq": "https://github.com/OliverGrainge/TeTRA-VPR/releases/download/V1.0/boq.pth.zip",

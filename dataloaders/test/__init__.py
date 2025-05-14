@@ -1,11 +1,12 @@
-from .Tokyo247Dataset import Tokyo247
-from .SVOXDataset import SVOX_Night, SVOX_Sun, SVOX_Rain, SVOX_Overcast, SVOX_Snow
-from .PittsburghDataset import Pitts30k, Pitts250k
-from .MapillaryDataset import MSLS
 from .AmsterTimeDataset import AmsterTime
 from .EynshamDataset import Eynsham
+from .MapillaryDataset import MSLS
+from .PittsburghDataset import Pitts30k, Pitts250k
 from .sfxl import SFXLOcclusion
 from .stlucia import StLucia
+from .SVOXDataset import (SVOX_Night, SVOX_Overcast, SVOX_Rain, SVOX_Snow,
+                          SVOX_Sun)
+from .Tokyo247Dataset import Tokyo247
 
 __all__ = [
     "Tokyo247",

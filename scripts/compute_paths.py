@@ -1,8 +1,9 @@
 import argparse
-from glob import glob
 import os
-from sklearn.neighbors import NearestNeighbors
+from glob import glob
+
 import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 
 def _parse_args():
@@ -63,12 +64,13 @@ def read_images_paths(dataset_folder):
     return images_paths
 
 
-def _positive_match_idxs(gt): 
+def _positive_match_idxs(gt):
     idxs = []
-    for i, positives in enumerate(gt): 
-        if len(positives) > 0: 
+    for i, positives in enumerate(gt):
+        if len(positives) > 0:
             idxs.append(i)
     return idxs
+
 
 def _compute_gt(database_paths, queries_paths):
     try:
@@ -93,7 +95,7 @@ def _compute_gt(database_paths, queries_paths):
     knn = NearestNeighbors(n_jobs=-1)
     knn.fit(database_utms)
     gt = knn.radius_neighbors(queries_utms, radius=25, return_distance=False)
-    
+
     # Filter out queries that don't have any positives
     return gt
 
@@ -113,9 +115,9 @@ def compute_paths(dataset_dir, database_dir=None, queries_dir=None):
     queries_paths = read_images_paths(queries_folder)
     gt = _compute_gt(database_paths, queries_paths)
 
-    #positive_match_idxs = _positive_match_idxs(gt)
-    #queries_paths = np.array([queries_paths[i] for i in positive_match_idxs])
-    #gt = np.array([gt[i] for i in positive_match_idxs], dtype=object)
+    # positive_match_idxs = _positive_match_idxs(gt)
+    # queries_paths = np.array([queries_paths[i] for i in positive_match_idxs])
+    # gt = np.array([gt[i] for i in positive_match_idxs], dtype=object)
     return database_paths, queries_paths, gt
 
 

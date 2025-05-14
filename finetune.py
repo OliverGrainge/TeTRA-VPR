@@ -4,9 +4,9 @@ import os
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-from omegaconf import OmegaConf
 
 from config import ModelConfig, TeTRAConfig
 from dataloaders.TeTRA import TeTRA

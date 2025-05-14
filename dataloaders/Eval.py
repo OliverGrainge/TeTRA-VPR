@@ -1,13 +1,15 @@
+from typing import Callable, List, Tuple
+
+import numpy as np
 import pytorch_lightning as pl
-from typing import List, Tuple, Callable
-from models.transforms import get_transform
-from dataloaders.test import TEST_DATASETS
-from torch.utils.data import DataLoader
-from dataloaders.utils.accuracy import get_recall_at_k
 import torch
 from PIL import Image
-import numpy as np
 from tabulate import tabulate
+from torch.utils.data import DataLoader
+
+from dataloaders.test import TEST_DATASETS
+from dataloaders.utils.accuracy import get_recall_at_k
+from models.transforms import get_transform
 
 
 class Eval(pl.LightningModule):

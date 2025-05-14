@@ -1,10 +1,17 @@
+from .cosplace import (CosPlaceR18D32, CosPlaceR18D64, CosPlaceR18D128,
+                       CosPlaceR50D32, CosPlaceR50D64, CosPlaceR50D128,
+                       CosPlaceR50D2048, QCosPlaceR18D32, QCosPlaceR18D64,
+                       QCosPlaceR18D128, QCosPlaceR50D32, QCosPlaceR50D64,
+                       QCosPlaceR50D128, QCosPlaceR50D2048)
 from .dinoboq import DinoBoQ, QDinoBoQ
 from .dinosalad import DinoSalad, QDinoSalad
-from .resnetboq import ResNetBoQ, QResNetBoQ
-from .cosplace import CosPlaceR18D128, CosPlaceR18D32, CosPlaceR18D64, CosPlaceR50D128, CosPlaceR50D2048, CosPlaceR50D32, CosPlaceR50D64
-from .cosplace import QCosPlaceR18D128, QCosPlaceR18D32, QCosPlaceR18D64, QCosPlaceR50D128, QCosPlaceR50D2048, QCosPlaceR50D32, QCosPlaceR50D64
-from .eigenplaces import EigenPlacesR18D256, EigenPlacesR18D512, EigenPlacesR50D128, EigenPlacesR50D2048, EigenPlacesR50D256, EigenPlacesR50D512
-from .eigenplaces import QEigenPlacesR18D256, QEigenPlacesR18D512, QEigenPlacesR50D128, QEigenPlacesR50D2048, QEigenPlacesR50D256, QEigenPlacesR50D512
+from .eigenplaces import (EigenPlacesR18D256, EigenPlacesR18D512,
+                          EigenPlacesR50D128, EigenPlacesR50D256,
+                          EigenPlacesR50D512, EigenPlacesR50D2048,
+                          QEigenPlacesR18D256, QEigenPlacesR18D512,
+                          QEigenPlacesR50D128, QEigenPlacesR50D256,
+                          QEigenPlacesR50D512, QEigenPlacesR50D2048)
+from .resnetboq import QResNetBoQ, ResNetBoQ
 
 ALL_BASELINES = {
     "dinoboq": DinoBoQ,
@@ -39,5 +46,4 @@ ALL_BASELINES = {
     "qeigenplacesr50d2048": QEigenPlacesR50D2048,
     "qeigenplacesr50d256": QEigenPlacesR50D256,
     "qeigenplacesr50d512": QEigenPlacesR50D512,
-    
 }

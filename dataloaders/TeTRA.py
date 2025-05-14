@@ -14,8 +14,8 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 
 import wandb
-from dataloaders.utils.accuracy import get_recall_at_k, get_val_dataset
 from dataloaders.train.GSVCitiesDataset import GSVCitiesDataset
+from dataloaders.utils.accuracy import get_recall_at_k, get_val_dataset
 from dataloaders.utils.distances import binarize
 from models.transforms import get_transform
 

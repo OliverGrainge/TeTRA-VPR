@@ -27,10 +27,12 @@ class SFXLOcclusion(Dataset):
 
         # Load image paths and ground truth
         self.dbImages = np.load(
-            "dataloaders/image_paths/sf_xl_occlusion_test_dbImages.npy", allow_pickle=True
+            "dataloaders/image_paths/sf_xl_occlusion_test_dbImages.npy",
+            allow_pickle=True,
         )
         self.qImages = np.load(
-            "dataloaders/image_paths/sf_xl_occlusion_test_qImages.npy", allow_pickle=True
+            "dataloaders/image_paths/sf_xl_occlusion_test_qImages.npy",
+            allow_pickle=True,
         )
         self.ground_truth = np.load(
             "dataloaders/image_paths/sf_xl_occlusion_test_gt.npy", allow_pickle=True

@@ -1,9 +1,9 @@
 import pytorch_lightning as pl
 import torch
+from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.strategies import DDPStrategy
-from omegaconf import OmegaConf
 
 torch.set_float32_matmul_precision("medium")
 

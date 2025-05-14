@@ -456,7 +456,6 @@ def DinoSalad(
     return model
 
 
-
 class QLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True, quant_mode="none"):
         super().__init__(in_features, out_features, bias)
@@ -470,11 +469,11 @@ class QLinear(nn.Linear):
     def from_linear(cls, linear, quant_mode="none"):
         """
         Create a QLinear layer from an existing nn.Linear layer.
-        
+
         Args:
             linear (nn.Linear): The existing linear layer
             quant_mode (str): Quantization mode to use
-            
+
         Returns:
             QLinear: A quantized version of the input linear layer
         """
@@ -482,14 +481,14 @@ class QLinear(nn.Linear):
             in_features=linear.in_features,
             out_features=linear.out_features,
             bias=linear.bias is not None,
-            quant_mode=quant_mode
+            quant_mode=quant_mode,
         )
-        
+
         # Copy the parameters from the original linear layer
         qlinear.weight.data.copy_(linear.weight.data)
         if linear.bias is not None:
             qlinear.bias.data.copy_(linear.bias.data)
-            
+
         return qlinear
 
     def fake_quantize(self, x, scale, zero_point):
@@ -521,27 +520,26 @@ class QLinear(nn.Linear):
 def quantize_linear(model):
     """
     Recursively replace all nn.Linear layers in the model with QLinear layers.
-    
+
     Args:
         model (nn.Module): The model to quantize
-        
+
     Returns:
         nn.Module: The quantized model
     """
     # Create a copy of the model to avoid modifying the original
-    model = model.deepcopy() if hasattr(model, 'deepcopy') else model
-    
+    model = model.deepcopy() if hasattr(model, "deepcopy") else model
+
     # Recursively replace Linear modules
     for name, module in model.named_children():
         if isinstance(module, nn.Linear):
             # Replace the Linear module with a QLinear module
-            setattr(model, name, QLinear.from_linear(module, quant_mode='none'))
+            setattr(model, name, QLinear.from_linear(module, quant_mode="none"))
         elif len(list(module.children())) > 0:
             # If the module has children, recursively quantize them
             setattr(model, name, quantize_linear(module))
-    
-    return model
 
+    return model
 
 
 def QDinoSalad(normalize=True):
