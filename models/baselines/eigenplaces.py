@@ -224,13 +224,11 @@ def EigenPlacesR50D128(normalize=True):
     return model
 
 def EigenPlacesR50D2048(normalize=True):
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
-        io.StringIO()
-    ):
-        model = get_trained_model(
-            backbone="ResNet50", fc_output_dim=2048, normalize=normalize
-        )
-        model.name = f"EigenPlacesR50D2048"
+
+    model = get_trained_model(
+        backbone="ResNet50", fc_output_dim=2048, normalize=normalize
+    )
+    model.name = f"EigenPlacesR50D2048"
 
     return model
 

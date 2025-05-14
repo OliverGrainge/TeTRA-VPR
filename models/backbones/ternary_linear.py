@@ -102,8 +102,9 @@ class TernaryLinear(nn.Linear):
 
     @torch.no_grad()
     def eval_forward(self, x):
+        device = x.device
         qx, act_scale = activation_quant_real(x)
-        out = torch.matmul(qx.to(x.dtype), self.qweight.T.to(x.dtype))
+        out = torch.matmul(qx.float(), self.qweight.T.float())
         out = out / act_scale / self.scale
         if self.bias is not None:
             out += self.bias.to(out.dtype)
@@ -169,7 +170,7 @@ class TernaryLinear(nn.Linear):
             # Only quantize if we haven't deployed yet
             if not (self.deployed_real or self.deployed_fake):
                 qweight, scale = weight_quant_real(self.weight)
-                self.qweight = qweight
+                self.qweight = nn.Parameter(qweight, requires_grad=False)
                 self.scale = scale
         self = super().train(mode)
 

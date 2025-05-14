@@ -82,12 +82,12 @@ class Eval(pl.LightningModule):
         self.descriptors = {}
         for idx, test_dataset in enumerate(self.test_datasets):
             self.descriptors[self.test_set_names[idx]] = torch.zeros(
-                len(test_dataset), desc_dim, dtype=torch.float16
+                len(test_dataset), desc_dim, dtype=torch.float32
             )
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
         imgs, idx = batch
-        desc = self(imgs).detach().cpu().type(torch.float16)
+        desc = self(imgs).detach().cpu().type(torch.float32)
         self.descriptors[self.test_set_names[dataloader_idx]][idx] = desc
 
     def on_test_epoch_end(self):
