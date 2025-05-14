@@ -114,5 +114,4 @@ def TeTRA(aggregation_arch: str = "boq", pretrained: bool = True) -> nn.Module:
         model.load_state_dict(state_dict)
     model = replace_model_forward(model)
     model.eval()
-
     return model
