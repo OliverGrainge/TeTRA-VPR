@@ -2,13 +2,6 @@ import torch
 import faiss 
 import numpy as np 
 import argparse 
-import sys 
-import os
- 
-
-# Add the parent directory to the path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hubconf import TeTRA 
 
 
 def _parseargs(): 
@@ -32,7 +25,12 @@ def _get_desc_size(model, image):
 
 def _load_model(model_name: str): 
     if model_name == "tetra": 
-        model = TeTRA(aggregation_arch="boq", pretrained=False)
+        model = torch.hub.load(
+            repo_or_dir='OliverGrainge/TeTRA-VPR',
+            model='TeTRA',
+            aggregation_arch='BoQ', 
+            pretrained=True
+        )
     elif model_name == "cosplace": 
         model = torch.hub.load(
             "gmberton/cosplace",
